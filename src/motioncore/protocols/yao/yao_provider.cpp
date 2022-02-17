@@ -193,6 +193,32 @@ WireVector YaoProvider::make_boolean_input_gate_other(std::size_t input_owner,
   return cast_wires(std::move(output));
 }
 
+//Input gates to take shares directly
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+YaoProvider::make_arithmetic_8_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 8 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+YaoProvider::make_arithmetic_16_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 16 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+YaoProvider::make_arithmetic_32_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 32 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+YaoProvider::make_arithmetic_64_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
+}
+
 ENCRYPTO::ReusableFiberFuture<BitValues> YaoProvider::make_boolean_output_gate_my(
     std::size_t output_owner, const WireVector& in) {
   if (output_owner == 1 - my_id_) {

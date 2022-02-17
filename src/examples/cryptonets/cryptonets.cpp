@@ -83,13 +83,13 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << desc << "\n";
     return std::nullopt;
   }
-  try {
-    po::notify(vm);
-  } catch (std::exception& e) {
-    std::cerr << e.what() << "\n\n";
-    std::cerr << desc << "\n";
-    return std::nullopt;
-  }
+  // try {
+  //   po::notify(vm);
+  // } catch (std::exception& e) {
+  //   std::cerr << e.what() << "\n\n";
+  //   std::cerr << desc << "\n";
+  //   return std::nullopt;
+  // }
 
   if (vm.count("config-file")) {
     std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
@@ -182,7 +182,6 @@ ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> build_cryptonets(
       .input_A_shape_ = {1, 845}, .input_B_shape_ = {845, 100}, .output_shape_ = {1, 100}};
   const MOTION::tensor::GemmOp gemm_op_2 = {
       .input_A_shape_ = {1, 100}, .input_B_shape_ = {100, 10}, .output_shape_ = {1, 10}};
-
   MOTION::tensor::TensorCP input_tensor;
   MOTION::tensor::TensorCP conv_weights_tensor;
   MOTION::tensor::TensorCP squashed_weights_tensor;
@@ -210,10 +209,12 @@ ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> build_cryptonets(
     conv_weights_tensor = ret1.second;
     ret1.first.set_value(
         MOTION::Helpers::RandomVector<std::uint64_t>(conv_weights_dims.get_data_size()));
+    
     auto ret2 = arithmetic_tof.make_arithmetic_64_tensor_input_my(squashed_weights_dims);
     squashed_weights_tensor = ret2.second;
     ret2.first.set_value(
         MOTION::Helpers::RandomVector<std::uint64_t>(squashed_weights_dims.get_data_size()));
+    
     auto ret3 = arithmetic_tof.make_arithmetic_64_tensor_input_my(fully_connected_weights_dims);
     fully_connected_weights_tensor = ret3.second;
     ret3.first.set_value(

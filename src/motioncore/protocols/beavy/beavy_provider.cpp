@@ -192,7 +192,7 @@ BEAVYProvider::basic_make_arithmetic_input_gate_my(std::size_t input_owner, std:
   }
   ENCRYPTO::ReusableFiberPromise<std::vector<T>> promise;
   auto gate_id = gate_register_.get_next_gate_id();
-  auto gate = std::make_unique<ArithmeticBEAVYInputGateSender<T>>(gate_id, *this, num_simd,
+  auto gate = std::make_unique<ArithmeticBEAVYInputGateSender<T>>(gate_id, *this, num_simd, 
                                                                   promise.get_future());
   auto output = gate->get_output_wire();
   gate_register_.register_gate(std::move(gate));
@@ -246,6 +246,46 @@ WireVector BEAVYProvider::make_arithmetic_64_input_gate_other(std::size_t input_
                                                               std::size_t num_simd) {
   return basic_make_arithmetic_input_gate_other<std::uint64_t>(input_owner, num_simd);
 }
+
+//Input gates to take shares directly
+template <typename T>
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, WireVector >
+BEAVYProvider::basic_make_arithmetic_input_gate_shares(std::size_t num_simd) {
+  auto gate_id = gate_register_.get_next_gate_id();
+  ENCRYPTO::ReusableFiberPromise<std::vector<T>> DeltaPromise, deltaPromise;
+  auto gate = std::make_unique<ArithmeticBEAVYInputGateShares<T>>(gate_id, *this, num_simd,
+                                                                  DeltaPromise.get_future(),deltaPromise.get_future());
+  auto output = gate->get_output_wire();
+  gate_register_.register_gate(std::move(gate));
+
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>> input_promises;
+  input_promises.push_back(std::move(DeltaPromise));
+  input_promises.push_back(std::move(deltaPromise));
+
+
+  return {std::move(input_promises),{cast_arith_wire(std::move(output))}};
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_8_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint8_t>(num_simd);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_16_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint16_t>(num_simd);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_32_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint32_t>(num_simd);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_64_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint64_t>(num_simd);
+}
+
 
 template <typename T>
 ENCRYPTO::ReusableFiberFuture<IntegerValues<T>> BEAVYProvider::basic_make_arithmetic_output_gate_my(

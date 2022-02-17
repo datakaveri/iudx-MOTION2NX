@@ -248,6 +248,32 @@ WireVector GMWProvider::make_arithmetic_64_input_gate_other(std::size_t input_ow
   return basic_make_arithmetic_input_gate_other<std::uint64_t>(input_owner, num_simd);
 }
 
+//Input gates to take shares directly
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+GMWProvider::make_arithmetic_8_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 8 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+GMWProvider::make_arithmetic_16_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 16 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+GMWProvider::make_arithmetic_32_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 32 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+GMWProvider::make_arithmetic_64_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
+}
+
 template <typename T>
 ENCRYPTO::ReusableFiberFuture<IntegerValues<T>> GMWProvider::basic_make_arithmetic_output_gate_my(
     std::size_t output_owner, const WireVector& in) {

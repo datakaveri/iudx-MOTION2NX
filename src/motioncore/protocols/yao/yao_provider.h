@@ -105,6 +105,19 @@ class YaoProvider : public GateFactory,
                                                                        const WireVector&) override;
   void make_boolean_output_gate_other(std::size_t output_owner, const WireVector&) override;
 
+  //Input gates to take shares directly
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+  make_arithmetic_8_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+  make_arithmetic_16_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+  make_arithmetic_32_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+  make_arithmetic_64_input_gate_shares(std::size_t num_simd) override;  
+
   std::vector<std::shared_ptr<NewWire>> make_unary_gate(
       ENCRYPTO::PrimitiveOperationType op, const std::vector<std::shared_ptr<NewWire>>&) override;
 

@@ -67,7 +67,7 @@ void GateExecutor::evaluate_setup_online(Statistics::RunTimeStats &stats) {
 
   // evaluate the online phase of all the gates
   for (auto &gate : register_.GetGates()) {
-    fpool.post([&] { gate->EvaluateOnline(); });
+    fpool.post([&] { gate->EvaluateOnline(); }); // me
   }
   register_.GetGatesOnlineDoneCondition()->Wait();
   assert(register_.GetNumOfEvaluatedGates() == register_.GetTotalNumOfGates());
@@ -102,9 +102,9 @@ void GateExecutor::evaluate(Statistics::RunTimeStats &stats) {
   // evaluate all the gates
   for (auto &gate : register_.GetGates()) {
     fpool.post([&] {
-      gate->EvaluateSetup();
+      gate->EvaluateSetup(); //me
       // XXX: maybe insert a 'yield' here?
-      gate->EvaluateOnline();
+      gate->EvaluateOnline(); //me
     });
   }
 

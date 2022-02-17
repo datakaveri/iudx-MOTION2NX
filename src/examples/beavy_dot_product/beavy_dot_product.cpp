@@ -53,7 +53,8 @@ struct Options {
   bool sync_between_setup_and_online;
   MOTION::MPCProtocol arithmetic_protocol;
   MOTION::MPCProtocol boolean_protocol;
-  std::uint64_t input_value;
+  std::vector<std::uint64_t> input_values;
+  std::uint64_t num_elements;
   std::size_t my_id;
   MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
@@ -73,7 +74,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("json", po::bool_switch()->default_value(false), "output data in JSON format")
     ("arithmetic-protocol", po::value<std::string>()->required(), "2PC protocol (GMW or BEAVY)")
     ("boolean-protocol", po::value<std::string>()->required(), "2PC protocol (Yao, GMW or BEAVY)")
-    ("input-value", po::value<std::uint64_t>()->required(), "input value for Yao's Millionaires' Problem")
+    ("input-values", po::value<std::vector<std::uint64_t> >()->multitoken(), "input values for Dot Product")
+    ("num-elements", po::value<std::uint64_t>()->required(), "number of elements in the array")
     ("repetitions", po::value<std::size_t>()->default_value(1), "number of repetitions")
     ("num-simd", po::value<std::size_t>()->default_value(1), "number of SIMD values")
     ("sync-between-setup-and-online", po::bool_switch()->default_value(false),
@@ -136,7 +138,14 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
-  options.input_value = vm["input-value"].as<std::uint64_t>();
+
+  options.input_values = vm["input-values"].as<std::vector<std::uint64_t>>();
+  options.num_elements = vm["num-elements"].as<std::uint64_t>();
+
+  if(options.num_elements != options.input_values.size()){
+    std::cerr << "The number of elements must be equal to size of the input array\n";
+    return std::nullopt;
+  }
 
   const auto parse_party_argument =
       [](const auto& s) -> std::pair<std::size_t, MOTION::Communication::tcp_connection_config> {
@@ -179,77 +188,11 @@ std::unique_ptr<MOTION::Communication::CommunicationLayer> setup_communication(
                                                                      helper.setup_connections());
 }
 
-auto create_circuit(const Options& options, MOTION::TwoPartyBackend& backend) {
-  // retrieve the gate factories for the chosen protocols
-  auto& gate_factory_arith = backend.get_gate_factory(options.arithmetic_protocol);
-  auto& gate_factory_bool = backend.get_gate_factory(options.boolean_protocol);
-
-  // share the inputs using the arithmetic protocol
-  // NB: the inputs need to always be specified in the same order:
-  // here we first specify the input of party 0, then that of party 1
-  ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>> input_promise;
-  MOTION::WireVector input_0_arith, input_1_arith;
-  if (options.my_id == 0) {
-    auto pair = gate_factory_arith.make_arithmetic_64_input_gate_my(options.my_id, 1);
-    input_promise = std::move(pair.first);
-    input_0_arith = std::move(pair.second);
-    input_1_arith = gate_factory_arith.make_arithmetic_64_input_gate_other(1 - options.my_id, 1);
-  } else {
-    input_0_arith = gate_factory_arith.make_arithmetic_64_input_gate_other(1 - options.my_id, 1);
-    auto pair = gate_factory_arith.make_arithmetic_64_input_gate_my(options.my_id, 1);
-    input_promise = std::move(pair.first);
-    input_1_arith = std::move(pair.second);
-  }
-
-  // convert the arithmetic shares into Boolean shares
-  auto input_0_bool = backend.convert(options.boolean_protocol, input_0_arith);
-  auto input_1_bool = backend.convert(options.boolean_protocol, input_1_arith);
-
-  // load a boolean circuit for to compute 'greater-than'
-  MOTION::CircuitLoader circuit_loader;
-  auto& gt_circuit =
-      circuit_loader.load_gt_circuit(64, options.boolean_protocol != MOTION::MPCProtocol::Yao);
-  // apply the circuit to the Boolean sahres
-  auto output = backend.make_circuit(gt_circuit, input_0_bool, input_1_bool);
-
-  // create an output gates of the result
-  auto output_future = gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES, output);
-
-  // return promise and future to allow setting inputs and retrieving outputs
-  return std::make_pair(std::move(input_promise), std::move(output_future));
-}
-
-void run_circuit(const Options& options, MOTION::TwoPartyBackend& backend) {
-  // build the circuit and gets promise/future for the input/output
-  auto [input_promise, output_future] = create_circuit(options, backend);
-
-  if (options.no_run) {
-    return;
-  }
-
-  // set the promise with our input value
-  input_promise.set_value({options.input_value});
-
-  // execute the protocol
-  backend.run();
-
-  // retrieve the result from the future
-  auto bvs = output_future.get();
-  bool gt_result = bvs.at(0).Get(0);
-  if (!options.json) {
-    if (gt_result) {
-      std::cout << "Party 0 has more money than Party 1" << std::endl;
-    } else {
-      std::cout << "Party 1 has at least the same amount of money as Party 0" << std::endl;
-    }
-  }
-}
-
 void print_stats(const Options& options,
                  const MOTION::Statistics::AccumulatedRunTimeStats& run_time_stats,
                  const MOTION::Statistics::AccumulatedCommunicationStats& comm_stats) {
   if (options.json) {
-    auto obj = MOTION::Statistics::to_json("millionaires_problem", run_time_stats, comm_stats);
+    auto obj = MOTION::Statistics::to_json("dot_product", run_time_stats, comm_stats);
     obj.emplace("party_id", options.my_id);
     obj.emplace("arithmetic_protocol", MOTION::ToString(options.arithmetic_protocol));
     obj.emplace("boolean_protocol", MOTION::ToString(options.boolean_protocol));
@@ -258,83 +201,96 @@ void print_stats(const Options& options,
     obj.emplace("sync_between_setup_and_online", options.sync_between_setup_and_online);
     std::cout << obj << "\n";
   } else {
-    std::cout << MOTION::Statistics::print_stats("millionaires_problem", run_time_stats,
+    std::cout << MOTION::Statistics::print_stats("dot_product", run_time_stats,
                                                  comm_stats);
   }
 }
 
-auto create_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backend) {
+auto create_circuit(const Options& options, MOTION::TwoPartyBackend& backend) {
   // retrieve the gate factories for the chosen protocols
-  auto& gate_factory_arith = backend.get_gate_factory(options.arithmetic_protocol);//gmw
-  auto& gate_factory_bool = backend.get_gate_factory(options.boolean_protocol);// beavy
+  auto& gate_factory_arith = backend.get_gate_factory(options.arithmetic_protocol);
 
   // share the inputs using the arithmetic protocol
   // NB: the inputs need to always be specified in the same order:
   // here we first specify the input of party 0, then that of party 1
-  ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>> input_promise;
-  MOTION::WireVector input_0_arith, input_1_arith;
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises;
+  std::vector<MOTION::WireVector> input_0_arith, input_1_arith;
   if (options.my_id == 0) {
-    auto pair = gate_factory_arith.make_arithmetic_64_input_gate_my(options.my_id, 1);
-    input_promise = std::move(pair.first);
-    input_0_arith = std::move(pair.second);
-    input_1_arith = gate_factory_arith.make_arithmetic_64_input_gate_other(1 - options.my_id, 1);
+    for(int i=0;i<options.num_elements;++i){
+      auto pair = gate_factory_arith.make_arithmetic_64_input_gate_my(options.my_id, 1);
+      auto input_promise = std::move(pair.first);
+      auto input_a_arith = std::move(pair.second);
+      auto input_b_arith = gate_factory_arith.make_arithmetic_64_input_gate_other(1 - options.my_id, 1);
+
+      input_promises.push_back(std::move(input_promise));
+      input_0_arith.push_back(input_a_arith);
+      input_1_arith.push_back(input_b_arith);
+    }
+    
   } else {
-    input_0_arith = gate_factory_arith.make_arithmetic_64_input_gate_other(1 - options.my_id, 1);
-    auto pair = gate_factory_arith.make_arithmetic_64_input_gate_my(options.my_id, 1);
-    input_promise = std::move(pair.first);
-    input_1_arith = std::move(pair.second);
+    for(int i=0;i<options.num_elements;++i){
+      auto input_a_arith = gate_factory_arith.make_arithmetic_64_input_gate_other(1 - options.my_id, 1);
+      auto pair = gate_factory_arith.make_arithmetic_64_input_gate_my(options.my_id, 1);
+      auto input_promise = std::move(pair.first);
+      auto input_b_arith = std::move(pair.second);
+
+      input_promises.push_back(std::move(input_promise));
+      input_0_arith.push_back(input_a_arith);
+      input_1_arith.push_back(input_b_arith);
+    }    
+
   }
 
-  // convert the arithmetic shares into Boolean shares
-  auto input_0_bool = backend.convert(options.boolean_protocol, input_0_arith);
-  auto input_1_bool = backend.convert(options.boolean_protocol, input_1_arith);
+  std::vector< MOTION::WireVector > mult_output;
 
-  // load a boolean circuit for to compute 'greater-than'
-  MOTION::CircuitLoader circuit_loader;
+  for(int i=0;i<options.num_elements;i++){
+    auto input_a_arith = input_0_arith[i];
+    auto input_b_arith = input_1_arith[i];
+    auto wire_out = gate_factory_arith.make_binary_gate(
+      ENCRYPTO::PrimitiveOperationType::MUL, input_a_arith, input_b_arith);
+    
+    mult_output.push_back(wire_out);
+  }
+  
+  auto final_output = std::move(mult_output[0]);
+  auto n = mult_output.size();
 
-
-  auto& gt_circuit =
-      circuit_loader.load_circuit(fmt::format("int_mul{}_{}.bristol", 64, "depth"),
-                   MOTION::CircuitFormat::Bristol);
-  // apply the circuit to the Boolean sahres
-  auto output = backend.make_circuit(gt_circuit, input_0_bool, input_1_bool);
+  for(int i=1;i<n;++i){
+    auto intermediate_wire = std::move(mult_output[i]);
+    final_output = gate_factory_arith.make_binary_gate(
+      ENCRYPTO::PrimitiveOperationType::ADD, final_output, intermediate_wire);
+  }
 
   // create an output gates of the result
-  auto output_future = gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES, output);
+  auto output_future = gate_factory_arith.make_arithmetic_64_output_gate_my(MOTION::ALL_PARTIES, final_output);
 
   // return promise and future to allow setting inputs and retrieving outputs
-  return std::make_pair(std::move(input_promise), std::move(output_future));
+  return std::make_pair(std::move(output_future),std::move(input_promises));
 }
 
-void run_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backend){
-  // build the circuit and gets promise/future for the input/output
-  auto [input_promise, output_future] = create_mult_circuit(options, backend);
+void run_circuit(const Options& options, MOTION::TwoPartyBackend& backend){
+
+  auto [output_future,input_promises] = create_circuit(options,backend);
 
   if (options.no_run) {
     return;
   }
 
   // set the promise with our input value
-  input_promise.set_value({options.input_value});
+  for(int i=0;i<options.num_elements;++i){
+    auto input_promise = std::move(input_promises[i]);
+    input_promise.set_value({options.input_values[i]});
+  }
 
   // execute the protocol
   backend.run();
 
   // retrieve the result from the future
-  auto bvs = output_future.get(); 
-  auto mult_result = 0;
-
-  // Conversion of result to readable arithmetic format
-  for(int i=63;i>=0;i--)
-  {
-    mult_result = mult_result + bvs.at(i).Get(0);
-    // left shift is easier to implement 
-    mult_result = mult_result << 1;
-  }
-  mult_result = mult_result >> 1;
+  auto bvs = output_future.get();
+  auto result = bvs.at(0);
 
   if (!options.json) {
-    std::cout << "The multiplication result is:- " << mult_result << std::endl;
+    std::cout << "The result of the dot product is:- " << result << std::endl;
   }
 }
 
@@ -354,9 +310,8 @@ int main(int argc, char* argv[]) {
     for (std::size_t i = 0; i < options->num_repetitions; ++i) {
       MOTION::TwoPartyBackend backend(*comm_layer, options->threads,
                                       options->sync_between_setup_and_online, logger);
-      //run_circuit(*options, backend);
 
-      run_mult_circuit(*options, backend);
+      run_circuit(*options, backend);
 
       comm_layer->sync();
       comm_stats.add(comm_layer->get_transport_statistics());

@@ -11,6 +11,12 @@ add_subdirectory(millionaires_problem)
 add_subdirectory(sha256)
 add_subdirectory(triple_generator)
 
+add_subdirectory(beavy_arithmetic)
+add_subdirectory(beavy_dot_product)
+add_subdirectory(file_multiplication)
+add_subdirectory(modified_dot_product)
+add_subdirectory(other_stuff)
+
 if (MOTION_BUILD_ONNX_ADAPTER)
   add_subdirectory(onnx2motion)
 endif (MOTION_BUILD_ONNX_ADAPTER)

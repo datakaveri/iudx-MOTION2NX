@@ -113,7 +113,10 @@ void TwoPartyBackend::run_preprocessing() {
 }
 
 void TwoPartyBackend::run() {
+  std::cout << "Before evaluate setup online \n";
   gate_executor_->evaluate_setup_online(run_time_stats_.back());
+  std::cout << "After evaluate setup online \n";
+
 }
 
 std::optional<MPCProtocol> TwoPartyBackend::convert_via(MPCProtocol src_proto,

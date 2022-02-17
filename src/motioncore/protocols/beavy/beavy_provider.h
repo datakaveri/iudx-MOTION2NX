@@ -129,6 +129,20 @@ class BEAVYProvider : public GateFactory,
                                                  std::size_t num_simd) override;
   WireVector make_arithmetic_64_input_gate_other(std::size_t input_owner,
                                                  std::size_t num_simd) override;
+  
+  //Input gates to take shares directly
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+  make_arithmetic_8_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+  make_arithmetic_16_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+  make_arithmetic_32_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+  make_arithmetic_64_input_gate_shares(std::size_t num_simd) override;  
+
 
   // Boolean outputs
   ENCRYPTO::ReusableFiberFuture<BitValues> make_boolean_output_gate_my(std::size_t output_owner,
@@ -211,6 +225,12 @@ class BEAVYProvider : public GateFactory,
   template <typename T>
   std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<T>>, WireVector>
   basic_make_arithmetic_input_gate_my(std::size_t input_owner, std::size_t num_simd);
+
+  //Input gates to take shares directly
+  template <typename T>
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, WireVector >
+  basic_make_arithmetic_input_gate_shares(std::size_t num_simd);  
+
   template <typename T>
   WireVector basic_make_arithmetic_input_gate_other(std::size_t input_owner, std::size_t num_simd);
   template <typename T>
