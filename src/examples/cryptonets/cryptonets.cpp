@@ -26,6 +26,7 @@
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <bits/stdc++.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
@@ -79,17 +80,17 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
-  if (help) {
-    std::cerr << desc << "\n";
-    return std::nullopt;
-  }
-  // try {
-  //   po::notify(vm);
-  // } catch (std::exception& e) {
-  //   std::cerr << e.what() << "\n\n";
+  // if (help) {
   //   std::cerr << desc << "\n";
   //   return std::nullopt;
   // }
+  try {
+    po::notify(vm);
+  } catch (std::exception& e) {
+    std::cerr << e.what() << "\n\n";
+    std::cerr << desc << "\n";
+    return std::nullopt;
+  }
 
   if (vm.count("config-file")) {
     std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
@@ -162,6 +163,7 @@ ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> build_cryptonets(
     const Options& options, MOTION::TwoPartyTensorBackend& backend) {
   auto& arithmetic_tof = backend.get_tensor_op_factory(options.protocol);
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
+  std::cout << "Inside Build Cryptonets" << std::endl;
 
   const MOTION::tensor::TensorDimensions input_dims{
       .batch_size_ = 1, .num_channels_ = 1, .height_ = 28, .width_ = 28};
@@ -182,6 +184,16 @@ ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> build_cryptonets(
       .input_A_shape_ = {1, 845}, .input_B_shape_ = {845, 100}, .output_shape_ = {1, 100}};
   const MOTION::tensor::GemmOp gemm_op_2 = {
       .input_A_shape_ = {1, 100}, .input_B_shape_ = {100, 10}, .output_shape_ = {1, 10}};
+
+  std::cout << "----------------------------------" << std::endl << "Input Dimensions:" << std::endl;
+  std::cout << "Batch Size: " << input_dims.batch_size_ << "\nNumber of Channels: " << input_dims.num_channels_
+    << "\nHeight of Matrix: " << input_dims.height_ << "\nWidth of Matrix: " << input_dims.width_ << std::endl;
+  std::cout << "----------------------------------" << std::endl;
+  std::cout << "Convolutional Weights:\n"<< "Batch Size: " << conv_weights_dims.batch_size_ << "\nNumber of Channels: "
+    << conv_weights_dims.num_channels_ << "\nHeight of Matrix: " << conv_weights_dims.height_ << "\nWidth of Matrix: "
+    << conv_weights_dims.width_ << std::endl;
+  std::cout << "----------------------------------" << std::endl;
+
   MOTION::tensor::TensorCP input_tensor;
   MOTION::tensor::TensorCP conv_weights_tensor;
   MOTION::tensor::TensorCP squashed_weights_tensor;
@@ -192,10 +204,16 @@ ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> build_cryptonets(
 
   std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation;
   if (!options.relu) {
+    std::cout << "----------------------------------" << std::endl;
+    std::cout << "Squaring activation function used" << std::endl;
+    std::cout << "----------------------------------" << std::endl;
     make_activation = [&](const auto& input) {
       return arithmetic_tof.make_tensor_sqr_op(input, options.fractional_bits);
     };
   } else {
+    std::cout << "----------------------------------" << std::endl;
+    std::cout << "ReLu activation function used" << std::endl;
+    std::cout << "----------------------------------" << std::endl;
     make_activation = [&](const auto& input) {
       const auto boolean_tensor = boolean_tof.make_tensor_conversion(boolean_protocol, input);
       const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor);
@@ -209,12 +227,10 @@ ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> build_cryptonets(
     conv_weights_tensor = ret1.second;
     ret1.first.set_value(
         MOTION::Helpers::RandomVector<std::uint64_t>(conv_weights_dims.get_data_size()));
-    
     auto ret2 = arithmetic_tof.make_arithmetic_64_tensor_input_my(squashed_weights_dims);
     squashed_weights_tensor = ret2.second;
     ret2.first.set_value(
         MOTION::Helpers::RandomVector<std::uint64_t>(squashed_weights_dims.get_data_size()));
-    
     auto ret3 = arithmetic_tof.make_arithmetic_64_tensor_input_my(fully_connected_weights_dims);
     fully_connected_weights_tensor = ret3.second;
     ret3.first.set_value(
@@ -230,6 +246,9 @@ ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> build_cryptonets(
     fully_connected_weights_tensor =
         arithmetic_tof.make_arithmetic_64_tensor_input_other(fully_connected_weights_dims);
   }
+
+  /* checking what input values are */
+
 
   auto conv_output = arithmetic_tof.make_tensor_conv2d_op(
       conv_op, input_tensor, conv_weights_tensor, options.fractional_bits);
@@ -254,7 +273,14 @@ void run_cryptonets(const Options& options, MOTION::TwoPartyTensorBackend& backe
   auto output_future = build_cryptonets(options, backend);
   backend.run();
   if (options.my_id == 1) {
-    output_future.get();
+    auto interm = output_future.get();
+    std::cout << "The result output matrix is:\n[";
+    for(int i=0; i<interm.size(); ++i)
+    {
+      std::cout << interm[i] << " , ";
+    }
+    std::cout << "]" << std::endl;
+    std::cout << "Size of array: " << interm.size() << std::endl;
   }
 }
 

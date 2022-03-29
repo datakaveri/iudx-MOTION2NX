@@ -13,9 +13,13 @@ add_subdirectory(triple_generator)
 
 add_subdirectory(beavy_arithmetic)
 add_subdirectory(beavy_dot_product)
+add_subdirectory(data_provider_operations)
+add_subdirectory(data_provider_dot_product_1d)
+add_subdirectory(file_dot_product_1d)
 add_subdirectory(file_multiplication)
 add_subdirectory(modified_dot_product)
 add_subdirectory(other_stuff)
+add_subdirectory(tensor_dot_product)
 
 if (MOTION_BUILD_ONNX_ADAPTER)
   add_subdirectory(onnx2motion)
