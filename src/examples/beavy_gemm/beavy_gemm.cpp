@@ -64,11 +64,6 @@ struct Options {
   bool sync_between_setup_and_online;
   MOTION::MPCProtocol arithmetic_protocol;
   MOTION::MPCProtocol boolean_protocol;
-  std::uint64_t num_elements;
-  std::vector<uint64_t> input_values_dp0_Delta;
-  std::vector<uint64_t> input_values_dp0_delta;
-  std::vector<uint64_t> input_values_dp1_Delta;
-  std::vector<uint64_t> input_values_dp1_delta;
   std::size_t my_id;
   MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
@@ -150,41 +145,6 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
-  if(options.my_id == 0) {
-    auto pair1 = COMPUTE_SERVER::get_provider_dot_product_data(1234);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp0 = pair1.first;
-    for(int i=0;i<input_values_dp0.size();i++) {
-      options.input_values_dp0_Delta.push_back(input_values_dp0[i].Delta);
-      options.input_values_dp0_delta.push_back(input_values_dp0[i].delta);
-    }
-    options.num_elements = pair1.second;
-
-    auto pair2 = COMPUTE_SERVER::get_provider_dot_product_data(1234);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp1 = pair2.first;
-    for(int i=0;i<input_values_dp1.size();i++) {
-      options.input_values_dp1_Delta.push_back(input_values_dp1[i].Delta);
-      options.input_values_dp1_delta.push_back(input_values_dp1[i].delta);
-    }
-
-  }
-  else {
-    auto pair1 = COMPUTE_SERVER::get_provider_dot_product_data(1235);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp0 = pair1.first;
-    for(int i=0;i<input_values_dp0.size();i++) {
-      options.input_values_dp0_Delta.push_back(input_values_dp0[i].Delta);
-      options.input_values_dp0_delta.push_back(input_values_dp0[i].delta);
-    }
-    
-    options.num_elements = pair1.second;
-
-    auto pair2 = COMPUTE_SERVER::get_provider_dot_product_data(1235);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp1 = pair2.first;
-    for(int i=0;i<input_values_dp1.size();i++) {
-      options.input_values_dp1_Delta.push_back(input_values_dp1[i].Delta);
-      options.input_values_dp1_delta.push_back(input_values_dp1[i].delta);
-    }
-
-  }
   const auto parse_party_argument =
       [](const auto& s) -> std::pair<std::size_t, MOTION::Communication::tcp_connection_config> {
     const static std::regex party_argument_re("([01]),([^,]+),(\\d{1,5})");
@@ -246,55 +206,23 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 
 
   if (options.my_id == 0) {
-    auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
-    tensor_a = pair.second;
+    auto [input_A_promise, tensor_input_A] = arithmetic_tof.make_arithmetic_64_tensor_input_my(input_A_dims);
+    auto tensor_input_B = arithmetic_tof.make_arithmetic_64_tensor_input_other(input_B_dims);
+    std::vector<uint64_t> input_A = {1,2,3,4,5,6,7,8,9,10};
     
-    auto pair2 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_B_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_b = std::move(pair2.first);
-    tensor_b = pair2.second;
+    input_A_promise.set_value(input_A);    
 
-    ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>> input_promises_a_Delta, input_promises_a_delta, 
-                                                                    input_promises_b_Delta, input_promises_b_delta;
-
-    
-    std::cout << "Tensor dot product - Before suspected seg fault\n";
-
-    input_promises_a_Delta = std::move(input_promises_a[0]);
-    input_promises_a_delta = std::move(input_promises_a[1]);
-    input_promises_b_Delta = std::move(input_promises_b[0]);
-    input_promises_b_delta = std::move(input_promises_b[1]);
-
-    std::cout << "Tensor dot product - After suspected seg fault\n";
-
-    input_promises_a_Delta.set_value(options.input_values_dp0_Delta);
-    input_promises_a_delta.set_value(options.input_values_dp0_delta);
-    input_promises_b_Delta.set_value(options.input_values_dp1_Delta);
-    input_promises_b_delta.set_value(options.input_values_dp1_delta);
-    
+    tensor_a = tensor_input_A;
+    tensor_b = tensor_input_B;
 
   } else {
-    auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
-    tensor_a = pair.second;
-    
-    auto pair2 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_B_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_b = std::move(pair2.first);
-    tensor_b = pair2.second;
+    auto tensor_input_A = arithmetic_tof.make_arithmetic_64_tensor_input_other(input_A_dims);
+    auto [input_B_promise, tensor_input_B] = arithmetic_tof.make_arithmetic_64_tensor_input_my(input_B_dims);
+    std::vector<uint64_t> input_B = {10,9,8,7,6,5,4,3,2,1};
+    input_B_promise.set_value(input_B); 
 
-    ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>> input_promises_a_Delta, input_promises_a_delta, 
-                                                                    input_promises_b_Delta, input_promises_b_delta;
-
-
-    input_promises_a_Delta = std::move(input_promises_a[0]);
-    input_promises_a_delta = std::move(input_promises_a[1]);
-    input_promises_b_Delta = std::move(input_promises_b[0]);
-    input_promises_b_delta = std::move(input_promises_b[1]);   
-
-    input_promises_a_Delta.set_value(options.input_values_dp0_Delta);
-    input_promises_a_delta.set_value(options.input_values_dp0_delta);
-    input_promises_b_Delta.set_value(options.input_values_dp1_Delta);
-    input_promises_b_delta.set_value(options.input_values_dp1_delta);
+    tensor_a = tensor_input_A;
+    tensor_b = tensor_input_B;   
 
   }
 

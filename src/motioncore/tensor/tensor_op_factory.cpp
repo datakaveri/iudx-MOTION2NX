@@ -51,6 +51,20 @@ TensorCP TensorOpFactory::make_arithmetic_64_tensor_input_other(const TensorDime
       fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
 }
 
+// share inputs
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<IntegerValues<uint32_t>>>, TensorCP >
+TensorOpFactory::make_arithmetic_32_tensor_input_shares(const TensorDimensions&){
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 32 bit inputs"));
+
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<IntegerValues<uint64_t>>>, TensorCP >
+TensorOpFactory::make_arithmetic_64_tensor_input_shares(const TensorDimensions&) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs"));
+}
+
 ENCRYPTO::ReusableFiberFuture<IntegerValues<std::uint32_t>>
 TensorOpFactory::make_arithmetic_32_tensor_output_my(const TensorCP&) {
   throw std::logic_error(

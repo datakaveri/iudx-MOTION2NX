@@ -885,6 +885,35 @@ tensor::TensorCP BEAVYProvider::make_arithmetic_64_tensor_input_other(
   return basic_make_arithmetic_tensor_input_other<std::uint64_t>(dims);
 }
 
+//Input tensor to take shares directly
+
+template <typename T>
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, tensor::TensorCP >
+BEAVYProvider::basic_make_arithmetic_tensor_input_shares(const tensor::TensorDimensions& dims) {
+  ENCRYPTO::ReusableFiberPromise<std::vector<T>> Delta,delta;
+  auto gate_id = gate_register_.get_next_gate_id();
+  auto tensor_op = std::make_unique<ArithmeticBEAVYTensorInputShares<T>>(gate_id, *this, dims,Delta.get_future(),delta.get_future());
+
+
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>> input_promises;
+  input_promises.push_back(std::move(Delta));
+  input_promises.push_back(std::move(delta));
+                                                                  
+  auto output = tensor_op->get_output_tensor();
+  gate_register_.register_gate(std::move(tensor_op));
+  return {std::move(input_promises), std::dynamic_pointer_cast<const tensor::Tensor>(output)};
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, tensor::TensorCP >
+BEAVYProvider::make_arithmetic_32_tensor_input_shares(const tensor::TensorDimensions& dims) {
+  return basic_make_arithmetic_tensor_input_shares<std::uint32_t>(dims);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, tensor::TensorCP >
+BEAVYProvider::make_arithmetic_64_tensor_input_shares(const tensor::TensorDimensions& dims) {
+  return basic_make_arithmetic_tensor_input_shares<std::uint64_t>(dims);
+}
+
 template <typename T>
 ENCRYPTO::ReusableFiberFuture<IntegerValues<T>>
 BEAVYProvider::basic_make_arithmetic_tensor_output_my(const tensor::TensorCP& in) {

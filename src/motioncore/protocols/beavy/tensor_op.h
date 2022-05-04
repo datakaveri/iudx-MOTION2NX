@@ -114,6 +114,31 @@ class ArithmeticBEAVYTensorInputReceiver : public NewGate {
 };
 
 template <typename T>
+class ArithmeticBEAVYTensorInputShares : public NewGate {
+ public:
+  ArithmeticBEAVYTensorInputShares(std::size_t gate_id, BEAVYProvider&,
+                                 const tensor::TensorDimensions& dimensions,
+                                 ENCRYPTO::ReusableFiberFuture<std::vector<T>>&&,
+                                 ENCRYPTO::ReusableFiberFuture<std::vector<T>>&&);
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  std::shared_ptr<const ArithmeticBEAVYTensor<T>> get_output_tensor() const noexcept {
+    return output_;
+  }
+
+ private:
+  BEAVYProvider& beavy_provider_;
+  const tensor::TensorDimensions dimensions_;
+  std::size_t input_id_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> Delta_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> delta_;
+  ArithmeticBEAVYTensorP<T> output_;
+  constexpr static std::size_t bit_size_ = ENCRYPTO::bit_size_v<T>;
+};
+
+template <typename T>
 class ArithmeticBEAVYTensorOutput : public NewGate {
  public:
   ArithmeticBEAVYTensorOutput(std::size_t gate_id, BEAVYProvider&, ArithmeticBEAVYTensorCP<T>,

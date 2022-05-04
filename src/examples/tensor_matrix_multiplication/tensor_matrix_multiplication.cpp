@@ -49,6 +49,7 @@
 #include "tensor/tensor.h"
 #include "tensor/tensor_op.h"
 #include "tensor/tensor_op_factory.h"
+#include "utility/fixed_point.h"
 
 namespace po = boost::program_options;
 
@@ -64,15 +65,41 @@ struct Options {
   bool sync_between_setup_and_online;
   MOTION::MPCProtocol arithmetic_protocol;
   MOTION::MPCProtocol boolean_protocol;
-  std::uint64_t num_elements;
+  std::size_t fractional_bits;
   std::vector<uint64_t> input_values_dp0_Delta;
   std::vector<uint64_t> input_values_dp0_delta;
+  int input_values_dp0_rows;
+  int input_values_dp0_cols;
   std::vector<uint64_t> input_values_dp1_Delta;
   std::vector<uint64_t> input_values_dp1_delta;
+  int input_values_dp1_rows;
+  int input_values_dp1_cols;
   std::size_t my_id;
   MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
 };
+
+void retrieve_shares(int port_number,Options* options) {
+    auto pair1 = COMPUTE_SERVER::get_provider_mat_mul_data(port_number);
+    std::vector<COMPUTE_SERVER::Shares>input_values_dp0 = pair1.second.first;
+    for(int i=0;i<input_values_dp0.size();i++) {
+      options->input_values_dp0_Delta.push_back(input_values_dp0[i].Delta);
+      options->input_values_dp0_delta.push_back(input_values_dp0[i].delta);
+
+    }
+    options->input_values_dp0_rows = pair1.second.second[0];
+    options->input_values_dp0_cols = pair1.second.second[1];
+    options->fractional_bits = pair1.first;
+
+    auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(port_number);
+    std::vector<COMPUTE_SERVER::Shares>input_values_dp1 = pair2.second.first;
+    for(int i=0;i<input_values_dp1.size();i++) {
+      options->input_values_dp1_Delta.push_back(input_values_dp1[i].Delta);
+      options->input_values_dp1_delta.push_back(input_values_dp1[i].delta);
+    }
+    options->input_values_dp1_rows = pair2.second.second[0];
+    options->input_values_dp1_cols = pair2.second.second[1];  
+}
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
   Options options;
@@ -151,40 +178,19 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   }
 
   if(options.my_id == 0) {
-    auto pair1 = COMPUTE_SERVER::get_provider_dot_product_data(1234);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp0 = pair1.first;
-    for(int i=0;i<input_values_dp0.size();i++) {
-      options.input_values_dp0_Delta.push_back(input_values_dp0[i].Delta);
-      options.input_values_dp0_delta.push_back(input_values_dp0[i].delta);
-    }
-    options.num_elements = pair1.second;
-
-    auto pair2 = COMPUTE_SERVER::get_provider_dot_product_data(1234);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp1 = pair2.first;
-    for(int i=0;i<input_values_dp1.size();i++) {
-      options.input_values_dp1_Delta.push_back(input_values_dp1[i].Delta);
-      options.input_values_dp1_delta.push_back(input_values_dp1[i].delta);
-    }
-
+    retrieve_shares(1234,&options);
   }
-  else {
-    auto pair1 = COMPUTE_SERVER::get_provider_dot_product_data(1235);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp0 = pair1.first;
-    for(int i=0;i<input_values_dp0.size();i++) {
-      options.input_values_dp0_Delta.push_back(input_values_dp0[i].Delta);
-      options.input_values_dp0_delta.push_back(input_values_dp0[i].delta);
-    }
-    
-    options.num_elements = pair1.second;
-
-    auto pair2 = COMPUTE_SERVER::get_provider_dot_product_data(1235);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp1 = pair2.first;
-    for(int i=0;i<input_values_dp1.size();i++) {
-      options.input_values_dp1_Delta.push_back(input_values_dp1[i].Delta);
-      options.input_values_dp1_delta.push_back(input_values_dp1[i].delta);
-    }
-
+  else {    
+    retrieve_shares(1235,&options);
   }
+
+  
+
+  if(options.input_values_dp0_cols != options.input_values_dp1_rows) {
+    std::cerr << "Invalid inputs, number of columns for dp0 must be equal to number of rows for dp1 \n";
+    return std::nullopt;
+  }
+
   const auto parse_party_argument =
       [](const auto& s) -> std::pair<std::size_t, MOTION::Communication::tcp_connection_config> {
     const static std::regex party_argument_re("([01]),([^,]+),(\\d{1,5})");
@@ -230,9 +236,15 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   // retrieve the gate factories for the chosen protocols
   auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);  
 
+
   const MOTION::tensor::GemmOp gemm_op = {
-      .input_A_shape_ = {1, 10}, .input_B_shape_ = {10, 1}, .output_shape_ = {1, 1}};
+      .input_A_shape_ = {options.input_values_dp0_rows, options.input_values_dp0_cols}, 
+      .input_B_shape_ = {options.input_values_dp1_rows, options.input_values_dp1_cols}, 
+      .output_shape_ = {options.input_values_dp0_rows, options.input_values_dp1_cols}
+      };
   
+  
+
 
   const auto input_A_dims = gemm_op.get_input_A_tensor_dims();
   const auto input_B_dims = gemm_op.get_input_B_tensor_dims();
@@ -243,8 +255,6 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   // here we first specify the input of party 0, then that of party 1
 
   MOTION::tensor::TensorCP tensor_a,tensor_b;
-
-
   if (options.my_id == 0) {
     auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
     std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
@@ -254,23 +264,10 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
     std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_b = std::move(pair2.first);
     tensor_b = pair2.second;
 
-    ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>> input_promises_a_Delta, input_promises_a_delta, 
-                                                                    input_promises_b_Delta, input_promises_b_delta;
-
-    
-    std::cout << "Tensor dot product - Before suspected seg fault\n";
-
-    input_promises_a_Delta = std::move(input_promises_a[0]);
-    input_promises_a_delta = std::move(input_promises_a[1]);
-    input_promises_b_Delta = std::move(input_promises_b[0]);
-    input_promises_b_delta = std::move(input_promises_b[1]);
-
-    std::cout << "Tensor dot product - After suspected seg fault\n";
-
-    input_promises_a_Delta.set_value(options.input_values_dp0_Delta);
-    input_promises_a_delta.set_value(options.input_values_dp0_delta);
-    input_promises_b_Delta.set_value(options.input_values_dp1_Delta);
-    input_promises_b_delta.set_value(options.input_values_dp1_delta);
+    input_promises_a[0].set_value(options.input_values_dp0_Delta);
+    input_promises_a[1].set_value(options.input_values_dp0_delta);
+    input_promises_b[0].set_value(options.input_values_dp1_Delta);
+    input_promises_b[1].set_value(options.input_values_dp1_delta);
     
 
   } else {
@@ -280,26 +277,17 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
     
     auto pair2 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_B_dims);
     std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_b = std::move(pair2.first);
-    tensor_b = pair2.second;
+    tensor_b = pair2.second;  
 
-    ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>> input_promises_a_Delta, input_promises_a_delta, 
-                                                                    input_promises_b_Delta, input_promises_b_delta;
-
-
-    input_promises_a_Delta = std::move(input_promises_a[0]);
-    input_promises_a_delta = std::move(input_promises_a[1]);
-    input_promises_b_Delta = std::move(input_promises_b[0]);
-    input_promises_b_delta = std::move(input_promises_b[1]);   
-
-    input_promises_a_Delta.set_value(options.input_values_dp0_Delta);
-    input_promises_a_delta.set_value(options.input_values_dp0_delta);
-    input_promises_b_Delta.set_value(options.input_values_dp1_Delta);
-    input_promises_b_delta.set_value(options.input_values_dp1_delta);
+    input_promises_a[0].set_value(options.input_values_dp0_Delta);
+    input_promises_a[1].set_value(options.input_values_dp0_delta);
+    input_promises_b[0].set_value(options.input_values_dp1_Delta);
+    input_promises_b[1].set_value(options.input_values_dp1_delta);
 
   }
 
+  auto output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b,options.fractional_bits);
 
-  auto output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b);
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   if (options.my_id == 0) {
@@ -307,6 +295,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   } else {
     output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(output);
   }
+
   return output_future;
 }
 
@@ -318,7 +307,8 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
     std::cout << "The result is:\n[";
     for(int i=0; i<interm.size(); ++i)
     {
-      std::cout << interm[i] << " , ";
+      float temp = MOTION::fixed_point::decode<uint64_t,float>(interm[i],options.fractional_bits);
+      std::cout << temp << " , ";
     }
     std::cout << "]" << std::endl;
   }

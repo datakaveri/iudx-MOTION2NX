@@ -119,9 +119,9 @@ std::pair <std::vector<Shares>,int > get_provider_dot_product_data(int port_numb
     return std::make_pair(data,num_elements);
 
 }
-}
 
-std::vector<uint64_t> get_provider_dot_product_plain_data(int port_number) {
+
+std::pair<std::size_t ,std::pair<std::vector<Shares>,std::vector<int> > >get_provider_mat_mul_data(int port_number) {
     boost::asio::io_service io_service;  
 
     //listen for new connection  
@@ -133,16 +133,33 @@ std::vector<uint64_t> get_provider_dot_product_plain_data(int port_number) {
     //waiting for the connection  
     acceptor_.accept(socket_);  
 
-    //read operation
+    // Read and write the number of fractional bits
     boost::system::error_code ec;
-    int num_elements;  
-    read(socket_ , boost::asio::buffer(&num_elements, sizeof(num_elements)), ec);
+    size_t fractional_bits;
+    read(socket_ , boost::asio::buffer(&fractional_bits, sizeof(fractional_bits)), ec);
     if(ec) {
         cout << ec << "\n";
     } else {
         cout << "No Error\n";
     }
-    // string message = read_(socket_);  
+
+    const string msg_init = "Server has received the number of fractional bits \n"; 
+    boost::asio::write( socket_, boost::asio::buffer(msg_init) ); 
+    cout << "Servent sent message to Client!" << endl;
+
+    //read operation
+    int arr[2];  
+    read(socket_ , boost::asio::buffer(&arr, sizeof(arr)), ec);
+    if(ec) {
+        cout << ec << "\n";
+    } else {
+        cout << "No Error\n";
+    }
+    std::vector<int> dims;
+    dims.push_back(arr[0]);
+    dims.push_back(arr[1]); 
+    int num_elements = arr[0]*arr[1];
+
     cout << "The number of elements are :- " << num_elements << endl;  
 
     //write operation  
@@ -151,19 +168,12 @@ std::vector<uint64_t> get_provider_dot_product_plain_data(int port_number) {
     cout << "Servent sent message to Client!" << endl;
     
     //Read the data in the reuired format
-    std::vector<uint64_t> data;
-
-    for(int i=0;i<num_elements;i++) {
-        boost::system::error_code ec;
-        uint64_t ele;
-        read(socket_ , boost::asio::buffer(&ele,sizeof(uint64_t)), ec); 
-        data.push_back(ele);
-
-    }
+    std::vector<Shares> data = read_struct(socket_, num_elements);
 
     socket_.close();
     std::cout << "Finished reading input \n\n";
 
-    return data;
+    return std::make_pair(fractional_bits,std::make_pair(data,dims));
+}
 
 }

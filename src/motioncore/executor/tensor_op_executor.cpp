@@ -77,8 +77,6 @@ void TensorOpExecutor::evaluate_setup_online(Statistics::RunTimeStats& stats) {
         "Start evaluating the circuit gates sequentially (online after all finished setup)");
   }
 
-  std::cout << "Before Setup phase\n";
-
   // ------------------------------ setup phase ------------------------------
   stats.record_start<Statistics::RunTimeStats::StatID::gates_setup>();
 
@@ -103,7 +101,6 @@ void TensorOpExecutor::evaluate_setup_online(Statistics::RunTimeStats& stats) {
     logger_->LogInfo("Start with the online phase of the circuit gates");
   }
 
-  std::cout << "Before Online Phase\n" ;
   // ------------------------------ online phase ------------------------------
   stats.record_start<Statistics::RunTimeStats::StatID::gates_online>();
 

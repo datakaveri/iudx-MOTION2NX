@@ -185,6 +185,13 @@ class BEAVYProvider : public GateFactory,
   tensor::TensorCP make_arithmetic_32_tensor_input_other(const tensor::TensorDimensions&) override;
   tensor::TensorCP make_arithmetic_64_tensor_input_other(const tensor::TensorDimensions&) override;
 
+  // TensorOpFactory operating directly on shares
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, tensor::TensorCP >
+  make_arithmetic_32_tensor_input_shares(const tensor::TensorDimensions& dims) override;
+
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, tensor::TensorCP >
+  make_arithmetic_64_tensor_input_shares(const tensor::TensorDimensions& dims) override;
+
   // arithmetic outputs
   ENCRYPTO::ReusableFiberFuture<IntegerValues<std::uint32_t>> make_arithmetic_32_tensor_output_my(
       const tensor::TensorCP&) override;
@@ -293,6 +300,12 @@ class BEAVYProvider : public GateFactory,
   basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensions&);
   template <typename T>
   tensor::TensorCP basic_make_arithmetic_tensor_input_other(const tensor::TensorDimensions&);
+  
+  // input tensor to take shares directly
+  template <typename T>
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, tensor::TensorCP >
+  basic_make_arithmetic_tensor_input_shares(const tensor::TensorDimensions& dims);
+  
   template <typename T>
   ENCRYPTO::ReusableFiberFuture<IntegerValues<T>> basic_make_arithmetic_tensor_output_my(
       const tensor::TensorCP&);

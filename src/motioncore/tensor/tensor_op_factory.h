@@ -55,6 +55,12 @@ class TensorOpFactory {
   virtual TensorCP make_arithmetic_32_tensor_input_other(const TensorDimensions&);
   virtual TensorCP make_arithmetic_64_tensor_input_other(const TensorDimensions&);
 
+  // share inputs
+  virtual std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<IntegerValues<uint32_t>>>, TensorCP >
+  make_arithmetic_32_tensor_input_shares(const TensorDimensions&);
+  virtual std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<IntegerValues<uint64_t>>>, TensorCP >
+  make_arithmetic_64_tensor_input_shares(const TensorDimensions&);
+
   // arithmetic outputs
   virtual ENCRYPTO::ReusableFiberFuture<IntegerValues<std::uint32_t>>
   make_arithmetic_32_tensor_output_my(const TensorCP&);
