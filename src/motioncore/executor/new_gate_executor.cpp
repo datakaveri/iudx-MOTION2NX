@@ -79,7 +79,6 @@ void NewGateExecutor::evaluate_setup_online_multi_threaded(Statistics::RunTimeSt
     // evaluate the setup phase of all the gates
     for (auto& gate : register_.get_gates()) {
       if (gate->need_setup()) {
-        std::cout << gate;
         fpool.post([&] {
           gate->evaluate_setup();
           register_.increment_gate_setup_counter();
