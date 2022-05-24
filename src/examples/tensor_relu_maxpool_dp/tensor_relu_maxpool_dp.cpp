@@ -243,17 +243,40 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       .input_B_shape_ = {options.input_values_dp1_rows, options.input_values_dp1_cols}, 
       .output_shape_ = {options.input_values_dp0_rows, options.input_values_dp1_cols}
       };  
+  
+  const MOTION::tensor::MaxPoolOp maxpool_op = {
+    .input_shape_ = {1,options.input_values_dp0_rows,options.input_values_dp1_cols},
+    .output_shape_ = {1,1,1},
+    .kernel_shape_ = {options.input_values_dp0_rows,options.input_values_dp1_cols},
+    .strides_ = {1,1}
+  };
 
 
   const auto input_A_dims = gemm_op.get_input_A_tensor_dims();
   const auto input_B_dims = gemm_op.get_input_B_tensor_dims();
   const auto output_dims = gemm_op.get_output_tensor_dims();
 
+  MOTION::tensor::TensorCP tensor_a,tensor_b;
+  MOTION::tensor::TensorCP output,output_inter,fin_output;
+
+  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation;  
+  make_activation = [&](const auto& input) {
+    const auto boolean_tensor = boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, input);
+    const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor);
+    return boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
+  };
+  
+  
+  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_maxPool;
+  make_maxPool = [&](const auto& input) {
+    const auto boolean_tensor = boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, input);
+    const auto maxPool_tensor = boolean_tof.make_tensor_maxpool_op(maxpool_op,boolean_tensor);
+    return boolean_tof.make_tensor_conversion(options.arithmetic_protocol, maxPool_tensor);
+  };
+
   // share the inputs using the arithmetic protocol
   // NB: the inputs need to always be specified in the same order:
-  // here we first specify the input of party 0, then that of party 1
-
-  MOTION::tensor::TensorCP tensor_a,tensor_b;
+  // here we first specify the input of party 0, then that of party 
   if (options.my_id == 0) {
     auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
     std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
@@ -284,14 +307,16 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
     input_promises_b[1].set_value(options.input_values_dp1_delta);
 
   }
-
-  auto output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b,options.fractional_bits);
+  
+  output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b,options.fractional_bits);
+  output_inter = make_activation(output);  
+  fin_output = make_maxPool(output_inter);
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(output);
+    arithmetic_tof.make_arithmetic_tensor_output_other(fin_output);
   } else {
-    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(output);
+    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(fin_output);
   }
 
   return output_future;
