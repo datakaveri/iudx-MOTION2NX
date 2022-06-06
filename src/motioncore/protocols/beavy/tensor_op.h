@@ -279,6 +279,54 @@ class ArithmeticBEAVYTensorAveragePool : public NewGate {
   std::vector<T> tmp_out_;
 };
 
+//Implementation of Tensor Negation (addnl)
+template <typename T>
+class ArithmeticBEAVYTensorNegate : public NewGate {
+ public:
+  ArithmeticBEAVYTensorNegate(std::size_t gate_id, BEAVYProvider&,
+                            const ArithmeticBEAVYTensorCP<T> input);
+  ~ArithmeticBEAVYTensorNegate();
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  const ArithmeticBEAVYTensorP<T>& get_output_tensor() const { return output_; }
+
+ private:
+  BEAVYProvider& beavy_provider_;
+  const ArithmeticBEAVYTensorCP<T> input_;
+  std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;
+  std::vector<T> Delta_y_;
+  std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
+  std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
+};
+
+//Implementation of Constant(k) Multiplication with Tensor (addnl)
+template <typename T>
+class ArithmeticBEAVYTensorConstMul : public NewGate {
+ public:
+  ArithmeticBEAVYTensorConstMul(std::size_t gate_id, BEAVYProvider&,
+                            const T k,
+                            const ArithmeticBEAVYTensorCP<T> input);
+  ~ArithmeticBEAVYTensorConstMul();
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  const ArithmeticBEAVYTensorP<T>& get_output_tensor() const { return output_; }
+
+ private:
+  BEAVYProvider& beavy_provider_;
+  const ArithmeticBEAVYTensorCP<T> input_;
+  const T constant_;
+  std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;
+  std::vector<T> Delta_y_;
+  std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
+  std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
+};
+
 template <typename T>
 class BooleanToArithmeticBEAVYTensorConversion : public NewGate {
  public:

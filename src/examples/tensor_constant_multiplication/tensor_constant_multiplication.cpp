@@ -66,39 +66,28 @@ struct Options {
   MOTION::MPCProtocol arithmetic_protocol;
   MOTION::MPCProtocol boolean_protocol;
   std::size_t fractional_bits;
-  std::vector<uint64_t> input_values_dp0_Delta;
-  std::vector<uint64_t> input_values_dp0_delta;
-  int input_values_dp0_rows;
-  int input_values_dp0_cols;
-  std::vector<uint64_t> input_values_dp1_Delta;
-  std::vector<uint64_t> input_values_dp1_delta;
-  int input_values_dp1_rows;
-  int input_values_dp1_cols;
+  std::vector<uint64_t> input_values_dp_Delta;
+  std::vector<uint64_t> input_values_dp_delta;
+  int input_values_dp_rows;
+  int input_values_dp_cols;
+  int constant;
   std::size_t my_id;
   MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
 };
 
 void retrieve_shares(int port_number,Options* options) {
-    auto pair1 = COMPUTE_SERVER::get_provider_mat_mul_data(port_number);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp0 = pair1.second.first;
-    for(int i=0;i<input_values_dp0.size();i++) {
-      options->input_values_dp0_Delta.push_back(input_values_dp0[i].Delta);
-      options->input_values_dp0_delta.push_back(input_values_dp0[i].delta);
+    auto pair1 = COMPUTE_SERVER::get_provider_mat_mul_const_data(port_number);
+    std::vector<COMPUTE_SERVER::Shares>input_values_dp = pair1.second.first;
+    for(int i=0;i<input_values_dp.size();i++) {
+      options->input_values_dp_Delta.push_back(input_values_dp[i].Delta);
+      options->input_values_dp_delta.push_back(input_values_dp[i].delta);
 
     }
-    options->input_values_dp0_rows = pair1.second.second[0];
-    options->input_values_dp0_cols = pair1.second.second[1];
-    options->fractional_bits = pair1.first;
-
-    auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(port_number);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp1 = pair2.second.first;
-    for(int i=0;i<input_values_dp1.size();i++) {
-      options->input_values_dp1_Delta.push_back(input_values_dp1[i].Delta);
-      options->input_values_dp1_delta.push_back(input_values_dp1[i].delta);
-    }
-    options->input_values_dp1_rows = pair2.second.second[0];
-    options->input_values_dp1_cols = pair2.second.second[1];  
+    options->input_values_dp_rows = pair1.second.second[0];
+    options->input_values_dp_cols = pair1.second.second[1];
+    options->constant = pair1.second.second[2];
+    options->fractional_bits = pair1.first;  
 }
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -184,13 +173,6 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     retrieve_shares(1235,&options);
   }
 
-  
-
-  if(options.input_values_dp0_cols != options.input_values_dp1_rows) {
-    std::cerr << "Invalid inputs, number of columns for dp0 must be equal to number of rows for dp1 \n";
-    return std::nullopt;
-  }
-
   const auto parse_party_argument =
       [](const auto& s) -> std::pair<std::size_t, MOTION::Communication::tcp_connection_config> {
     const static std::regex party_argument_re("([01]),([^,]+),(\\d{1,5})");
@@ -239,86 +221,35 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 
 
   const MOTION::tensor::GemmOp gemm_op = {
-      .input_A_shape_ = {options.input_values_dp0_rows, options.input_values_dp0_cols}, 
-      .input_B_shape_ = {options.input_values_dp1_rows, options.input_values_dp1_cols}, 
-      .output_shape_ = {options.input_values_dp0_rows, options.input_values_dp1_cols}
+      .input_A_shape_ = {options.input_values_dp_rows, options.input_values_dp_cols}, 
+      .input_B_shape_ = {options.input_values_dp_cols, options.input_values_dp_rows}, 
+      .output_shape_ = {options.input_values_dp_rows, options.input_values_dp_rows}
       };  
-  
-  const MOTION::tensor::MaxPoolOp maxpool_op = {
-    .input_shape_ = {1,options.input_values_dp0_rows,options.input_values_dp1_cols},
-    .output_shape_ = {1,1,1},
-    .kernel_shape_ = {options.input_values_dp0_rows,options.input_values_dp1_cols},
-    .strides_ = {1,1}
-  };
 
 
   const auto input_A_dims = gemm_op.get_input_A_tensor_dims();
   const auto input_B_dims = gemm_op.get_input_B_tensor_dims();
   const auto output_dims = gemm_op.get_output_tensor_dims();
 
-  MOTION::tensor::TensorCP tensor_a,tensor_b;
-  MOTION::tensor::TensorCP output,output_inter,fin_output;
-
-  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation;  
-  make_activation = [&](const auto& input) {
-    const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
-    const auto boolean_tensor = boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, negated_tensor);
-    const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor);
-    const auto finBoolean_tensor = boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
-    return arithmetic_tof.make_tensor_negate(finBoolean_tensor);
-  };
-  
-  
-  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_maxPool;
-  make_maxPool = [&](const auto& input) {
-    const auto boolean_tensor = boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, input);
-    const auto maxPool_tensor = boolean_tof.make_tensor_maxpool_op(maxpool_op,boolean_tensor);
-    return boolean_tof.make_tensor_conversion(options.arithmetic_protocol, maxPool_tensor);
-  };
-
   // share the inputs using the arithmetic protocol
   // NB: the inputs need to always be specified in the same order:
-  // here we first specify the input of party 0, then that of party 
-  if (options.my_id == 0) {
-    auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
-    tensor_a = pair.second;
-    
-    auto pair2 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_B_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_b = std::move(pair2.first);
-    tensor_b = pair2.second;
+  // here we first specify the input of party 0, then that of party 1
 
-    input_promises_a[0].set_value(options.input_values_dp0_Delta);
-    input_promises_a[1].set_value(options.input_values_dp0_delta);
-    input_promises_b[0].set_value(options.input_values_dp1_Delta);
-    input_promises_b[1].set_value(options.input_values_dp1_delta);
-    
+  MOTION::tensor::TensorCP tensor;
+  auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
+  tensor = pair.second;
 
-  } else {
-    auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
-    tensor_a = pair.second;
-    
-    auto pair2 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_B_dims);
-    std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_b = std::move(pair2.first);
-    tensor_b = pair2.second;  
+  input_promises_a[0].set_value(options.input_values_dp_Delta);
+  input_promises_a[1].set_value(options.input_values_dp_delta);     
 
-    input_promises_a[0].set_value(options.input_values_dp0_Delta);
-    input_promises_a[1].set_value(options.input_values_dp0_delta);
-    input_promises_b[0].set_value(options.input_values_dp1_Delta);
-    input_promises_b[1].set_value(options.input_values_dp1_delta);
-
-  }
-  
-  output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b,options.fractional_bits);
-  output_inter = make_activation(output);  
-  fin_output = make_maxPool(output_inter);
+  auto output = arithmetic_tof.make_tensor_constMul_op(tensor, (uint64_t)options.constant);
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(fin_output);
+    arithmetic_tof.make_arithmetic_tensor_output_other(output);
   } else {
-    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(fin_output);
+    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(output);
   }
 
   return output_future;

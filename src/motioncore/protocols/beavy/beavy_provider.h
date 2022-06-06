@@ -223,6 +223,9 @@ class BEAVYProvider : public GateFactory,
                                           const tensor::TensorCP) override;
   tensor::TensorCP make_tensor_avgpool_op(const tensor::AveragePoolOp&, const tensor::TensorCP,
                                           std::size_t fractional_bits = 0) override;
+  //Functions defined to perform constant operations (addnl)
+  tensor::TensorCP make_tensor_negate(const tensor::TensorCP) override;
+  tensor::TensorCP make_tensor_constMul_op(const tensor::TensorCP,const uint64_t k) override;
   template <typename T>
   tensor::TensorCP basic_make_convert_boolean_to_arithmetic_beavy_tensor(const tensor::TensorCP);
   tensor::TensorCP make_convert_boolean_to_arithmetic_beavy_tensor(const tensor::TensorCP);

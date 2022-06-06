@@ -1224,6 +1224,64 @@ tensor::TensorCP BEAVYProvider::make_tensor_maxpool_op(const tensor::MaxPoolOp& 
   return output;
 }
 
+// Functions defined to perform constant operations (addnl)
+tensor::TensorCP BEAVYProvider::make_tensor_negate(const tensor::TensorCP in) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, in, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorNegate<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+//(addnl)
+tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP in,const uint64_t k) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, in, gate_id, k,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorConstMul<T>>(
+        gate_id, *this, k, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
 template <typename T>
 tensor::TensorCP BEAVYProvider::basic_make_convert_boolean_to_arithmetic_beavy_tensor(
     const tensor::TensorCP in) {

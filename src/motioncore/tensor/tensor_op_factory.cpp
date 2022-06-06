@@ -140,4 +140,14 @@ tensor::TensorCP TensorOpFactory::make_tensor_avgpool_op(const tensor::AveragePo
       fmt::format("{} does not support the AveragePool operation", get_provider_name()));
 }
 
+tensor::TensorCP TensorOpFactory::make_tensor_negate(const tensor::TensorCP) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Negate operation", get_provider_name()));
+}
+
+tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP,const uint64_t k) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
+}
+
 }  // namespace MOTION::tensor
