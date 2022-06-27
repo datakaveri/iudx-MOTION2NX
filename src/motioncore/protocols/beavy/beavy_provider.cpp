@@ -1282,6 +1282,73 @@ tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP i
 
 }
 
+//(addnl)
+std::vector<tensor::TensorCP> BEAVYProvider::make_tensor_split_op(const tensor::TensorCP in) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  std::vector<tensor::TensorCP> output;
+  const auto make_op = [this, in, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorSplit<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+    output.push_back(tensor_op->get_output_tensor_0());
+    output.push_back(tensor_op->get_output_tensor_1());
+    output.push_back(tensor_op->get_output_tensor_2());
+    output.push_back(tensor_op->get_output_tensor_3());
+    output.push_back(tensor_op->get_output_tensor_4());
+    output.push_back(tensor_op->get_output_tensor_5());
+    output.push_back(tensor_op->get_output_tensor_6());
+    output.push_back(tensor_op->get_output_tensor_7());
+    output.push_back(tensor_op->get_output_tensor_8());
+    output.push_back(tensor_op->get_output_tensor_9());
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+tensor::TensorCP BEAVYProvider::make_tensor_join_op(const tensor::TensorCP in, const tensor::TensorCP in2) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, in, in2, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorJoin<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in),
+        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in2));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
 template <typename T>
 tensor::TensorCP BEAVYProvider::basic_make_convert_boolean_to_arithmetic_beavy_tensor(
     const tensor::TensorCP in) {

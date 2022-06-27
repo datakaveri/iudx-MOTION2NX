@@ -210,6 +210,8 @@ class YaoProvider : public GateFactory,
   using TensorOpFactory::make_tensor_relu_op;
   tensor::TensorCP make_tensor_maxpool_op(const tensor::MaxPoolOp&,
                                           const tensor::TensorCP) override;
+  tensor::TensorCP make_tensor_gt_op(const tensor::MaxPoolOp&,
+                                          const tensor::TensorCP) override;
 
  private:
   Communication::CommunicationLayer& communication_layer_;

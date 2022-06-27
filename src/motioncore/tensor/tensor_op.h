@@ -102,6 +102,22 @@ struct MaxPoolOp {
 
 using AveragePoolOp = MaxPoolOp;
 
+struct GTOp {
+  std::array<std::size_t, 3> input_shape_;
+  std::array<std::size_t, 3> output_shape_;
+
+  std::array<std::size_t, 2> kernel_shape_;
+  std::array<std::size_t, 2> strides_;
+
+  bool verify() const noexcept;
+  std::array<std::size_t, 3> compute_output_shape() const noexcept;
+  std::size_t compute_kernel_size() const noexcept;
+  std::size_t compute_input_size() const noexcept;
+  std::size_t compute_output_size() const noexcept;
+  TensorDimensions get_input_tensor_dims() const noexcept;
+  TensorDimensions get_output_tensor_dims() const noexcept;
+};
+
 }  // namespace MOTION::tensor
 
 namespace std {
