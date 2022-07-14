@@ -316,9 +316,9 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(fin_output);
+    arithmetic_tof.make_arithmetic_tensor_output_other(output);
   } else {
-    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(fin_output);
+    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(output);
   }
 
   return output_future;

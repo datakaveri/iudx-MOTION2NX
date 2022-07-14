@@ -150,6 +150,12 @@ tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP
       fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
 }
 
+tensor::TensorCP TensorOpFactory::make_tensor_add_op(const tensor::TensorCP,const tensor::TensorCP) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Tensor addition operation", get_provider_name()));
+}
+
+
 std::vector<tensor::TensorCP> TensorOpFactory::make_tensor_split_op(const tensor::TensorCP) {
   throw std::logic_error(
       fmt::format("{} does not support the Split operation", get_provider_name()));
@@ -161,7 +167,8 @@ tensor::TensorCP TensorOpFactory::make_tensor_gt_op(const tensor::MaxPoolOp&,
       fmt::format("{} does not support the GT operation", get_provider_name()));
 }
 
-tensor::TensorCP TensorOpFactory::make_tensor_join_op(const tensor::TensorCP, const tensor::TensorCP) {
+tensor::TensorCP TensorOpFactory::make_tensor_join_op(const tensor::JoinOp&, const tensor::TensorCP,
+                                                      const tensor::TensorCP, std::size_t) {
   throw std::logic_error(
       fmt::format("{} does not support the Join operation", get_provider_name()));
 }

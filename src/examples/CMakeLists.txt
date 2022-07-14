@@ -25,7 +25,6 @@ add_subdirectory(tensor_dot_product)
 add_subdirectory(tensor_gt)
 add_subdirectory(tensor_matrix_multiplication)
 add_subdirectory(tensor_relu)
-add_subdirectory(tensor_relu_argmax_dp)
 add_subdirectory(tensor_relu_maxpool_dp)
 
 if (MOTION_BUILD_ONNX_ADAPTER)

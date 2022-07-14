@@ -258,14 +258,11 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
                                                                     input_promises_b_Delta, input_promises_b_delta;
 
     
-    std::cout << "Tensor dot product - Before suspected seg fault\n";
 
     input_promises_a_Delta = std::move(input_promises_a[0]);
     input_promises_a_delta = std::move(input_promises_a[1]);
     input_promises_b_Delta = std::move(input_promises_b[0]);
     input_promises_b_delta = std::move(input_promises_b[1]);
-
-    std::cout << "Tensor dot product - After suspected seg fault\n";
 
     input_promises_a_Delta.set_value(options.input_values_dp0_Delta);
     input_promises_a_delta.set_value(options.input_values_dp0_delta);

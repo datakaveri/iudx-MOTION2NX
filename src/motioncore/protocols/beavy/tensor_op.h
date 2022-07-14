@@ -231,6 +231,33 @@ class ArithmeticBEAVYTensorGemm : public NewGate {
   std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
 };
 
+//Implementation of Tensor Join (addnl)
+template <typename T>
+class ArithmeticBEAVYTensorJoin : public NewGate {
+ public:
+  ArithmeticBEAVYTensorJoin(std::size_t gate_id, BEAVYProvider&, tensor::JoinOp,
+                            const ArithmeticBEAVYTensorCP<T> input_A,
+                            const ArithmeticBEAVYTensorCP<T> input_B, std::size_t fractional_bits);
+  ~ArithmeticBEAVYTensorJoin();
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  const ArithmeticBEAVYTensorP<T>& get_output_tensor() const { return output_; }
+
+ private:
+  BEAVYProvider& beavy_provider_;
+  tensor::JoinOp join_op_;
+  std::size_t fractional_bits_;
+  const ArithmeticBEAVYTensorCP<T> input_A_;
+  const ArithmeticBEAVYTensorCP<T> input_B_;
+  std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;
+  std::vector<T> Delta_y_;
+  std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
+  std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
+};
+
 template <typename T>
 class ArithmeticBEAVYTensorMul : public NewGate {
  public:
@@ -329,6 +356,31 @@ class ArithmeticBEAVYTensorConstMul : public NewGate {
   std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
 };
 
+//Implementation of Tensor Addition (addnl)
+template <typename T>
+class ArithmeticBEAVYTensorAdd : public NewGate {
+ public:
+  ArithmeticBEAVYTensorAdd(std::size_t gate_id, BEAVYProvider&,
+                            const ArithmeticBEAVYTensorCP<T> inputA,
+                            const ArithmeticBEAVYTensorCP<T> inputB);
+  ~ArithmeticBEAVYTensorAdd();
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  const ArithmeticBEAVYTensorP<T>& get_output_tensor() const { return output_; }
+
+ private:
+  BEAVYProvider& beavy_provider_;
+  const ArithmeticBEAVYTensorCP<T> input_A_;
+  const ArithmeticBEAVYTensorCP<T> input_B_;
+  std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;
+  std::vector<T> Delta_y_;
+  std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
+  std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
+};
+
 //Implementation of Splitting a Tensor (addnl)
 template <typename T>
 class ArithmeticBEAVYTensorSplit : public NewGate {
@@ -374,38 +426,6 @@ class ArithmeticBEAVYTensorSplit : public NewGate {
   std::vector<T> Delta_y_;
   std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
   std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
-};
-
-//Implementation of Tensor Join (addnl)
-template <typename T>
-class ArithmeticBEAVYTensorJoin : public NewGate {
- public:
-  ArithmeticBEAVYTensorJoin(std::size_t gate_id, BEAVYProvider&,
-                            const ArithmeticBEAVYTensorCP<T> input_a,
-                            const ArithmeticBEAVYTensorCP<T> input_b);
-  ~ArithmeticBEAVYTensorJoin();
-  bool need_setup() const noexcept override { return true; }
-  bool need_online() const noexcept override { return true; }
-  void evaluate_setup() override;
-  void evaluate_online() override;
-  const ArithmeticBEAVYTensorP<T>& get_output_tensor() const { return output_; }
-
- private:
-  BEAVYProvider& beavy_provider_;
-  const ArithmeticBEAVYTensorCP<T> input_a_;
-  const ArithmeticBEAVYTensorCP<T> input_b_;
-  std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
-  ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;
-  std::vector<T> Delta_y_;
-  std::vector<T> delta_y_share_;
-  std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
-  std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
-  const tensor::TensorDimensions dimensions_ = {
-    .batch_size_ = 1,
-    .num_channels_ = 1,
-    .height_ = 1,
-    .width_ = 2
-  };
 };
 
 template <typename T>

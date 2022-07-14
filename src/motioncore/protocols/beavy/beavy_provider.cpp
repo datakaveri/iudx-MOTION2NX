@@ -1283,6 +1283,36 @@ tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP i
 }
 
 //(addnl)
+tensor::TensorCP BEAVYProvider::make_tensor_add_op(const tensor::TensorCP inputA,const tensor::TensorCP inputB) {
+  auto bit_size = inputA->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, inputA, inputB, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorAdd<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(inputA) ,
+        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(inputB));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+//(addnl)
 std::vector<tensor::TensorCP> BEAVYProvider::make_tensor_split_op(const tensor::TensorCP in) {
   auto bit_size = in->get_bit_size();
   std::unique_ptr<NewGate> gate;
@@ -1320,17 +1350,32 @@ std::vector<tensor::TensorCP> BEAVYProvider::make_tensor_split_op(const tensor::
 
 }
 
-tensor::TensorCP BEAVYProvider::make_tensor_join_op(const tensor::TensorCP in, const tensor::TensorCP in2) {
-  auto bit_size = in->get_bit_size();
+tensor::TensorCP BEAVYProvider::make_tensor_join_op(const tensor::JoinOp& join_op,
+                                                    const tensor::TensorCP input_A,
+                                                    const tensor::TensorCP input_B,
+                                                    std::size_t fractional_bits) {
+  if (!join_op.verify()) {
+    throw std::invalid_argument("invalid JoinOp");
+  }
+  if (input_A->get_dimensions() != join_op.get_input_A_tensor_dims()) {
+    throw std::invalid_argument("invalid input_A dimensions");
+  }
+  if (input_B->get_dimensions() != join_op.get_input_B_tensor_dims()) {
+    throw std::invalid_argument("invalid input_B dimensions");
+  }
+  auto bit_size = input_A->get_bit_size();
+  if (bit_size != input_B->get_bit_size()) {
+    throw std::invalid_argument("bit size mismatch");
+  }
   std::unique_ptr<NewGate> gate;
   auto gate_id = gate_register_.get_next_gate_id();
   tensor::TensorCP output;
-  const auto make_op = [this, in, in2, gate_id,
+  const auto make_op = [this, input_A, join_op, input_B, fractional_bits, gate_id,
                         &output](auto dummy_arg) {
     using T = decltype(dummy_arg);
     auto tensor_op = std::make_unique<ArithmeticBEAVYTensorJoin<T>>(
-        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in),
-        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in2));
+        gate_id, *this, join_op, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(input_A),
+        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(input_B), fractional_bits);
     output = tensor_op->get_output_tensor();
     return tensor_op;
   };
@@ -1346,7 +1391,6 @@ tensor::TensorCP BEAVYProvider::make_tensor_join_op(const tensor::TensorCP in, c
   }
   gate_register_.register_gate(std::move(gate));
   return output;
-
 }
 
 template <typename T>

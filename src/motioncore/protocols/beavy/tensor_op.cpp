@@ -827,6 +827,183 @@ void ArithmeticBEAVYTensorGemm<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorGemm<std::uint32_t>;
 template class ArithmeticBEAVYTensorGemm<std::uint64_t>;
 
+//Implementation of tensor Join operation (addnl)
+template <typename T>
+ArithmeticBEAVYTensorJoin<T>::ArithmeticBEAVYTensorJoin(std::size_t gate_id,
+                                                        BEAVYProvider& beavy_provider,
+                                                        tensor::JoinOp join_op,
+                                                        const ArithmeticBEAVYTensorCP<T> input_A,
+                                                        const ArithmeticBEAVYTensorCP<T> input_B,
+                                                        std::size_t fractional_bits)
+    : NewGate(gate_id),
+      beavy_provider_(beavy_provider),
+      join_op_(join_op),
+      fractional_bits_(fractional_bits),
+      input_A_(input_A),
+      input_B_(input_B),
+      output_(std::make_shared<ArithmeticBEAVYTensor<T>>(join_op.get_output_tensor_dims())) {
+  const auto my_id = beavy_provider_.get_my_id();
+  const auto output_size = join_op_.compute_output_size();
+  // share_future_ = beavy_provider_.register_for_ints_message<T>(1 - my_id, gate_id_, output_size);
+  // auto& ap = beavy_provider_.get_arith_manager().get_provider(1 - my_id);
+  const auto dim_l = join_op_.input_A_shape_[0];
+  const auto dim_m = join_op_.input_A_shape_[1];
+  const auto dim_n = join_op_.input_B_shape_[1];
+  // if (!beavy_provider_.get_fake_setup()) {
+  //   mm_lhs_side_ = ap.template register_matrix_multiplication_lhs<T>(dim_l, dim_m, dim_n);
+  //   mm_rhs_side_ = ap.template register_matrix_multiplication_rhs<T>(dim_l, dim_m, dim_n);
+  // }
+  Delta_y_.resize(output_size);
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format("Gate {}: ArithmeticBEAVYTensorJoin<T> created", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+ArithmeticBEAVYTensorJoin<T>::~ArithmeticBEAVYTensorJoin() = default;
+
+template <typename T>
+void ArithmeticBEAVYTensorJoin<T>::evaluate_setup() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorJoin<T>::evaluate_setup start", gate_id_));
+    }
+  }
+
+  const auto output_size = join_op_.compute_output_size();
+
+  input_A_->wait_setup();
+  input_B_->wait_setup();
+
+  const auto& delta_a_share = input_A_->get_secret_share();
+  const auto& delta_b_share = input_B_->get_secret_share();
+  std::vector<T> delta_y_share(output_size);
+
+  // if (!beavy_provider_.get_fake_setup()) {
+  //   mm_lhs_side_->set_input(delta_a_share);
+  //   mm_rhs_side_->set_input(delta_b_share);
+  // }
+
+  // [Delta_y]_i = [delta_a]_i * [delta_b]_i
+  join_matrices(join_op_, delta_a_share.data(), delta_b_share.data(), delta_y_share.data());
+
+  // if (fractional_bits_ == 0) {
+  //   // [Delta_y]_i += [delta_y]_i
+  //   __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  //                             std::begin(delta_y_share), std::begin(Delta_y_share_), std::plus{});
+  //   // NB: happens after truncation if that is requested
+  // }
+
+  // if (!beavy_provider_.get_fake_setup()) {
+  //   mm_lhs_side_->compute_output();
+  //   mm_rhs_side_->compute_output();
+  // }
+  // std::vector<T> delta_ab_share1;
+  // std::vector<T> delta_ab_share2;
+  // if (beavy_provider_.get_fake_setup()) {
+  //   delta_ab_share1 = Helpers::RandomVector<T>(join_op_.compute_output_size());
+  //   delta_ab_share2 = Helpers::RandomVector<T>(join_op_.compute_output_size());
+  // } else {
+  //   // [[delta_a]_i * [delta_b]_(1-i)]_i
+  //   delta_ab_share1 = mm_lhs_side_->get_output();
+  //   // [[delta_b]_i * [delta_a]_(1-i)]_i
+  //   delta_ab_share2 = mm_rhs_side_->get_output();
+  // }
+  // // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
+  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  //                           std::begin(delta_ab_share1), std::begin(Delta_y_share_), std::plus{});
+  // // [Delta_y]_i += [[delta_b]_i * [delta_a]_(1-i)]_i
+  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  //                           std::begin(delta_ab_share2), std::begin(Delta_y_share_), std::plus{});
+
+
+  output_->get_secret_share() = std::move(delta_y_share);
+  output_->set_setup_ready();
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorGemm<T>::evaluate_setup end", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void ArithmeticBEAVYTensorJoin<T>::evaluate_online() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorJoin<T>::evaluate_online start", gate_id_));
+    }
+  }
+
+  const auto output_size = join_op_.compute_output_size();
+  input_A_->wait_online();
+  input_B_->wait_online();
+  const auto& Delta_a = input_A_->get_public_share();
+  const auto& Delta_b = input_B_->get_public_share();
+  const auto& delta_a_share = input_A_->get_secret_share();
+  const auto& delta_b_share = input_B_->get_secret_share();
+  std::vector<T> tmp(output_size,0);
+  Delta_y_ = tmp;
+
+  // after setup phase, `Delta_y_share_` contains [delta_y]_i + [delta_ab]_i
+
+  // [Delta_y]_i -= Delta_a * [delta_b]_i
+  join_matrices(join_op_, Delta_a.data(), Delta_b.data(), Delta_y_.data());
+  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+  //                           std::begin(Delta_y_share_), std::minus{});
+
+  // // [Delta_y]_i -= Delta_b * [delta_a]_i
+  // join_matrices(join_op_, delta_a_share.data(), Delta_b.data(), tmp.data());
+  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+  //                           std::begin(Delta_y_share_), std::minus{});
+
+  // // [Delta_y]_i += Delta_ab (== Delta_a * Delta_b)
+  // if (beavy_provider_.is_my_job(gate_id_)) {
+  //   join_matrices(join_op_, Delta_a.data(), Delta_b.data(), tmp.data());
+  //   __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+  //                             std::begin(Delta_y_share_), std::plus{});
+  // }
+
+  // if (fractional_bits_ > 0) {
+  //   fixed_point::truncate_shared<T>(Delta_y_share_.data(), fractional_bits_, Delta_y_share_.size(),
+  //                                   beavy_provider_.is_my_job(gate_id_));
+  //   // [Delta_y]_i += [delta_y]_i
+  //   __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  //                             std::begin(output_->get_secret_share()), std::begin(Delta_y_share_),
+  //                             std::plus{});
+  //   // NB: happens in setup phase if no truncation is requested
+  // }
+
+  // // broadcast [Delta_y]_i
+  // beavy_provider_.broadcast_ints_message(gate_id_, Delta_y_share_);
+  // // Delta_y = [Delta_y]_i + [Delta_y]_(1-i)
+  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  //                           std::begin(share_future_.get()), std::begin(Delta_y_share_),
+  //                           std::plus{});
+  output_->get_public_share() = std::move(Delta_y_);
+  output_->set_online_ready();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorJoin<T>::evaluate_online end", gate_id_));
+    }
+  }
+}
+
+template class ArithmeticBEAVYTensorJoin<std::uint32_t>;
+template class ArithmeticBEAVYTensorJoin<std::uint64_t>;
+
 template <typename T>
 ArithmeticBEAVYTensorMul<T>::ArithmeticBEAVYTensorMul(std::size_t gate_id,
                                                       BEAVYProvider& beavy_provider,
@@ -1305,6 +1482,104 @@ void ArithmeticBEAVYTensorConstMul<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorConstMul<std::uint32_t>;
 template class ArithmeticBEAVYTensorConstMul<std::uint64_t>;
 
+//Implementation of Addition with Tensor (addnl)
+template <typename T>
+ArithmeticBEAVYTensorAdd<T>::ArithmeticBEAVYTensorAdd(std::size_t gate_id,
+                                                        BEAVYProvider& beavy_provider,
+                                                        const ArithmeticBEAVYTensorCP<T> inputA,
+                                                        const ArithmeticBEAVYTensorCP<T> inputB)
+    : NewGate(gate_id),
+      beavy_provider_(beavy_provider),
+      input_A_(inputA),
+      input_B_(inputB),
+      output_(std::make_shared<ArithmeticBEAVYTensor<T>>(inputA->get_dimensions())) {
+  const auto my_id = beavy_provider_.get_my_id();
+  const auto output_size = input_A_->get_dimensions().get_data_size();
+  Delta_y_.resize(output_size);
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format("Gate {}: ArithmeticBEAVYTensorAdd<T> created", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+ArithmeticBEAVYTensorAdd<T>::~ArithmeticBEAVYTensorAdd() = default;
+
+template <typename T>
+void ArithmeticBEAVYTensorAdd<T>::evaluate_setup() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorAdd<T>::evaluate_setup start", gate_id_));
+    }
+  }
+
+  const auto output_size = input_A_->get_dimensions().get_data_size();
+
+  input_A_->wait_setup();
+  input_B_->wait_setup();
+
+  const auto& delta_a_share_ = input_A_->get_secret_share();
+  const auto& delta_b_share_ = input_B_->get_secret_share();
+
+  std::vector<T> constant_vector(output_size,0);
+  auto& delta_y_share_ = constant_vector;
+  
+  // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
+  __gnu_parallel::transform(std::begin(delta_a_share_), std::end(delta_a_share_),
+                            std::begin(delta_b_share_), std::begin(delta_y_share_), std::plus{});
+
+  output_->get_secret_share() = std::move(delta_y_share_);
+  output_->set_setup_ready();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorAdd<T>::evaluate_setup end", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void ArithmeticBEAVYTensorAdd<T>::evaluate_online() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorAdd<T>::evaluate_online start", gate_id_));
+    }
+  }
+
+  const auto output_size = input_A_->get_dimensions().get_data_size();
+  input_A_->wait_online();
+  input_B_->wait_online();
+
+  const auto& Delta_a_ = input_A_->get_public_share();
+  const auto& Delta_b_ = input_B_->get_public_share();
+  
+  __gnu_parallel::transform(std::begin(Delta_a_), std::end(Delta_a_),
+                            std::begin(Delta_b_), std::begin(Delta_y_), std::plus{});
+
+  output_->get_public_share() = std::move(Delta_y_);
+  output_->set_online_ready();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorAdd<T>::evaluate_online end", gate_id_));
+    }
+  }
+}
+
+template class ArithmeticBEAVYTensorAdd<std::uint32_t>;
+template class ArithmeticBEAVYTensorAdd<std::uint64_t>;
+
 //Implementation of Splitting a Tensor (addnl)
 template <typename T>
 ArithmeticBEAVYTensorSplit<T>::ArithmeticBEAVYTensorSplit(std::size_t gate_id,
@@ -1471,138 +1746,6 @@ void ArithmeticBEAVYTensorSplit<T>::evaluate_online() {
 
 template class ArithmeticBEAVYTensorSplit<std::uint32_t>;
 template class ArithmeticBEAVYTensorSplit<std::uint64_t>;
-
-//Implementation of Tensor Join (addnl)
-template <typename T>
-ArithmeticBEAVYTensorJoin<T>::ArithmeticBEAVYTensorJoin(std::size_t gate_id,
-                                                        BEAVYProvider& beavy_provider,
-                                                        const ArithmeticBEAVYTensorCP<T> input_a,
-                                                        const ArithmeticBEAVYTensorCP<T> input_b)
-    : NewGate(gate_id),
-      beavy_provider_(beavy_provider),
-      input_a_(input_a),
-      input_b_(input_b),
-      output_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)) {
-  const auto my_id = beavy_provider_.get_my_id();
-  const auto output_size = input_a_->get_dimensions().get_data_size() + input_b_->get_dimensions().get_data_size();
-  //Delta_y_.resize(output_size);
-
-  delta_y_share_.reserve( output_size ); // preallocate memory
-  Delta_y_.reserve( output_size ); // preallocate memory
-
-  if constexpr (MOTION_VERBOSE_DEBUG) {
-    auto logger = beavy_provider_.get_logger();
-    if (logger) {
-      logger->LogTrace(fmt::format("Gate {}: ArithmeticBEAVYTensorGemm<T> created", gate_id_));
-    }
-  }
-}
-
-template <typename T>
-ArithmeticBEAVYTensorJoin<T>::~ArithmeticBEAVYTensorJoin() = default;
-
-template <typename T>
-void ArithmeticBEAVYTensorJoin<T>::evaluate_setup() {
-  if constexpr (MOTION_VERBOSE_DEBUG) {
-    auto logger = beavy_provider_.get_logger();
-    if (logger) {
-      logger->LogTrace(
-          fmt::format("Gate {}: ArithmeticBEAVYTensorGemm<T>::evaluate_setup start", gate_id_));
-    }
-  }
-
-  const auto output_size = dimensions_.get_data_size();
-  output_->get_secret_share() = Helpers::RandomVector<T>(output_size);
-  output_->set_setup_ready();
-
-  input_a_->wait_setup();
-  input_b_->wait_setup();
-
-  const auto& delta_a_share_ = input_a_->get_secret_share();
-  const auto& delta_b_share_ = input_b_->get_secret_share();
-
-  // std::vector<T> delta_y_share_;
-  
-  // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
-  // for(auto i=0; i<delta_a_share_.size();i++) {
-  //   delta_y_share_.push_back(delta_a_share_[i]);
-  // }
-
-  // for(auto i=0; i<delta_b_share_.size();i++) {
-  //   delta_y_share_.push_back(delta_b_share_[i]);
-  // }
-  // std::transform(std::begin(delta_a_share_), std::end(delta_a_share_),
-  //                           std::back_inserter(delta_y_share_), 
-  //                           [](T ele)-> T {return ele;});
-  // std::transform(std::begin(delta_b_share_), std::end(delta_b_share_),
-  //                           std::back_inserter(delta_y_share_), 
-  //                           [](T ele)-> T {return ele;});
-
-  delta_y_share_.insert( delta_y_share_.end(), delta_a_share_.begin(), delta_a_share_.end() );
-  delta_y_share_.insert( delta_y_share_.end(), delta_b_share_.begin(), delta_b_share_.end() );
-  
-
-  output_->get_secret_share() = std::move(delta_y_share_);
-  output_->set_setup_ready();
-
-  if constexpr (MOTION_VERBOSE_DEBUG) {
-    auto logger = beavy_provider_.get_logger();
-    if (logger) {
-      logger->LogTrace(
-          fmt::format("Gate {}: ArithmeticBEAVYTensorGemm<T>::evaluate_setup end", gate_id_));
-    }
-  }
-}
-
-template <typename T>
-void ArithmeticBEAVYTensorJoin<T>::evaluate_online() {
-  if constexpr (MOTION_VERBOSE_DEBUG) {
-    auto logger = beavy_provider_.get_logger();
-    if (logger) {
-      logger->LogTrace(
-          fmt::format("Gate {}: ArithmeticBEAVYTensorGemm<T>::evaluate_online start", gate_id_));
-    }
-  }
-
-  const auto output_size = dimensions_.get_data_size();
-  input_a_->wait_online();
-  input_b_->wait_online();
-  
-  const auto& Delta_a_ = input_a_->get_public_share();
-  const auto& Delta_b_ = input_b_->get_public_share();
-
-  // for(auto i=0; i<Delta_a_.size();i++) {
-  //   Delta_y_.push_back(Delta_a_[i]);
-  // }
-
-  // for(auto i=0; i<Delta_b_.size();i++) {
-  //   Delta_y_.push_back(Delta_b_[i]);
-  // }
-  
-  // std::transform(std::begin(Delta_a_), std::end(Delta_a_),
-  //                           std::back_inserter(Delta_y_), 
-  //                           [](T ele)-> T {return ele;});
-  // std::transform(std::begin(Delta_b_), std::end(Delta_b_),
-  //                           std::back_inserter(Delta_y_), 
-  //                           [](T ele)-> T {return ele;});
-
-  Delta_y_.insert( Delta_y_.end(), Delta_a_.begin(), Delta_a_.end() );
-  Delta_y_.insert( Delta_y_.end(), Delta_b_.begin(), Delta_b_.end() );
-
-  output_->get_public_share() = std::move(Delta_y_);
-  output_->set_online_ready();
-
-  if constexpr (MOTION_VERBOSE_DEBUG) {
-    auto logger = beavy_provider_.get_logger();
-    if (logger) {
-      logger->LogTrace(
-          fmt::format("Gate {}: ArithmeticBEAVYTensorGemm<T>::evaluate_online end", gate_id_));
-    }
-  }
-}
-
-template class ArithmeticBEAVYTensorJoin<std::uint32_t>;
-template class ArithmeticBEAVYTensorJoin<std::uint64_t>;
 
 template <typename T>
 BooleanToArithmeticBEAVYTensorConversion<T>::BooleanToArithmeticBEAVYTensorConversion(
