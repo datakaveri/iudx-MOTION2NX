@@ -28,6 +28,8 @@
 #include <random>
 #include <regex>
 #include <stdexcept>
+#include <chrono>
+#include <thread>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/json/serialize.hpp>
@@ -73,8 +75,8 @@ struct Options {
   MOTION::MPCProtocol arithmetic_protocol;
   MOTION::MPCProtocol boolean_protocol;
   Matrix image;
-  Matrix weights[3];
-  Matrix biases[3];  
+  Matrix weights[2];
+  Matrix biases[2];  
   std::size_t fractional_bits;
   std::size_t my_id;
   MOTION::Communication::tcp_parties_config tcp_config;
@@ -94,7 +96,7 @@ void retrieve_shares(int port_number,Options* options) {
     options->fractional_bits = pair1.first;
 
     int i = 0;
-    for(i=0;i<6;i++) {
+    for(i=0;i<4;i++) {
 
       auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(port_number);
       std::vector<COMPUTE_SERVER::Shares>input_values_dp1 = pair2.second.first;
@@ -268,11 +270,11 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       .output_shape_ = {options.weights[1].row, options.image.col}
       };
   
-  const MOTION::tensor::GemmOp gemm_op3 = {
-      .input_A_shape_ = {options.weights[2].row, options.weights[2].col}, 
-      .input_B_shape_ = {options.weights[1].row, options.image.col}, 
-      .output_shape_ = {options.weights[2].row, options.image.col}
-      };
+  // const MOTION::tensor::GemmOp gemm_op3 = {
+  //     .input_A_shape_ = {options.weights[2].row, options.weights[2].col}, 
+  //     .input_B_shape_ = {options.weights[1].row, options.image.col}, 
+  //     .output_shape_ = {options.weights[2].row, options.image.col}
+  //     };
 
   // const MOTION::tensor::JoinOp join_op = {
   //     .input_A_shape_ = {1, 1}, 
@@ -288,9 +290,9 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   // }; 
 
   const MOTION::tensor::MaxPoolOp maxpool_op = {
-    .input_shape_ = {1,options.weights[0].row,options.image.col},
+    .input_shape_ = {1,options.weights[1].row,options.image.col},
     .output_shape_ = {1,1,1},
-    .kernel_shape_ = {options.weights[0].row,options.image.col},
+    .kernel_shape_ = {options.weights[1].row,options.image.col},
     .strides_ = {1,1}
   }; 
 
@@ -302,17 +304,17 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   const auto W2_dims = gemm_op2.get_input_A_tensor_dims();
   const auto B2_dims = gemm_op2.get_output_tensor_dims();
 
-  const auto W3_dims = gemm_op3.get_input_A_tensor_dims();
-  const auto B3_dims = gemm_op3.get_output_tensor_dims();
+  // const auto W3_dims = gemm_op3.get_input_A_tensor_dims();
+  // const auto B3_dims = gemm_op3.get_output_tensor_dims();
 
   // share the inputs using the arithmetic protocol
   // NB: the inputs need to always be specified in the same order:
   // here we first specify the input of party 0, then that of party 1
 
-  MOTION::tensor::TensorCP tensor_W1,tensor_B1, tensor_X, tensor_W2, tensor_B2, tensor_W3, tensor_B3;
-  MOTION::tensor::TensorCP gemm_output1, gemm_output2, gemm_output3; 
+  MOTION::tensor::TensorCP tensor_W1,tensor_B1, tensor_X, tensor_W2, tensor_B2;
+  MOTION::tensor::TensorCP gemm_output1, gemm_output2;
   MOTION::tensor::TensorCP maxpool_output;
-  MOTION::tensor::TensorCP add_output1, add_output2, add_output3;
+  MOTION::tensor::TensorCP add_output1, add_output2;
 
   std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_maxPool;
   make_maxPool = [&](const auto& input) {
@@ -349,13 +351,13 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_B2 = std::move(pairB2.first);
   tensor_B2 = pairB2.second;
 
-  auto pairW3 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(W3_dims);
-  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_W3 = std::move(pairW3.first);
-  tensor_W3 = pairW3.second;
+  // auto pairW3 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(W3_dims);
+  // std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_W3 = std::move(pairW3.first);
+  // tensor_W3 = pairW3.second;
   
-  auto pairB3 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(B3_dims);
-  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_B3 = std::move(pairB3.first);
-  tensor_B3 = pairB3.second;
+  // auto pairB3 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(B3_dims);
+  // std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_B3 = std::move(pairB3.first);
+  // tensor_B3 = pairB3.second;
 
   input_promises_X[0].set_value(options.image.Delta);
   input_promises_X[1].set_value(options.image.delta);
@@ -372,11 +374,11 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   input_promises_B2[0].set_value(options.biases[1].Delta);
   input_promises_B2[1].set_value(options.biases[1].delta);
 
-  input_promises_W3[0].set_value(options.weights[2].Delta);
-  input_promises_W3[1].set_value(options.weights[2].delta);
+  // input_promises_W3[0].set_value(options.weights[2].Delta);
+  // input_promises_W3[1].set_value(options.weights[2].delta);
 
-  input_promises_B3[0].set_value(options.biases[2].Delta);
-  input_promises_B3[1].set_value(options.biases[2].delta);
+  // input_promises_B3[0].set_value(options.biases[2].Delta);
+  // input_promises_B3[1].set_value(options.biases[2].delta);
 
   
 
@@ -394,15 +396,14 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   };
   auto relu_output_1 = make_activation(add_output1);
 
-
   gemm_output2 = arithmetic_tof.make_tensor_gemm_op(gemm_op2, tensor_W2, relu_output_1,options.fractional_bits);
   add_output2 = arithmetic_tof.make_tensor_add_op(gemm_output2,tensor_B2);
   auto relu_output_2 = make_activation(add_output2);
 
-  gemm_output3 = arithmetic_tof.make_tensor_gemm_op(gemm_op3, tensor_W3, relu_output_2,options.fractional_bits);
-  add_output3 = arithmetic_tof.make_tensor_add_op(gemm_output3,tensor_B3);
+  // gemm_output3 = arithmetic_tof.make_tensor_gemm_op(gemm_op3, tensor_W3, relu_output_2,options.fractional_bits);
+  // add_output3 = arithmetic_tof.make_tensor_add_op(gemm_output3,tensor_B3);
 
-  maxpool_output = make_maxPool(add_output3);
+  maxpool_output = make_maxPool(add_output2);
   
   // // TESTING TENSOR SPLITTING
   // const auto split_input_tensors = arithmetic_tof.make_tensor_split_op(tensor_a);
@@ -425,9 +426,9 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   }
 
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(add_output3);
+    arithmetic_tof.make_arithmetic_tensor_output_other(add_output2);
   } else {
-    main_output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(add_output3);
+    main_output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(add_output2);
   }
   
   return std::make_pair(std::move(main_output_future), std::move(output_future));
@@ -443,13 +444,15 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
     for(int i=0; i<main.size(); ++i)
     {
       float temp = MOTION::fixed_point::decode<uint64_t,float>(main[i],options.fractional_bits);
-      if(temp == compare) {
-        std::cout << 1 << " ";
-      } else {
-        std::cout << 0 << " ";
-      }
+      std::cout << temp << " , ";
+
+      // if(temp == compare) {
+      //   std::cout << 1 << " ";
+      // } else {
+      //   std::cout << 0 << " ";
+      // }
     }
-    std::cout << " " << std::endl;
+    std::cout << compare << std::endl;
   }
 }
 
