@@ -192,7 +192,7 @@ BEAVYProvider::basic_make_arithmetic_input_gate_my(std::size_t input_owner, std:
   }
   ENCRYPTO::ReusableFiberPromise<std::vector<T>> promise;
   auto gate_id = gate_register_.get_next_gate_id();
-  auto gate = std::make_unique<ArithmeticBEAVYInputGateSender<T>>(gate_id, *this, num_simd,
+  auto gate = std::make_unique<ArithmeticBEAVYInputGateSender<T>>(gate_id, *this, num_simd, 
                                                                   promise.get_future());
   auto output = gate->get_output_wire();
   gate_register_.register_gate(std::move(gate));
@@ -246,6 +246,46 @@ WireVector BEAVYProvider::make_arithmetic_64_input_gate_other(std::size_t input_
                                                               std::size_t num_simd) {
   return basic_make_arithmetic_input_gate_other<std::uint64_t>(input_owner, num_simd);
 }
+
+//Input gates to take shares directly
+template <typename T>
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, WireVector >
+BEAVYProvider::basic_make_arithmetic_input_gate_shares(std::size_t num_simd) {
+  auto gate_id = gate_register_.get_next_gate_id();
+  ENCRYPTO::ReusableFiberPromise<std::vector<T>> DeltaPromise, deltaPromise;
+  auto gate = std::make_unique<ArithmeticBEAVYInputGateShares<T>>(gate_id, *this, num_simd,
+                                                                  DeltaPromise.get_future(),deltaPromise.get_future());
+  auto output = gate->get_output_wire();
+  gate_register_.register_gate(std::move(gate));
+
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>> input_promises;
+  input_promises.push_back(std::move(DeltaPromise));
+  input_promises.push_back(std::move(deltaPromise));
+
+
+  return {std::move(input_promises),{cast_arith_wire(std::move(output))}};
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_8_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint8_t>(num_simd);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_16_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint16_t>(num_simd);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_32_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint32_t>(num_simd);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+BEAVYProvider::make_arithmetic_64_input_gate_shares(std::size_t num_simd) {
+  return basic_make_arithmetic_input_gate_shares<std::uint64_t>(num_simd);
+}
+
 
 template <typename T>
 ENCRYPTO::ReusableFiberFuture<IntegerValues<T>> BEAVYProvider::basic_make_arithmetic_output_gate_my(
@@ -329,7 +369,8 @@ std::pair<NewGateP, WireVector> BEAVYProvider::construct_unary_gate(
     case ENCRYPTO::PrimitiveOperationType::INV:
       return construct_inv_gate(in_a);
     default:
-      throw std::logic_error(fmt::format("BEAVY does not support the unary operation {}", op));
+      throw std::logic_error(
+          fmt::format("BEAVY does not support the unary operation {}", ToString(op)));
   }
 }
 
@@ -343,7 +384,8 @@ std::vector<std::shared_ptr<NewWire>> BEAVYProvider::make_unary_gate(
     case ENCRYPTO::PrimitiveOperationType::SQR:
       return make_sqr_gate(in_a);
     default:
-      throw std::logic_error(fmt::format("BEAVY does not support the unary operation {}", op));
+      throw std::logic_error(
+          fmt::format("BEAVY does not support the unary operation {}", ToString(op)));
   }
 }
 
@@ -355,7 +397,8 @@ std::pair<NewGateP, WireVector> BEAVYProvider::construct_binary_gate(
     case ENCRYPTO::PrimitiveOperationType::AND:
       return construct_and_gate(in_a, in_b);
     default:
-      throw std::logic_error(fmt::format("BEAVY does not support the binary operation {}", op));
+      throw std::logic_error(
+          fmt::format("BEAVY does not support the binary operation {}", ToString(op)));
   }
 }
 
@@ -372,7 +415,8 @@ std::vector<std::shared_ptr<NewWire>> BEAVYProvider::make_binary_gate(
     case ENCRYPTO::PrimitiveOperationType::MUL:
       return make_mul_gate(in_a, in_b);
     default:
-      throw std::logic_error(fmt::format("BEAVY does not support the binary operation {}", op));
+      throw std::logic_error(
+          fmt::format("BEAVY does not support the binary operation {}", ToString(op)));
   }
 }
 
@@ -501,24 +545,36 @@ WireVector BEAVYProvider::make_arithmetic_unary_gate(const WireVector& in_a) {
   }
 }
 
-static std::size_t check_arithmetic_wires(const WireVector& in_a, const WireVector& in_b) {
+static std::size_t check_arithmetic_wires(const WireVector& in_a, const WireVector& in_b,
+                                          bool bit_x_int = false) {
   if (in_a.size() != 1 || in_b.size() != 1) {
     throw std::logic_error("arithmetic operations support single wires only");
   }
-  auto bit_size = in_a[0]->get_bit_size();
-  if (bit_size != in_b[0]->get_bit_size()) {
-    throw std::logic_error("different bit sizes on wires");
+  if (bit_x_int) {
+    assert(std::min(in_a[0]->get_bit_size(), in_b[0]->get_bit_size()) == 1);
+    return std::max(in_a[0]->get_bit_size(), in_b[0]->get_bit_size());
+  } else {
+    auto bit_size = in_a[0]->get_bit_size();
+    if (bit_size != in_b[0]->get_bit_size()) {
+      throw std::logic_error("different bit sizes on wires");
+    }
+    return bit_size;
   }
-  return bit_size;
 }
 
-template <template <typename> class BinaryGate, typename T, bool plain>
+template <template <typename> class BinaryGate, typename T, BEAVYProvider::mixed_gate_mode_t mgm>
 WireVector BEAVYProvider::make_arithmetic_binary_gate(const NewWireP& in_a, const NewWireP& in_b) {
   auto gate_id = gate_register_.get_next_gate_id();
   WireVector output;
-  if constexpr (plain) {
+  if constexpr (mgm == mixed_gate_mode_t::plain) {
     auto gate = std::make_unique<BinaryGate<T>>(gate_id, *this, cast_arith_wire<T>(in_a),
                                                 cast_arith_plain_wire<T>(in_b));
+    output = {cast_arith_wire(gate->get_output_wire())};
+    gate_register_.register_gate(std::move(gate));
+  } else if constexpr (mgm == mixed_gate_mode_t::boolean) {
+    auto gate = std::make_unique<BinaryGate<T>>(gate_id, *this,
+                                                std::dynamic_pointer_cast<BooleanBEAVYWire>(in_a),
+                                                cast_arith_wire<T>(in_b));
     output = {cast_arith_wire(gate->get_output_wire())};
     gate_register_.register_gate(std::move(gate));
   } else {
@@ -530,19 +586,19 @@ WireVector BEAVYProvider::make_arithmetic_binary_gate(const NewWireP& in_a, cons
   return output;
 }
 
-template <template <typename> class BinaryGate, bool plain>
+template <template <typename> class BinaryGate, BEAVYProvider::mixed_gate_mode_t mgm>
 WireVector BEAVYProvider::make_arithmetic_binary_gate(const WireVector& in_a,
                                                       const WireVector& in_b) {
-  auto bit_size = check_arithmetic_wires(in_a, in_b);
+  auto bit_size = check_arithmetic_wires(in_a, in_b, mgm == mixed_gate_mode_t::boolean);
   switch (bit_size) {
     case 8:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint8_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint8_t, mgm>(in_a[0], in_b[0]);
     case 16:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint16_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint16_t, mgm>(in_a[0], in_b[0]);
     case 32:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint32_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint32_t, mgm>(in_a[0], in_b[0]);
     case 64:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint64_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint64_t, mgm>(in_a[0], in_b[0]);
     default:
       throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
   }
@@ -559,20 +615,26 @@ WireVector BEAVYProvider::make_add_gate(const WireVector& in_a, const WireVector
   }
   assert(in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticBEAVY);
   if (in_b.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain) {
-    return make_arithmetic_binary_gate<ArithmeticBEAVYADDPlainGate, true>(in_a, in_b);
+    return make_arithmetic_binary_gate<ArithmeticBEAVYADDPlainGate, mixed_gate_mode_t::plain>(in_a,
+                                                                                              in_b);
   } else {
     return make_arithmetic_binary_gate<ArithmeticBEAVYADDGate>(in_a, in_b);
   }
 }
 
 WireVector BEAVYProvider::make_mul_gate(const WireVector& in_a, const WireVector& in_b) {
-  // assume, at most one of the inputs is a plain wire
-  if (in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain) {
+  // assume, at most one of the inputs is a plain wire or a Boolean wire
+  if (in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain ||
+      in_a.at(0)->get_protocol() == MPCProtocol::BooleanBEAVY) {
     return make_mul_gate(in_b, in_a);
   }
   assert(in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticBEAVY);
   if (in_b.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain) {
-    return make_arithmetic_binary_gate<ArithmeticBEAVYMULPlainGate, true>(in_a, in_b);
+    return make_arithmetic_binary_gate<ArithmeticBEAVYMULPlainGate, mixed_gate_mode_t::plain>(in_a,
+                                                                                              in_b);
+  } else if (in_b.at(0)->get_protocol() == MPCProtocol::BooleanBEAVY) {
+    return make_arithmetic_binary_gate<BooleanXArithmeticBEAVYMULGate, mixed_gate_mode_t::boolean>(
+        in_b, in_a);
   } else {
     return make_arithmetic_binary_gate<ArithmeticBEAVYMULGate>(in_a, in_b);
   }
@@ -821,6 +883,35 @@ tensor::TensorCP BEAVYProvider::make_arithmetic_32_tensor_input_other(
 tensor::TensorCP BEAVYProvider::make_arithmetic_64_tensor_input_other(
     const tensor::TensorDimensions& dims) {
   return basic_make_arithmetic_tensor_input_other<std::uint64_t>(dims);
+}
+
+//Input tensor to take shares directly
+
+template <typename T>
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, tensor::TensorCP >
+BEAVYProvider::basic_make_arithmetic_tensor_input_shares(const tensor::TensorDimensions& dims) {
+  ENCRYPTO::ReusableFiberPromise<std::vector<T>> Delta,delta;
+  auto gate_id = gate_register_.get_next_gate_id();
+  auto tensor_op = std::make_unique<ArithmeticBEAVYTensorInputShares<T>>(gate_id, *this, dims,Delta.get_future(),delta.get_future());
+
+
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>> input_promises;
+  input_promises.push_back(std::move(Delta));
+  input_promises.push_back(std::move(delta));
+                                                                  
+  auto output = tensor_op->get_output_tensor();
+  gate_register_.register_gate(std::move(tensor_op));
+  return {std::move(input_promises), std::dynamic_pointer_cast<const tensor::Tensor>(output)};
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, tensor::TensorCP >
+BEAVYProvider::make_arithmetic_32_tensor_input_shares(const tensor::TensorDimensions& dims) {
+  return basic_make_arithmetic_tensor_input_shares<std::uint32_t>(dims);
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, tensor::TensorCP >
+BEAVYProvider::make_arithmetic_64_tensor_input_shares(const tensor::TensorDimensions& dims) {
+  return basic_make_arithmetic_tensor_input_shares<std::uint64_t>(dims);
 }
 
 template <typename T>
@@ -1130,6 +1221,175 @@ tensor::TensorCP BEAVYProvider::make_tensor_maxpool_op(const tensor::MaxPoolOp& 
       std::make_unique<BooleanBEAVYTensorMaxPool>(gate_id, *this, maxpool_op, input_tensor);
   auto output = tensor_op->get_output_tensor();
   gate_register_.register_gate(std::move(tensor_op));
+  return output;
+}
+
+// Functions defined to perform constant operations (addnl)
+tensor::TensorCP BEAVYProvider::make_tensor_negate(const tensor::TensorCP in) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, in, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorNegate<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+//(addnl)
+tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP in,const uint64_t k) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, in, gate_id, k,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorConstMul<T>>(
+        gate_id, *this, k, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+//(addnl)
+tensor::TensorCP BEAVYProvider::make_tensor_add_op(const tensor::TensorCP inputA,const tensor::TensorCP inputB) {
+  auto bit_size = inputA->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, inputA, inputB, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorAdd<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(inputA) ,
+        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(inputB));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+//(addnl)
+std::vector<tensor::TensorCP> BEAVYProvider::make_tensor_split_op(const tensor::TensorCP in) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  std::vector<tensor::TensorCP> output;
+  const auto make_op = [this, in, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorSplit<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+    output.push_back(tensor_op->get_output_tensor_0());
+    output.push_back(tensor_op->get_output_tensor_1());
+    output.push_back(tensor_op->get_output_tensor_2());
+    output.push_back(tensor_op->get_output_tensor_3());
+    output.push_back(tensor_op->get_output_tensor_4());
+    output.push_back(tensor_op->get_output_tensor_5());
+    output.push_back(tensor_op->get_output_tensor_6());
+    output.push_back(tensor_op->get_output_tensor_7());
+    output.push_back(tensor_op->get_output_tensor_8());
+    output.push_back(tensor_op->get_output_tensor_9());
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+tensor::TensorCP BEAVYProvider::make_tensor_join_op(const tensor::JoinOp& join_op,
+                                                    const tensor::TensorCP input_A,
+                                                    const tensor::TensorCP input_B,
+                                                    std::size_t fractional_bits) {
+  if (!join_op.verify()) {
+    throw std::invalid_argument("invalid JoinOp");
+  }
+  if (input_A->get_dimensions() != join_op.get_input_A_tensor_dims()) {
+    throw std::invalid_argument("invalid input_A dimensions");
+  }
+  if (input_B->get_dimensions() != join_op.get_input_B_tensor_dims()) {
+    throw std::invalid_argument("invalid input_B dimensions");
+  }
+  auto bit_size = input_A->get_bit_size();
+  if (bit_size != input_B->get_bit_size()) {
+    throw std::invalid_argument("bit size mismatch");
+  }
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, input_A, join_op, input_B, fractional_bits, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorJoin<T>>(
+        gate_id, *this, join_op, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(input_A),
+        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(input_B), fractional_bits);
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
   return output;
 }
 

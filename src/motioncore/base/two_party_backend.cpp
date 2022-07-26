@@ -79,7 +79,7 @@ TwoPartyBackend::TwoPartyBackend(Communication::CommunicationLayer& comm_layer,
           *arithmetic_manager_, logger_)),
       gmw_provider_(std::make_unique<proto::gmw::GMWProvider>(
           comm_layer_, *gate_register_, *circuit_loader_, *motion_base_provider_, *ot_manager_,
-          *mt_provider_, *sp_provider_, *sb_provider_, logger_)),
+          *arithmetic_manager_, *mt_provider_, *sp_provider_, *sb_provider_, logger_)),
       yao_provider_(std::make_unique<proto::yao::YaoProvider>(
           comm_layer_, *gate_register_, *circuit_loader_, *motion_base_provider_,
           ot_manager_->get_provider(1 - my_id_), logger_)) {
@@ -113,7 +113,10 @@ void TwoPartyBackend::run_preprocessing() {
 }
 
 void TwoPartyBackend::run() {
+  std::cout << "Before evaluate setup online \n";
   gate_executor_->evaluate_setup_online(run_time_stats_.back());
+  std::cout << "After evaluate setup online \n";
+
 }
 
 std::optional<MPCProtocol> TwoPartyBackend::convert_via(MPCProtocol src_proto,

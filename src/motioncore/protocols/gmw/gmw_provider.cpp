@@ -50,7 +50,8 @@ GMWProvider::GMWProvider(Communication::CommunicationLayer& communication_layer,
                          GateRegister& gate_register, CircuitLoader& circuit_loader,
                          Crypto::MotionBaseProvider& motion_base_provider,
                          ENCRYPTO::ObliviousTransfer::OTProviderManager& ot_manager,
-                         MTProvider& mt_provider, SPProvider& sp_provider, SBProvider& sb_provider,
+                         ArithmeticProviderManager& arith_manager, MTProvider& mt_provider,
+                         SPProvider& sp_provider, SBProvider& sb_provider,
                          std::shared_ptr<Logger> logger)
     : CommMixin(communication_layer, Communication::MessageType::GMWGate, logger),
       communication_layer_(communication_layer),
@@ -58,6 +59,7 @@ GMWProvider::GMWProvider(Communication::CommunicationLayer& communication_layer,
       circuit_loader_(circuit_loader),
       motion_base_provider_(motion_base_provider),
       ot_manager_(ot_manager),
+      arith_manager_(arith_manager),
       mt_provider_(mt_provider),
       sp_provider_(sp_provider),
       sb_provider_(sb_provider),
@@ -246,6 +248,32 @@ WireVector GMWProvider::make_arithmetic_64_input_gate_other(std::size_t input_ow
   return basic_make_arithmetic_input_gate_other<std::uint64_t>(input_owner, num_simd);
 }
 
+//Input gates to take shares directly
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+GMWProvider::make_arithmetic_8_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 8 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+GMWProvider::make_arithmetic_16_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 16 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+GMWProvider::make_arithmetic_32_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 32 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+GMWProvider::make_arithmetic_64_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
+}
+
 template <typename T>
 ENCRYPTO::ReusableFiberFuture<IntegerValues<T>> GMWProvider::basic_make_arithmetic_output_gate_my(
     std::size_t output_owner, const WireVector& in) {
@@ -328,7 +356,7 @@ std::pair<NewGateP, WireVector> GMWProvider::construct_unary_gate(
     case ENCRYPTO::PrimitiveOperationType::INV:
       return construct_inv_gate(in_a);
     default:
-      throw std::logic_error(fmt::format("GMW does not support the unary operation {}", op));
+      throw std::logic_error(fmt::format("GMW does not support the unary operation {}", ToString(op)));
   }
 }
 
@@ -342,7 +370,8 @@ WireVector GMWProvider::make_unary_gate(ENCRYPTO::PrimitiveOperationType op,
     case ENCRYPTO::PrimitiveOperationType::SQR:
       return make_sqr_gate(in_a);
     default:
-      throw std::logic_error(fmt::format("GMW does not support the unary operation {}", op));
+      throw std::logic_error(
+          fmt::format("GMW does not support the unary operation {}", ToString(op)));
   }
 }
 
@@ -354,7 +383,8 @@ std::pair<NewGateP, WireVector> GMWProvider::construct_binary_gate(
     case ENCRYPTO::PrimitiveOperationType::AND:
       return construct_and_gate(in_a, in_b);
     default:
-      throw std::logic_error(fmt::format("GMW does not support the binary operation {}", op));
+      throw std::logic_error(
+          fmt::format("GMW does not support the binary operation {}", ToString(op)));
   }
 }
 
@@ -370,7 +400,8 @@ WireVector GMWProvider::make_binary_gate(ENCRYPTO::PrimitiveOperationType op,
     case ENCRYPTO::PrimitiveOperationType::MUL:
       return make_mul_gate(in_a, in_b);
     default:
-      throw std::logic_error(fmt::format("GMW does not support the binary operation {}", op));
+      throw std::logic_error(
+          fmt::format("GMW does not support the binary operation {}", ToString(op)));
   }
 }
 
@@ -501,27 +532,39 @@ GMWProvider::make_arithmetic_output_share_gate(const WireVector&);
 template ENCRYPTO::ReusableFiberFuture<IntegerValues<std::uint64_t>>
 GMWProvider::make_arithmetic_output_share_gate(const WireVector&);
 
-static std::size_t check_arithmetic_wires(const WireVector& in_a, const WireVector& in_b) {
+static std::size_t check_arithmetic_wires(const WireVector& in_a, const WireVector& in_b,
+                                          bool bit_x_int = false) {
   if (in_a.size() != 1 || in_b.size() != 1) {
     throw std::logic_error("arithmetic operations support single wires only");
   }
-  auto bit_size = in_a[0]->get_bit_size();
-  if (bit_size != in_b[0]->get_bit_size()) {
-    throw std::logic_error("different bit sizes on wires");
+  if (bit_x_int) {
+    assert(std::min(in_a[0]->get_bit_size(), in_b[0]->get_bit_size()) == 1);
+    return std::max(in_a[0]->get_bit_size(), in_b[0]->get_bit_size());
+  } else {
+    auto bit_size = in_a[0]->get_bit_size();
+    if (bit_size != in_b[0]->get_bit_size()) {
+      throw std::logic_error("different bit sizes on wires");
+    }
+    return bit_size;
   }
-  return bit_size;
 }
 
-template <template <typename> class BinaryGate, typename T, bool plain>
+template <template <typename> class BinaryGate, typename T, GMWProvider::mixed_gate_mode_t mgm>
 WireVector GMWProvider::make_arithmetic_binary_gate(const NewWireP& in_a, const NewWireP& in_b) {
   auto gate_id = gate_register_.get_next_gate_id();
   WireVector output;
-  if constexpr (plain) {
+  if constexpr (mgm == mixed_gate_mode_t::plain) {
     auto gate = std::make_unique<BinaryGate<T>>(gate_id, *this, cast_arith_wire<T>(in_a),
                                                 cast_arith_plain_wire<T>(in_b));
     output = {cast_arith_wire(gate->get_output_wire())};
     gate_register_.register_gate(std::move(gate));
+  } else if constexpr (mgm == mixed_gate_mode_t::boolean) {
+    auto gate = std::make_unique<BinaryGate<T>>(
+        gate_id, *this, std::dynamic_pointer_cast<BooleanGMWWire>(in_a), cast_arith_wire<T>(in_b));
+    output = {cast_arith_wire(gate->get_output_wire())};
+    gate_register_.register_gate(std::move(gate));
   } else {
+    static_assert(mgm == mixed_gate_mode_t::arithmetic);
     auto gate = std::make_unique<BinaryGate<T>>(gate_id, *this, cast_arith_wire<T>(in_a),
                                                 cast_arith_wire<T>(in_b));
     output = {cast_arith_wire(gate->get_output_wire())};
@@ -530,19 +573,19 @@ WireVector GMWProvider::make_arithmetic_binary_gate(const NewWireP& in_a, const 
   return output;
 }
 
-template <template <typename> class BinaryGate, bool plain>
+template <template <typename> class BinaryGate, GMWProvider::mixed_gate_mode_t mgm>
 WireVector GMWProvider::make_arithmetic_binary_gate(const WireVector& in_a,
                                                     const WireVector& in_b) {
-  auto bit_size = check_arithmetic_wires(in_a, in_b);
+  auto bit_size = check_arithmetic_wires(in_a, in_b, mgm == mixed_gate_mode_t::boolean);
   switch (bit_size) {
     case 8:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint8_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint8_t, mgm>(in_a[0], in_b[0]);
     case 16:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint16_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint16_t, mgm>(in_a[0], in_b[0]);
     case 32:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint32_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint32_t, mgm>(in_a[0], in_b[0]);
     case 64:
-      return make_arithmetic_binary_gate<BinaryGate, std::uint64_t, plain>(in_a[0], in_b[0]);
+      return make_arithmetic_binary_gate<BinaryGate, std::uint64_t, mgm>(in_a[0], in_b[0]);
     default:
       throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
   }
@@ -559,20 +602,26 @@ WireVector GMWProvider::make_add_gate(const WireVector& in_a, const WireVector& 
   }
   assert(in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticGMW);
   if (in_b.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain) {
-    return make_arithmetic_binary_gate<ArithmeticGMWADDPlainGate, true>(in_a, in_b);
+    return make_arithmetic_binary_gate<ArithmeticGMWADDPlainGate, mixed_gate_mode_t::plain>(in_a,
+                                                                                            in_b);
   } else {
     return make_arithmetic_binary_gate<ArithmeticGMWADDGate>(in_a, in_b);
   }
 }
 
 WireVector GMWProvider::make_mul_gate(const WireVector& in_a, const WireVector& in_b) {
-  // assume, at most one of the inputs is a plain wire
-  if (in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain) {
+  // assume, at most one of the inputs is a plain wire or a Boolean wire
+  if (in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain ||
+      in_a.at(0)->get_protocol() == MPCProtocol::BooleanGMW) {
     return make_mul_gate(in_b, in_a);
   }
   assert(in_a.at(0)->get_protocol() == MPCProtocol::ArithmeticGMW);
   if (in_b.at(0)->get_protocol() == MPCProtocol::ArithmeticPlain) {
-    return make_arithmetic_binary_gate<ArithmeticGMWMULPlainGate, true>(in_a, in_b);
+    return make_arithmetic_binary_gate<ArithmeticGMWMULPlainGate, mixed_gate_mode_t::plain>(in_a,
+                                                                                            in_b);
+  } else if (in_b.at(0)->get_protocol() == MPCProtocol::BooleanGMW) {
+    return make_arithmetic_binary_gate<BooleanXArithmeticGMWMULGate, mixed_gate_mode_t::boolean>(
+        in_b, in_a);
   } else {
     return make_arithmetic_binary_gate<ArithmeticGMWMULGate>(in_a, in_b);
   }

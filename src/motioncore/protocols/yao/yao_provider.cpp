@@ -193,6 +193,32 @@ WireVector YaoProvider::make_boolean_input_gate_other(std::size_t input_owner,
   return cast_wires(std::move(output));
 }
 
+//Input gates to take shares directly
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+YaoProvider::make_arithmetic_8_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 8 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+YaoProvider::make_arithmetic_16_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 16 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+YaoProvider::make_arithmetic_32_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 32 bit inputs", get_provider_name()));
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+YaoProvider::make_arithmetic_64_input_gate_shares(std::size_t num_simd) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
+}
+
 ENCRYPTO::ReusableFiberFuture<BitValues> YaoProvider::make_boolean_output_gate_my(
     std::size_t output_owner, const WireVector& in) {
   if (output_owner == 1 - my_id_) {
@@ -243,7 +269,8 @@ std::vector<std::shared_ptr<NewWire>> YaoProvider::make_unary_gate(
       output = make_inv_gate(std::move(input_a));
       break;
     default:
-      throw std::logic_error(fmt::format("Yao does not support the unary operation {}", op));
+      throw std::logic_error(
+          fmt::format("Yao does not support the unary operation {}", ToString(op)));
   }
 
   return cast_wires(std::move(output));
@@ -264,7 +291,8 @@ std::vector<std::shared_ptr<NewWire>> YaoProvider::make_binary_gate(
       output = make_and_gate(std::move(input_a), std::move(input_b));
       break;
     default:
-      throw std::logic_error(fmt::format("Yao does not support the binary operation {}", op));
+      throw std::logic_error(
+          fmt::format("Yao does not support the binary operation {}", ToString(op)));
   }
 
   return cast_wires(std::move(output));
@@ -1021,8 +1049,9 @@ tensor::TensorCP YaoProvider::make_tensor_conversion(MPCProtocol proto_to,
       return make_convert_from_arithmetic_gmw_tensor(in);
     }
   }
-  throw std::logic_error(fmt::format(
-      "YaoProvider does not support tensor conversions from {} to {}", proto_from, proto_to));
+  throw std::logic_error(
+      fmt::format("YaoProvider does not support tensor conversions from {} to {}",
+                  ToString(proto_from), ToString(proto_to)));
 }
 
 tensor::TensorCP YaoProvider::make_tensor_relu_op(const tensor::TensorCP in) {
@@ -1056,6 +1085,26 @@ tensor::TensorCP YaoProvider::make_tensor_maxpool_op(const tensor::MaxPoolOp& ma
   } else {
     auto tensor_op =
         std::make_unique<YaoTensorMaxPoolEvaluator>(gate_id, *this, maxpool_op, input_tensor);
+    output = tensor_op->get_output_tensor();
+    gate_register_.register_gate(std::move(tensor_op));
+  }
+  return output;
+}
+
+tensor::TensorCP YaoProvider::make_tensor_gt_op(const tensor::MaxPoolOp& maxpool_op,
+                                                     const tensor::TensorCP in) {
+  const auto input_tensor = std::dynamic_pointer_cast<const YaoTensor>(in);
+  assert(input_tensor != nullptr);
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  if (role_ == Role::garbler) {
+    auto tensor_op =
+        std::make_unique<YaoTensorGTGarbler>(gate_id, *this, maxpool_op, input_tensor);
+    output = tensor_op->get_output_tensor();
+    gate_register_.register_gate(std::move(tensor_op));
+  } else {
+    auto tensor_op =
+        std::make_unique<YaoTensorGTEvaluator>(gate_id, *this, maxpool_op, input_tensor);
     output = tensor_op->get_output_tensor();
     gate_register_.register_gate(std::move(tensor_op));
   }

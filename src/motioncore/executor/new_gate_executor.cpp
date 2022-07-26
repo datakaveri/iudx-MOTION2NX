@@ -62,7 +62,6 @@ void NewGateExecutor::evaluate_setup_online(Statistics::RunTimeStats& stats) {
 
 void NewGateExecutor::evaluate_setup_online_multi_threaded(Statistics::RunTimeStats& stats) {
   stats.record_start<Statistics::RunTimeStats::StatID::evaluate>();
-
   preprocessing_fctn_();
 
   if (logger_) {
@@ -129,6 +128,7 @@ void NewGateExecutor::evaluate_setup_online_multi_threaded(Statistics::RunTimeSt
 }
 
 void NewGateExecutor::evaluate_setup_online_single_threaded(Statistics::RunTimeStats& stats) {
+  std::cout << "In evaluate setup online single threaded \n";
   stats.record_start<Statistics::RunTimeStats::StatID::evaluate>();
 
   preprocessing_fctn_();
@@ -159,7 +159,6 @@ void NewGateExecutor::evaluate_setup_online_single_threaded(Statistics::RunTimeS
     }
   }
   register_.wait_setup();
-
   stats.record_end<Statistics::RunTimeStats::StatID::gates_setup>();
 
   if (sync_between_setup_and_online_) {
@@ -183,7 +182,6 @@ void NewGateExecutor::evaluate_setup_online_single_threaded(Statistics::RunTimeS
     }
   }
   register_.wait_online();
-
   stats.record_end<Statistics::RunTimeStats::StatID::gates_online>();
 
   // --------------------------------------------------------------------------

@@ -129,6 +129,20 @@ class BEAVYProvider : public GateFactory,
                                                  std::size_t num_simd) override;
   WireVector make_arithmetic_64_input_gate_other(std::size_t input_owner,
                                                  std::size_t num_simd) override;
+  
+  //Input gates to take shares directly
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint8_t>>>, WireVector >
+  make_arithmetic_8_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint16_t>>>, WireVector >
+  make_arithmetic_16_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, WireVector >
+  make_arithmetic_32_input_gate_shares(std::size_t num_simd) override;
+  
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, WireVector >
+  make_arithmetic_64_input_gate_shares(std::size_t num_simd) override;  
+
 
   // Boolean outputs
   ENCRYPTO::ReusableFiberFuture<BitValues> make_boolean_output_gate_my(std::size_t output_owner,
@@ -171,6 +185,13 @@ class BEAVYProvider : public GateFactory,
   tensor::TensorCP make_arithmetic_32_tensor_input_other(const tensor::TensorDimensions&) override;
   tensor::TensorCP make_arithmetic_64_tensor_input_other(const tensor::TensorDimensions&) override;
 
+  // TensorOpFactory operating directly on shares
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>, tensor::TensorCP >
+  make_arithmetic_32_tensor_input_shares(const tensor::TensorDimensions& dims) override;
+
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, tensor::TensorCP >
+  make_arithmetic_64_tensor_input_shares(const tensor::TensorDimensions& dims) override;
+
   // arithmetic outputs
   ENCRYPTO::ReusableFiberFuture<IntegerValues<std::uint32_t>> make_arithmetic_32_tensor_output_my(
       const tensor::TensorCP&) override;
@@ -202,14 +223,30 @@ class BEAVYProvider : public GateFactory,
                                           const tensor::TensorCP) override;
   tensor::TensorCP make_tensor_avgpool_op(const tensor::AveragePoolOp&, const tensor::TensorCP,
                                           std::size_t fractional_bits = 0) override;
+  //Functions defined to perform constant operations (addnl)
+  tensor::TensorCP make_tensor_negate(const tensor::TensorCP) override;
+  tensor::TensorCP make_tensor_constMul_op(const tensor::TensorCP,const uint64_t k) override;
+  tensor::TensorCP make_tensor_add_op(const tensor::TensorCP,const tensor::TensorCP) override;
+  std::vector<tensor::TensorCP> make_tensor_split_op(const tensor::TensorCP) override;
+  tensor::TensorCP make_tensor_join_op(const tensor::JoinOp& join_op,
+                                       const tensor::TensorCP input_A,
+                                       const tensor::TensorCP input_B,
+                                       std::size_t fractional_bits = 0) override;
   template <typename T>
   tensor::TensorCP basic_make_convert_boolean_to_arithmetic_beavy_tensor(const tensor::TensorCP);
   tensor::TensorCP make_convert_boolean_to_arithmetic_beavy_tensor(const tensor::TensorCP);
 
  private:
+  enum class mixed_gate_mode_t { arithmetic, boolean, plain };
   template <typename T>
   std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<T>>, WireVector>
   basic_make_arithmetic_input_gate_my(std::size_t input_owner, std::size_t num_simd);
+
+  //Input gates to take shares directly
+  template <typename T>
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, WireVector >
+  basic_make_arithmetic_input_gate_shares(std::size_t num_simd);  
+
   template <typename T>
   WireVector basic_make_arithmetic_input_gate_other(std::size_t input_owner, std::size_t num_simd);
   template <typename T>
@@ -233,9 +270,10 @@ class BEAVYProvider : public GateFactory,
   WireVector make_arithmetic_unary_gate(const NewWireP& in_a);
   template <template <typename> class BinaryGate>
   WireVector make_arithmetic_unary_gate(const WireVector& in_a);
-  template <template <typename> class BinaryGate, typename T, bool plain>
+  template <template <typename> class BinaryGate, typename T, mixed_gate_mode_t mgm>
   WireVector make_arithmetic_binary_gate(const NewWireP& in_a, const NewWireP& in_b);
-  template <template <typename> class BinaryGate, bool plain = false>
+  template <template <typename> class BinaryGate,
+            mixed_gate_mode_t mgm = mixed_gate_mode_t::arithmetic>
   WireVector make_arithmetic_binary_gate(const WireVector& in_a, const WireVector& in_b);
   WireVector make_neg_gate(const WireVector& in_a);
   WireVector make_add_gate(const WireVector& in_a, const WireVector& in_b);
@@ -271,6 +309,12 @@ class BEAVYProvider : public GateFactory,
   basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensions&);
   template <typename T>
   tensor::TensorCP basic_make_arithmetic_tensor_input_other(const tensor::TensorDimensions&);
+  
+  // input tensor to take shares directly
+  template <typename T>
+  std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<T>>>, tensor::TensorCP >
+  basic_make_arithmetic_tensor_input_shares(const tensor::TensorDimensions& dims);
+  
   template <typename T>
   ENCRYPTO::ReusableFiberFuture<IntegerValues<T>> basic_make_arithmetic_tensor_output_my(
       const tensor::TensorCP&);

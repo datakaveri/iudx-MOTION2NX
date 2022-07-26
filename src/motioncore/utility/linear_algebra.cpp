@@ -105,6 +105,84 @@ template void matrix_multiply(const tensor::GemmOp&, const __uint128_t*, const _
                               __uint128_t*);
 
 template <typename T>
+void join_matrices(std::size_t dim_l, std::size_t dim_m, std::size_t dim_n, const T* A,
+                     const T* B, T* output) {
+  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  Eigen::Map<MatrixType> matrix_output(output, dim_l, dim_n);
+  Eigen::Map<const MatrixType> matrix_A(A, dim_l, dim_m);
+  Eigen::Map<const MatrixType> matrix_B(B, dim_m, dim_n);
+  matrix_output = matrix_A * matrix_B;
+}
+
+template <typename T>
+std::vector<T> join_matrices(std::size_t dim_l, std::size_t dim_m, std::size_t dim_n,
+                               const std::vector<T>& A, const std::vector<T>& B) {
+  assert(A.size() == dim_l * dim_m);
+  assert(B.size() == dim_m * dim_n);
+  std::vector<T> output(dim_l * dim_n);
+  matrix_multiply(dim_l, dim_m, dim_n, A.data(), B.data(), output.data());
+  return output;
+}
+
+template <typename T>
+void join_matrices(const tensor::JoinOp& join_op, const T* A, const T* B, T* output) {
+  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  assert(join_op.verify());
+  Eigen::Map<MatrixType> matrix_output(output, join_op.output_shape_[0], join_op.output_shape_[1]);
+  Eigen::Map<const MatrixType> matrix_A(A, join_op.input_A_shape_[0], join_op.input_A_shape_[1]);
+  Eigen::Map<const MatrixType> matrix_B(B, join_op.input_B_shape_[0], join_op.input_B_shape_[1]);
+
+  // if (join_op.transA_ && join_op.transB_) {
+  //   matrix_output = matrix_A.transpose() * matrix_B.transpose();
+  // } else if (join_op.transA_) {
+  //   matrix_output = matrix_A.transpose() * matrix_B;
+  // } else if (join_op.transB_) {
+  //   matrix_output = matrix_A * matrix_B.transpose();
+  // } else {
+  //   matrix_output = matrix_A * matrix_B;
+  // }
+
+  matrix_output(0,0) = matrix_A(0,0);
+  matrix_output(0,1) = matrix_B(0,0);
+
+  // matrix_output << matrix_A,matrix_B;
+}
+
+template void join_matrices(std::size_t, std::size_t, std::size_t, const std::uint8_t*,
+                              const std::uint8_t*, std::uint8_t*);
+template void join_matrices(std::size_t, std::size_t, std::size_t, const std::uint16_t*,
+                              const std::uint16_t*, std::uint16_t*);
+template void join_matrices(std::size_t, std::size_t, std::size_t, const std::uint32_t*,
+                              const std::uint32_t*, std::uint32_t*);
+template void join_matrices(std::size_t, std::size_t, std::size_t, const std::uint64_t*,
+                              const std::uint64_t*, std::uint64_t*);
+template std::vector<std::uint8_t> join_matrices(std::size_t, std::size_t, std::size_t,
+                                                   const std::vector<std::uint8_t>&,
+                                                   const std::vector<std::uint8_t>&);
+template std::vector<std::uint16_t> join_matrices(std::size_t, std::size_t, std::size_t,
+                                                    const std::vector<std::uint16_t>&,
+                                                    const std::vector<std::uint16_t>&);
+template std::vector<std::uint32_t> join_matrices(std::size_t, std::size_t, std::size_t,
+                                                    const std::vector<std::uint32_t>&,
+                                                    const std::vector<std::uint32_t>&);
+template std::vector<std::uint64_t> join_matrices(std::size_t, std::size_t, std::size_t,
+                                                    const std::vector<std::uint64_t>&,
+                                                    const std::vector<std::uint64_t>&);
+template std::vector<__uint128_t> join_matrices(std::size_t, std::size_t, std::size_t,
+                                                  const std::vector<__uint128_t>&,
+                                                  const std::vector<__uint128_t>&);
+template void join_matrices(const tensor::JoinOp&, const std::uint8_t*, const std::uint8_t*,
+                              std::uint8_t*);
+template void join_matrices(const tensor::JoinOp&, const std::uint16_t*, const std::uint16_t*,
+                              std::uint16_t*);
+template void join_matrices(const tensor::JoinOp&, const std::uint32_t*, const std::uint32_t*,
+                              std::uint32_t*);
+template void join_matrices(const tensor::JoinOp&, const std::uint64_t*, const std::uint64_t*,
+                              std::uint64_t*);
+template void join_matrices(const tensor::JoinOp&, const __uint128_t*, const __uint128_t*,
+                              __uint128_t*);
+
+template <typename T>
 void convolution(const tensor::Conv2DOp& conv_op, const T* input_buffer, const T* kernel_buffer,
                  T* output_buffer) {
   using TensorType3 = Eigen::Tensor<T, 3, Eigen::RowMajor>;

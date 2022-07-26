@@ -46,6 +46,8 @@ also work with older versions):
 - [GCC 11.1.0](https://gcc.gnu.org/) or [Clang/LLVM 12.0.1](https://clang.llvm.org/)
 - [CMake 3.21.4](https://cmake.org/)
 - [Boost 1.76.0](https://www.boost.org/)
+- [OpenSSL 1.1.1.l](https://openssl.org/)
+- [Eigen 3.4.0](https://eigen.tuxfamily.org/)
 - [fmt 8.0.1](https://github.com/fmtlib/fmt)
 - [flatbuffers 2.0.0](https://github.com/google/flatbuffers)
 - [GoogleTest 1.11.0 (optional, for tests, build automatically)](https://github.com/google/googletest)
@@ -60,7 +62,7 @@ find these libraries in the system.
 The framework can for example be compiled as follows:
 ```
 $ CC=gcc CXX=g++ cmake \
-    -B build_debwithrelinfo_gcc_foo \
+    -B build_debwithrelinfo_gcc \
     -DCMAKE_BUILD_TYPE=DebWithRelInfo \
     -DMOTION_BUILD_EXE=On \
     -DMOTION_BUILD_TESTS=On \
@@ -99,7 +101,18 @@ needs additionally be passed to CMake:
 
 This builds the library target `motion_onnx` and the `onnx2motion` executable.
 
-### Example
+
+
+### Examples
+
+
+#### Using the MOTION2NX Low-Level API
+
+See [here](src/examples/millionaires_problem) for an example solution of Yao's
+Millionaires' Problem.
+
+
+#### Using the `onnx2motion` Application
 
 ```
 $ ./bin/onnx2motion \

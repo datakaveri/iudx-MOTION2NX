@@ -216,6 +216,59 @@ const ENCRYPTO::AlgorithmDescription& CircuitLoader::load_gtmux_circuit(std::siz
   return algo_cache_[name];
 }
 
+const ENCRYPTO::AlgorithmDescription& CircuitLoader::load_gtmod_circuit(std::size_t bit_size,
+                                                                        bool depth_optimized) {
+  if (bit_size != 8 && bit_size != 16 && bit_size != 32 && bit_size != 64) {
+    throw std::logic_error(fmt::format("unsupported bit size: {}", bit_size));
+  }
+  const auto name = fmt::format("__circuit_loader_builtin__gtmod_{}_bit_{}", bit_size,
+                                depth_optimized ? "depth" : "size");
+  auto it = algo_cache_.find(name);
+  if (it != std::end(algo_cache_)) {
+    return it->second;
+  }
+  const auto& gt_algo = load_gt_circuit(bit_size, depth_optimized);
+  auto algo = gt_algo;
+
+  // X >= Y <-> X - Y >= 0 <-> msb(X - Y) = 0  -> choose X
+  // X < Y <-> X - Y < 0 <-> msb(X - Y) = 1  -> choose Y
+  auto choice_wire = algo.n_wires_ - 1;
+
+  auto wire_offset = algo.n_wires_;
+  auto gate_offset = algo.n_gates_;
+  auto& gates = algo.gates_;
+  gates.resize(gate_offset + 2 * bit_size);
+  algo.n_gates_ += 2 * bit_size;
+  algo.n_wires_ += 2 * bit_size;
+  algo.n_output_wires_ = bit_size;
+  assert(choice_wire == wire_offset - 1);
+  for (std::size_t bit_j = 0; bit_j < bit_size; ++bit_j) {
+    // X ^ Y
+    gates.at(gate_offset + bit_j) =
+        ENCRYPTO::PrimitiveOperation{.type_ = ENCRYPTO::PrimitiveOperationType::XOR,
+                                     .parent_a_ = bit_j,
+                                     .parent_b_ = bit_size + bit_j,
+                                     .output_wire_ = wire_offset + bit_j};
+    // (X ^ Y) * b
+    gates.at(gate_offset + bit_size + bit_j) =
+        ENCRYPTO::PrimitiveOperation{.type_ = ENCRYPTO::PrimitiveOperationType::AND,
+                                     .parent_a_ = wire_offset + bit_j,
+                                     .parent_b_ = choice_wire,
+                                     .output_wire_ = wire_offset + bit_size + bit_j};
+  }
+  assert(algo.gates_.size() == algo.n_gates_);
+
+  for (std::size_t i = 0; i < algo.n_gates_; ++i) {
+    [[maybe_unused]] const auto& op = algo.gates_.at(i);
+    assert(op.parent_a_ < algo.n_wires_ - bit_size);
+    assert(!op.parent_b_.has_value() || *op.parent_b_ < algo.n_wires_ - bit_size);
+    assert(op.output_wire_ < algo.n_wires_);
+  }
+
+  algo_cache_[name] = std::move(algo);
+  return algo_cache_[name];
+}
+
 const ENCRYPTO::AlgorithmDescription& CircuitLoader::load_tree_circuit(const std::string& algo_name,
                                                                        std::size_t bit_size,
                                                                        std::size_t num_inputs) {
@@ -325,6 +378,15 @@ const ENCRYPTO::AlgorithmDescription& CircuitLoader::load_maxpool_circuit(std::s
   const auto name = fmt::format("__circuit_loader_builtin__gtmux_{}_bit_{}", bit_size,
                                 depth_optimized ? "depth" : "size");
   load_gtmux_circuit(bit_size, depth_optimized);
+  return load_tree_circuit(name, bit_size, num_inputs);
+}
+
+const ENCRYPTO::AlgorithmDescription& CircuitLoader::load_gt_tensor_circuit(std::size_t bit_size,
+                                                                          std::size_t num_inputs,
+                                                                          bool depth_optimized) {
+  const auto name = fmt::format("__circuit_loader_builtin__gtmod_{}_bit_{}", bit_size,
+                                depth_optimized ? "depth" : "size");
+  load_gtmod_circuit(bit_size, depth_optimized);
   return load_tree_circuit(name, bit_size, num_inputs);
 }
 

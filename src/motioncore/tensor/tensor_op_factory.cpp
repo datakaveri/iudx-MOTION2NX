@@ -51,6 +51,20 @@ TensorCP TensorOpFactory::make_arithmetic_64_tensor_input_other(const TensorDime
       fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
 }
 
+// share inputs
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<IntegerValues<uint32_t>>>, TensorCP >
+TensorOpFactory::make_arithmetic_32_tensor_input_shares(const TensorDimensions&){
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 32 bit inputs"));
+
+}
+
+std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<IntegerValues<uint64_t>>>, TensorCP >
+TensorOpFactory::make_arithmetic_64_tensor_input_shares(const TensorDimensions&) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs"));
+}
+
 ENCRYPTO::ReusableFiberFuture<IntegerValues<std::uint32_t>>
 TensorOpFactory::make_arithmetic_32_tensor_output_my(const TensorCP&) {
   throw std::logic_error(
@@ -124,6 +138,39 @@ tensor::TensorCP TensorOpFactory::make_tensor_avgpool_op(const tensor::AveragePo
                                                          const tensor::TensorCP, std::size_t) {
   throw std::logic_error(
       fmt::format("{} does not support the AveragePool operation", get_provider_name()));
+}
+
+tensor::TensorCP TensorOpFactory::make_tensor_negate(const tensor::TensorCP) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Negate operation", get_provider_name()));
+}
+
+tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP,const uint64_t k) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
+}
+
+tensor::TensorCP TensorOpFactory::make_tensor_add_op(const tensor::TensorCP,const tensor::TensorCP) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Tensor addition operation", get_provider_name()));
+}
+
+
+std::vector<tensor::TensorCP> TensorOpFactory::make_tensor_split_op(const tensor::TensorCP) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Split operation", get_provider_name()));
+}
+
+tensor::TensorCP TensorOpFactory::make_tensor_gt_op(const tensor::MaxPoolOp&,
+                                                         const tensor::TensorCP) {
+  throw std::logic_error(
+      fmt::format("{} does not support the GT operation", get_provider_name()));
+}
+
+tensor::TensorCP TensorOpFactory::make_tensor_join_op(const tensor::JoinOp&, const tensor::TensorCP,
+                                                      const tensor::TensorCP, std::size_t) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Join operation", get_provider_name()));
 }
 
 }  // namespace MOTION::tensor
