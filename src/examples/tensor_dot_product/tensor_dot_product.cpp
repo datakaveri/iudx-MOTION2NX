@@ -264,13 +264,6 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
     input_promises_b_Delta = std::move(input_promises_b[0]);
     input_promises_b_delta = std::move(input_promises_b[1]);
 
-    // std:: cout << "Options input delta"; 
-    // for(int i=0; i<options.input_values_dp0_Delta.size(); ++i)
-    // {
-    //   std::cout << options.input_values_dp0_Delta[i] << " , ";
-    // }
-    // std:: cout << "\n"; 
-
     input_promises_a_Delta.set_value(options.input_values_dp0_Delta);
     input_promises_a_delta.set_value(options.input_values_dp0_delta);
     input_promises_b_Delta.set_value(options.input_values_dp1_Delta);
@@ -303,8 +296,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   }
 
 
-  auto output = tensor_a;
-  //auto output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b);
+  auto output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b);
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   if (options.my_id == 0) {

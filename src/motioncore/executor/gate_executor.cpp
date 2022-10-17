@@ -38,7 +38,7 @@ GateExecutor::GateExecutor(Register &reg, std::function<void(void)> preprocessin
 
 void GateExecutor::evaluate_setup_online(Statistics::RunTimeStats &stats) {
   stats.record_start<Statistics::RunTimeStats::StatID::evaluate>();
-  std:: cout << "evaluate_setup_online in gate executor\n";
+
   preprocessing_fctn_();
 
   if (logger_) {

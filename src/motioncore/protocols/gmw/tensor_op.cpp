@@ -72,9 +72,7 @@ ArithmeticGMWTensorInputSender<T>::ArithmeticGMWTensorInputSender(
 }
 
 template <typename T>
-void ArithmeticGMWTensorInputSender<T>::evaluate_setup() {//std::cout << "\n";
- //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
-  //std::cout << "\n";
+void ArithmeticGMWTensorInputSender<T>::evaluate_setup() {
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = gmw_provider_.get_logger();
     if (logger) {
@@ -151,9 +149,7 @@ ArithmeticGMWTensorInputReceiver<T>::ArithmeticGMWTensorInputReceiver(
 }
 
 template <typename T>
-void ArithmeticGMWTensorInputReceiver<T>::evaluate_setup() {//std::cout << "\n";
- //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
-  //std::cout << "\n";
+void ArithmeticGMWTensorInputReceiver<T>::evaluate_setup() {
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = gmw_provider_.get_logger();
     if (logger) {

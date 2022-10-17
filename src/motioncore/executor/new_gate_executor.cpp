@@ -53,12 +53,9 @@ NewGateExecutor::NewGateExecutor(GateRegister& reg, std::function<void(void)> pr
 
 
 void NewGateExecutor::evaluate_setup_online(Statistics::RunTimeStats& stats) {
-  std::cout << "Inside New Gate Executor evaluate setup online \n";
   if (num_threads_ == 1) {
-    std::cout << "Single thread \n";
     evaluate_setup_online_single_threaded(stats);
   } else {
-    std::cout << "Multi thread \n";
     evaluate_setup_online_multi_threaded(stats);
   }
 }

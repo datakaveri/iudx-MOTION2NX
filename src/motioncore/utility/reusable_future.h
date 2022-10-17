@@ -136,9 +136,6 @@ class ReusableFuture {
   // move constructor
   ReusableFuture(ReusableFuture&& other) noexcept : shared_state_(std::move(other.shared_state_)) {
     other.shared_state_ = nullptr;
-    // std::cout << "Reached reusable future \n";
-    // std::cout << shared_state_;
-    // std::cout << "\n";
   }
 
   ~ReusableFuture() = default;
@@ -224,7 +221,6 @@ class ReusablePromise {
 
   // set value of the shared state
   void set_value(const R& value) {
-   // std::cout << "\nconst R& value\n";
     if (!shared_state_) {
       throw std::future_error(std::future_errc::no_state);
     }
@@ -233,7 +229,6 @@ class ReusablePromise {
 
   // set value of the shared state
   void set_value(R&& value) {
-    //std::cout << "\nR&& value\n";
     if (!shared_state_) {
       throw std::future_error(std::future_errc::no_state);
     }

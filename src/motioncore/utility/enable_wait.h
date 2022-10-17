@@ -31,7 +31,6 @@ class enable_wait_online {
  public:
   void set_online_ready() noexcept {
     {
-      //std::cout<< "set online ready";
       std::scoped_lock lock(online_cond_.GetMutex());
       online_ready_ = true;
     }

@@ -60,9 +60,7 @@ BasicYaoPlainBinaryGate::BasicYaoPlainBinaryGate(std::size_t gate_id, YaoProvide
 
 }  // namespace detail
 
-void YaoXORPlainGateGarbler::evaluate_setup() {//std::cout << "\n";
- //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
-  //std::cout << "\n";
+void YaoXORPlainGateGarbler::evaluate_setup() {
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -128,9 +126,7 @@ void YaoXORPlainGateEvaluator::evaluate_online() {
   }
 }
 
-void YaoANDPlainGateGarbler::evaluate_setup() {//std::cout << "\n";
- //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
-  //std::cout << "\n";
+void YaoANDPlainGateGarbler::evaluate_setup() {
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {

@@ -29,7 +29,6 @@
 #include <functional>
 #include <limits>
 #include <type_traits>
-#include <climits>
 
 namespace MOTION::fixed_point {
 
@@ -57,24 +56,13 @@ T sar(T x, std::size_t n) {
 // integer type `I` and `fractional_bits` bits for the fractional part.
 template <typename I, typename F, typename = std::enable_if_t<check_types_v<I, F>>>
 I encode(F x, std::size_t fractional_bits) {
-  long double y= x;
-  std :: cout << "\n Inside encode";
-  std :: cout << "\n bit size v: " << bit_size_v<I> << "input as float " << x << "input as Long double " << y;
-  std :: cout << "\n fractional bits: " << fractional_bits << "\n" ;
   assert(fractional_bits <= bit_size_v<I>);
   if (x >= 0) {
     // return std::lround(x * (I(1) << fractional_bits));
-    std :: cout << "\n Positive return value : " << (x * std::exp2(fractional_bits)) << "\n";
-    std :: cout << "ULONG MAX:" << 	ULONG_MAX;
-    return (x * std::exp2(fractional_bits));
+    return std::lround(x * std::exp2(fractional_bits));
   } else {
-     std :: cout << "\n Negative return value : " << (x * std::exp2(fractional_bits)) << "\n";
-     I return_variable = x * std::exp2(fractional_bits);
-     std :: cout << "\n New return variable " << return_variable;
-    return (x * std::exp2(fractional_bits));
-   
+    return std::lround(x * std::exp2(fractional_bits));
   }
-  std :: cout << "End of encode \n";
 }
 
 // Decode a fixed point number `y` encoded in integer type `T` with
@@ -82,25 +70,11 @@ I encode(F x, std::size_t fractional_bits) {
 // type `F`.
 template <typename I, typename F, typename = std::enable_if_t<check_types_v<I, F>>>
 F decode(I y, std::size_t fractional_bits) {
-  I new_value = ULONG_MAX;
-  std :: cout << "\n Inside decode \n";
-  std :: cout << "\n bit size v: " << bit_size_v<I> ;
-  std :: cout << "\n fractional bits: " << fractional_bits << "\n" ;
   assert(fractional_bits <= bit_size_v<I>);
   if (y < (I(1) << (bit_size_v<I> - 1))) {
-    std :: cout << "\n Inside positive \n";
-    I z = y;
-    std::cout.precision(17);
-    long double ans = (z) / std::exp2(fractional_bits);
-    std :: cout << double(y) << " " << z;
-    return ans;
+    return double(y) / std::exp2(fractional_bits);
   } else {
-    I z = (new_value-y);
-    long double ans = (z) / std::exp2(fractional_bits);
-    std :: cout << "\n Inside negative \n";
-    std::cout.precision(17);
-    std :: cout << y << " " <<  new_value << " I+1 :" << z+1 << "double" << ans;
-    return -ans;
+    return (double(y) - std::exp2(bit_size_v<I>)) / std::exp2(fractional_bits);
   }
 }
 
@@ -112,7 +86,6 @@ I truncate(I y, std::size_t fractional_bits) {
 // Encode a range of floating point numbers using above encoding algorithm.
 template <typename I, typename F>
 void encode(I* dst, const F* src, std::size_t fractional_bits, std::size_t n) {
-  std :: cout << "\n Inside encode 2 \n";
   std::transform(src, src + n, dst,
                  [fractional_bits](auto x) { return encode(x, fractional_bits); });
 }
@@ -120,7 +93,6 @@ void encode(I* dst, const F* src, std::size_t fractional_bits, std::size_t n) {
 // Decode a range of floating point numbers using above decoding algorithm.
 template <typename I, typename F>
 void decode(F* dst, const I* src, std::size_t fractional_bits, std::size_t n) {
-  std :: cout << "\n Inside decode 2 \n";
   std::transform(src, src + n, dst,
                  [fractional_bits](auto x) { return decode(x, fractional_bits); });
 }

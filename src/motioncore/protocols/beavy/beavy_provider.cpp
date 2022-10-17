@@ -65,7 +65,6 @@ BEAVYProvider::BEAVYProvider(Communication::CommunicationLayer& communication_la
   if (communication_layer.get_num_parties() != 2) {
     throw std::logic_error("currently only two parties are supported");
   }
-  std::cout << "Beavy constructor";
 }
 
 BEAVYProvider::~BEAVYProvider() = default;
@@ -193,9 +192,6 @@ BEAVYProvider::basic_make_arithmetic_input_gate_my(std::size_t input_owner, std:
   }
   ENCRYPTO::ReusableFiberPromise<std::vector<T>> promise;
   auto gate_id = gate_register_.get_next_gate_id();
-  std::cout << "Promise get future: ";
- // std::cout << *promise.get_future();
-  std::cout << "\n";
   auto gate = std::make_unique<ArithmeticBEAVYInputGateSender<T>>(gate_id, *this, num_simd, 
                                                                   promise.get_future());
   auto output = gate->get_output_wire();
@@ -309,10 +305,6 @@ ENCRYPTO::ReusableFiberFuture<IntegerValues<T>> BEAVYProvider::basic_make_arithm
                                                              output_owner);
   auto future = gate->get_output_future();
   gate_register_.register_gate(std::move(gate));
-  //std :: cout << "Inside output gate , the result is";
-  //auto bvs = future.get();
-  //auto add_result = bvs.at(0);
-  //std :: cout << add_result;
   return future;
 }
 
@@ -867,7 +859,6 @@ tensor::TensorCP BEAVYProvider::basic_make_arithmetic_tensor_input_other(
   auto tensor_op = std::make_unique<ArithmeticBEAVYTensorInputReceiver<T>>(gate_id, *this, dims);
   auto output = tensor_op->get_output_tensor();
   gate_register_.register_gate(std::move(tensor_op));
-  //auto pointer_made = std::dynamic_pointer_cast<const WireVector>(output);
   return std::dynamic_pointer_cast<const tensor::Tensor>(output);
 }
 
@@ -883,8 +874,6 @@ std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, tensor::
 BEAVYProvider::make_arithmetic_64_tensor_input_my(const tensor::TensorDimensions& dims) {
   return basic_make_arithmetic_tensor_input_my<std::uint64_t>(dims);
 }
-
-
 
 tensor::TensorCP BEAVYProvider::make_arithmetic_32_tensor_input_other(
     const tensor::TensorDimensions& dims) {
@@ -911,7 +900,6 @@ BEAVYProvider::basic_make_arithmetic_tensor_input_shares(const tensor::TensorDim
   input_promises.push_back(std::move(delta));
                                                                   
   auto output = tensor_op->get_output_tensor();
-  
   gate_register_.register_gate(std::move(tensor_op));
   return {std::move(input_promises), std::dynamic_pointer_cast<const tensor::Tensor>(output)};
 }
@@ -923,7 +911,6 @@ BEAVYProvider::make_arithmetic_32_tensor_input_shares(const tensor::TensorDimens
 
 std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>, tensor::TensorCP >
 BEAVYProvider::make_arithmetic_64_tensor_input_shares(const tensor::TensorDimensions& dims) {
-  std::cout << "Inside beavy tensor";
   return basic_make_arithmetic_tensor_input_shares<std::uint64_t>(dims);
 }
 
@@ -938,8 +925,6 @@ BEAVYProvider::basic_make_arithmetic_tensor_output_my(const tensor::TensorCP& in
   auto tensor_op =
       std::make_unique<ArithmeticBEAVYTensorOutput<T>>(gate_id, *this, std::move(input), my_id_);
   auto future = tensor_op->get_output_future();
-  std:: cout << "In beavy provider output future" ;
-  //std:: cout << future ;
   gate_register_.register_gate(std::move(tensor_op));
   return future;
 }
@@ -1364,38 +1349,6 @@ std::vector<tensor::TensorCP> BEAVYProvider::make_tensor_split_op(const tensor::
   return output;
 
 }
-
-// //(addnl for size 2)
-// std::vector<tensor::TensorCP> BEAVYProvider::make_tensor_split_op2(const tensor::TensorCP in) {
-//   auto bit_size = in->get_bit_size();
-//   std::unique_ptr<NewGate> gate;
-//   auto gate_id = gate_register_.get_next_gate_id();
-//   std::vector<tensor::TensorCP> output;
-//   const auto make_op = [this, in, gate_id,
-//                         &output](auto dummy_arg) {
-//     using T = decltype(dummy_arg);
-//     auto tensor_op = std::make_unique<ArithmeticBEAVYTensorSplit2<T>>(
-//         gate_id, *this, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
-//     output.push_back(tensor_op->get_output_tensor_0());
-//     output.push_back(tensor_op->get_output_tensor_1());
-//     return tensor_op;
-//   };
-//   switch (bit_size) {
-//     case 32:
-//       gate = make_op(std::uint32_t{});
-//       break;
-//     case 64:
-//       gate = make_op(std::uint64_t{});
-//       break;
-//     default:
-//       throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
-//   }
-//   gate_register_.register_gate(std::move(gate));
-//   return output;
-
-// }
-
-
 
 tensor::TensorCP BEAVYProvider::make_tensor_join_op(const tensor::JoinOp& join_op,
                                                     const tensor::TensorCP input_A,
