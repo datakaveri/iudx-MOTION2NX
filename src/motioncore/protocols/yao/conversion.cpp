@@ -49,7 +49,9 @@ YaoToBooleanGMWGateGarbler::YaoToBooleanGMWGateGarbler(std::size_t gate_id, YaoP
   });
 }
 
-void YaoToBooleanGMWGateGarbler::evaluate_setup() {
+void YaoToBooleanGMWGateGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   auto num_wires = inputs_.size();
   auto num_simd = inputs_[0]->get_num_simd();
   for (std::size_t wire_i = 0; wire_i < num_wires; ++wire_i) {
@@ -83,7 +85,9 @@ YaoToBooleanGMWGateEvaluator::YaoToBooleanGMWGateEvaluator(std::size_t gate_id, 
   });
 }
 
-void YaoToBooleanGMWGateEvaluator::evaluate_setup() {
+void YaoToBooleanGMWGateEvaluator::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   // nothing to do
 }
 
@@ -119,7 +123,9 @@ BooleanGMWToYaoGateGarbler::BooleanGMWToYaoGateGarbler(std::size_t gate_id,
 
 BooleanGMWToYaoGateGarbler::~BooleanGMWToYaoGateGarbler() = default;
 
-void BooleanGMWToYaoGateGarbler::evaluate_setup() {
+void BooleanGMWToYaoGateGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   for (auto& wire : outputs_) {
     wire->get_keys().set_to_random();
     wire->set_setup_ready();
@@ -171,7 +177,9 @@ BooleanGMWToYaoGateEvaluator::BooleanGMWToYaoGateEvaluator(std::size_t gate_id,
 
 BooleanGMWToYaoGateEvaluator::~BooleanGMWToYaoGateEvaluator() = default;
 
-void BooleanGMWToYaoGateEvaluator::evaluate_setup() {
+void BooleanGMWToYaoGateEvaluator::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   // nothing to do
 }
 
@@ -204,7 +212,9 @@ YaoToArithmeticGMWGateGarbler<T>::YaoToArithmeticGMWGateGarbler(std::size_t gate
       yao_provider_(yao_provider) {}
 
 template <typename T>
-void YaoToArithmeticGMWGateGarbler<T>::evaluate_setup() {
+void YaoToArithmeticGMWGateGarbler<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   auto num_simd = output_->get_num_simd();
   auto mask = Helpers::RandomVector<T>(output_->get_num_simd());
   auto& mbp = yao_provider_.get_motion_base_provider();
@@ -233,7 +243,9 @@ YaoToArithmeticGMWGateEvaluator<T>::YaoToArithmeticGMWGateEvaluator(std::size_t 
       yao_provider_(yao_provider) {}
 
 template <typename T>
-void YaoToArithmeticGMWGateEvaluator<T>::evaluate_setup() {
+void YaoToArithmeticGMWGateEvaluator<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   auto& mbp = yao_provider_.get_motion_base_provider();
   auto& rng = mbp.get_my_randomness_generator(0);
   auto num_simd = output_->get_num_simd();
@@ -267,7 +279,9 @@ YaoToBooleanBEAVYGateGarbler::YaoToBooleanBEAVYGateGarbler(std::size_t gate_id,
   public_share_future_ = yao_provider_.register_for_bits_message(gate_id, num_wires * num_simd);
 }
 
-void YaoToBooleanBEAVYGateGarbler::evaluate_setup() {
+void YaoToBooleanBEAVYGateGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   const auto num_wires = inputs_.size();
   const auto num_simd = inputs_[0]->get_num_simd();
   for (std::size_t wire_i = 0; wire_i < num_wires; ++wire_i) {
@@ -305,7 +319,9 @@ YaoToBooleanBEAVYGateEvaluator::YaoToBooleanBEAVYGateEvaluator(std::size_t gate_
                   [num_simd] { return std::make_shared<beavy::BooleanBEAVYWire>(num_simd); });
 }
 
-void YaoToBooleanBEAVYGateEvaluator::evaluate_setup() {
+void YaoToBooleanBEAVYGateEvaluator::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   const auto num_wires = inputs_.size();
   const auto num_simd = inputs_[0]->get_num_simd();
   for (std::size_t wire_i = 0; wire_i < num_wires; ++wire_i) {
@@ -350,7 +366,9 @@ BooleanBEAVYToYaoGateGarbler::BooleanBEAVYToYaoGateGarbler(std::size_t gate_id,
 
 BooleanBEAVYToYaoGateGarbler::~BooleanBEAVYToYaoGateGarbler() = default;
 
-void BooleanBEAVYToYaoGateGarbler::evaluate_setup() {
+void BooleanBEAVYToYaoGateGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   const auto num_wires = inputs_.size();
   const auto num_simd = inputs_[0]->get_num_simd();
   const auto& global_offset = yao_provider_.get_global_offset();
@@ -401,7 +419,9 @@ BooleanBEAVYToYaoGateEvaluator::BooleanBEAVYToYaoGateEvaluator(std::size_t gate_
 
 BooleanBEAVYToYaoGateEvaluator::~BooleanBEAVYToYaoGateEvaluator() = default;
 
-void BooleanBEAVYToYaoGateEvaluator::evaluate_setup() {
+void BooleanBEAVYToYaoGateEvaluator::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   const auto num_wires = inputs_.size();
   const auto num_simd = inputs_[0]->get_num_simd();
   auto ot_inputs = ENCRYPTO::BitVector<>();
@@ -439,7 +459,9 @@ YaoToArithmeticBEAVYGateGarbler<T>::YaoToArithmeticBEAVYGateGarbler(std::size_t 
       yao_provider_(yao_provider) {}
 
 template <typename T>
-void YaoToArithmeticBEAVYGateGarbler<T>::evaluate_setup() {
+void YaoToArithmeticBEAVYGateGarbler<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   auto num_simd = output_->get_num_simd();
   auto mask = Helpers::RandomVector<T>(num_simd);
   auto& mbp = yao_provider_.get_motion_base_provider();
@@ -494,7 +516,9 @@ YaoToArithmeticBEAVYGateEvaluator<T>::YaoToArithmeticBEAVYGateEvaluator(std::siz
       yao_provider_(yao_provider) {}
 
 template <typename T>
-void YaoToArithmeticBEAVYGateEvaluator<T>::evaluate_setup() {
+void YaoToArithmeticBEAVYGateEvaluator<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   auto& mbp = yao_provider_.get_motion_base_provider();
   auto& rng = mbp.get_my_randomness_generator(0);
   auto num_simd = output_->get_num_simd();

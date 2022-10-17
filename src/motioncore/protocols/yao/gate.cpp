@@ -23,6 +23,8 @@
 #include "gate.h"
 
 #include <stdexcept>
+#include <fstream>
+#include <iostream>
 
 #include "crypto/oblivious_transfer/ot_flavors.h"
 #include "crypto/oblivious_transfer/ot_provider.h"
@@ -172,7 +174,9 @@ YaoInputGateGarbler::YaoInputGateGarbler(
     : YaoInputGateGarbler(gate_id, yao_provider, num_wires, num_simd, false,
                           std::move(input_future)) {}
 
-void YaoInputGateGarbler::evaluate_setup() {
+void YaoInputGateGarbler::evaluate_setup() {  // std::cout << "\n";
+  // std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  // std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -330,7 +334,9 @@ YaoInputGateEvaluator::YaoInputGateEvaluator(
     : YaoInputGateEvaluator(gate_id, yao_provider, num_wires, num_simd, false,
                             std::move(input_future)) {}
 
-void YaoInputGateEvaluator::evaluate_setup() {
+void YaoInputGateEvaluator::evaluate_setup() {  // std::cout << "\n";
+  // std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  // std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -454,7 +460,9 @@ YaoOutputGateGarbler::get_output_future() {
   return output_promise_.get_future();
 }
 
-void YaoOutputGateGarbler::evaluate_setup() {
+void YaoOutputGateGarbler::evaluate_setup() {   std::cout << "\n";
+  std::cout << typeid(this).name();std::cout << __FUNCTION__ << std::endl;
+ std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -479,6 +487,25 @@ void YaoOutputGateGarbler::evaluate_setup() {
 
   // If we receive output, we need to store the decoding information.  If the
   // evaluator receives output, we need to send them the decoding information.
+  std ::cout << "\n";
+  std ::cout << "garbler shares decoding info ";
+  // std:: cout << std::begin(public_share) << std::end(public_share) ;
+  std::cout << decoding_info << " ";
+  std ::cout << "\n";
+  ////////////////Writing to a file///////////////////////////////////////////////////////////////////////////////////
+     std::ofstream file2;
+     file2.open("/home/ramya/source-code/iudx-MOTION2NX/src/examples/tensor_split_functionality/Garbler.txt",std::ios_base::app);
+      if(!file2) {
+      std::cerr << " Error in reading file\n";
+      }
+     
+     if(file2.is_open())
+     {
+      file2<< decoding_info;
+      file2<<"\n";
+       
+     }
+     file2.close();
   switch (output_recipient_) {
     case OutputRecipient::garbler:
       decoding_info_ = std::move(decoding_info);
@@ -512,8 +539,13 @@ void YaoOutputGateGarbler::evaluate_online() {
   if (output_recipient_ != OutputRecipient::evaluator) {
     std::vector<ENCRYPTO::BitVector<>> outputs;
     outputs.reserve(num_wires_);
+
     // Receive encoded output and decode it.
     auto plain_output = bits_future_.get() ^ decoding_info_;
+    std ::cout << "\n";
+  std ::cout << "garbler shares decoding info ";
+  // std:: cout << std::begin(public_share) << std::end(public_share) ;
+  std::cout << decoding_info_<< " ";
     // Split the bits corresponding to the wires.
     std::size_t bit_offset = 0;
     for (const auto& wire : inputs_) {
@@ -521,6 +553,11 @@ void YaoOutputGateGarbler::evaluate_online() {
       outputs.push_back(plain_output.Subset(bit_offset, bit_offset + num_simd));
       bit_offset += num_simd;
     }
+    std ::cout << "\n";
+    std ::cout << "Inside evaluate online yao output garbler ";
+    // std:: cout << std::begin(public_share) << std::end(public_share) ;
+    for (auto i = outputs.begin(); i != outputs.end(); ++i) std::cout << *i << " ";
+    std ::cout << "\n";
     output_promise_.set_value(std::move(outputs));
   }
 
@@ -557,7 +594,9 @@ YaoOutputGateEvaluator::get_output_future() {
   return output_promise_.get_future();
 }
 
-void YaoOutputGateEvaluator::evaluate_setup() {
+void YaoOutputGateEvaluator::evaluate_setup() {  // std::cout << "\n";
+  // std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  // std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -581,6 +620,11 @@ void YaoOutputGateEvaluator::evaluate_setup() {
 }
 
 void YaoOutputGateEvaluator::evaluate_online() {
+  std::cout << "\n";
+  std::cout << typeid(this).name();
+  std::cout << __FUNCTION__ << std::endl;
+  std::cout << "\n";
+  std::cerr << "Inside YaoOutputGateEvaluator \n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -619,6 +663,11 @@ void YaoOutputGateEvaluator::evaluate_online() {
   if (output_recipient_ != OutputRecipient::garbler) {
     std::vector<ENCRYPTO::BitVector<>> outputs;
     outputs.reserve(num_wires_);
+    std ::cout << "\n";
+    std ::cout << "Inside evaluator yao output Y ";
+    // std:: cout << std::begin(public_share) << std::end(public_share) ;
+    std::cout << encoded_output << " ";
+    std ::cout << "\n";
     // Receive decoding information and decode the encoded output.
     auto plain_output = std::move(encoded_output);
     plain_output ^= bits_future_.get();
@@ -629,6 +678,30 @@ void YaoOutputGateEvaluator::evaluate_online() {
       outputs.push_back(plain_output.Subset(bit_offset, bit_offset + num_simd));
       bit_offset += num_simd;
     }
+    std ::cout << "\n";
+    std ::cout << "Inside evaluate online yao output ";
+    // std:: cout << std::begin(public_share) << std::end(public_share) ;
+    for (auto i = outputs.begin(); i != outputs.end(); ++i) std::cout << *i << " ";
+    std ::cout << "\n";
+    ////////////////Writing to a file///////////////////////////////////////////////////////////////////////////////////
+     std::ofstream file1;
+     file1.open("/home/ramya/source-code/iudx-MOTION2NX/src/examples/tensor_split_functionality/Evaluator.txt",std::ios_base::app);
+      if(!file1) {
+      std::cerr << " Error in reading file\n";
+      }
+     
+     if(file1.is_open())
+     {
+      file1<< *outputs.begin();
+      file1<<"\n";
+       
+     }
+     file1.close();
+    // std :: cout << "Inside evaluate online my secret shares " ;
+    // auto i = secret_shares_.begin();
+    // std::cout << *i << " ";
+    // for (auto i = my_secret_share_.begin(); i != my_secret_share_.end(); ++i) std::cout << *i <<
+    // " ";
     output_promise_.set_value(std::move(outputs));
   }
 
@@ -652,7 +725,9 @@ YaoINVGateGarbler::YaoINVGateGarbler(std::size_t gate_id, YaoProvider& yao_provi
   }
 }
 
-void YaoINVGateGarbler::evaluate_setup() {
+void YaoINVGateGarbler::evaluate_setup() {  // std::cout << "\n";
+  // std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  // std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -698,7 +773,9 @@ YaoXORGateGarbler::YaoXORGateGarbler(std::size_t gate_id, YaoProvider& yao_provi
   }
 }
 
-void YaoXORGateGarbler::evaluate_setup() {
+void YaoXORGateGarbler::evaluate_setup() {  // std::cout << "\n";
+  // std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  // std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -775,7 +852,9 @@ YaoANDGateGarbler::YaoANDGateGarbler(std::size_t gate_id, YaoProvider& yao_provi
   }
 }
 
-void YaoANDGateGarbler::evaluate_setup() {
+void YaoANDGateGarbler::evaluate_setup() {  // std::cout << "\n";
+  // std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  // std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -823,7 +902,9 @@ YaoANDGateEvaluator::YaoANDGateEvaluator(std::size_t gate_id, YaoProvider& yao_p
   }
 }
 
-void YaoANDGateEvaluator::evaluate_setup() {
+void YaoANDGateEvaluator::evaluate_setup() {  // std::cout << "\n";
+  // std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  // std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {

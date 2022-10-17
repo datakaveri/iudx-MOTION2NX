@@ -24,6 +24,8 @@
 
 #include <parallel/algorithm>
 #include <stdexcept>
+#include <fstream>
+#include <iostream>
 
 #include "algorithm/circuit_loader.h"
 #include "algorithm/make_circuit.h"
@@ -72,7 +74,9 @@ ArithmeticBEAVYTensorInputSender<T>::ArithmeticBEAVYTensorInputSender(
 }
 
 template <typename T>
-void ArithmeticBEAVYTensorInputSender<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorInputSender<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -160,7 +164,9 @@ ArithmeticBEAVYTensorInputReceiver<T>::ArithmeticBEAVYTensorInputReceiver(
 }
 
 template <typename T>
-void ArithmeticBEAVYTensorInputReceiver<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorInputReceiver<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -239,7 +245,9 @@ ArithmeticBEAVYTensorInputShares<T>::ArithmeticBEAVYTensorInputShares(
 }
 
 template <typename T>
-void ArithmeticBEAVYTensorInputShares<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorInputShares<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -264,10 +272,20 @@ void ArithmeticBEAVYTensorInputShares<T>::evaluate_setup() {
   auto& my_public_share = output_->get_public_share(); 
   my_secret_share = delta_.get();
   output_->set_setup_ready();
+  
 
   __gnu_parallel::transform(std::begin(my_public_share), std::end(my_public_share),
                             std::begin(my_secret_share), std::begin(my_public_share), std::plus{});
 
+  std :: cout << "\n";
+  
+  
+    //auto i = secret_shares_.begin();
+    //std::cout << *i << " ";
+    for (auto i = my_secret_share.begin(); i != my_secret_share.end(); ++i) std::cout << *i << " ";
+    std :: cout << "\n";
+  
+  
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -303,7 +321,12 @@ void ArithmeticBEAVYTensorInputShares<T>::evaluate_online() {
   auto& my_public_share = output_->get_public_share(); 
   my_public_share = Delta_.get();
   output_->set_online_ready();
-
+  // std :: cout << "\n";
+  // std :: cout << "Inside evaluate setup input public shares " ;
+  // //std:: cout << std::begin(public_share) << std::end(public_share) ;
+  // for (auto i = my_public_share.begin(); i != my_public_share.end(); ++i) std::cout << *i << " ";
+    
+  
 
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -342,7 +365,9 @@ ArithmeticBEAVYTensorOutput<T>::ArithmeticBEAVYTensorOutput(std::size_t gate_id,
 }
 
 template <typename T>
-void ArithmeticBEAVYTensorOutput<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorOutput<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -382,16 +407,156 @@ void ArithmeticBEAVYTensorOutput<T>::evaluate_online() {
           fmt::format("Gate {}: ArithmeticBEAVYTensorOutput<T>::evaluate_online start", gate_id_));
     }
   }
-
+///////////////////////////New addition of reading into a file ///////////////////////
   auto my_id = beavy_provider_.get_my_id();
+  std::ofstream file1;
+     file1.open("/home/ramya/source-code/iudx-MOTION2NX/src/examples/tensor_split_functionality/A.txt",std::ios_base::out);
+      if(!file1) {
+      std::cerr << " Error in reading file\n";
+      }
+ 
+ //////////////////////////////////////////////////////////////////////////////////////
+ 
+  std :: cout << "\n my_id";
+  std :: cout << my_id;
+  std :: cout << "\n";
   if (output_owner_ == my_id) {
     input_->wait_online();
     const auto& public_share = input_->get_public_share();
+    const auto& new_secret_share = input_->get_secret_share();
     assert(public_share.size() == input_->get_dimensions().get_data_size());
     assert(secret_shares_.size() == input_->get_dimensions().get_data_size());
     __gnu_parallel::transform(std::begin(public_share), std::end(public_share),
                               std::begin(secret_shares_), std::begin(secret_shares_), std::minus{});
     output_promise_.set_value(std::move(secret_shares_));
+    // std :: cout << "\n my_id";
+    // std :: cout << my_id;
+    // std :: cout << "\n";
+    // std :: cout << "Inside evaluate online public shares " ;
+    // //std:: cout << std::begin(public_share) << std::end(public_share) ;
+    // for (auto i = public_share.begin(); i != public_share.end(); ++i) std::cout << *i << " ";
+    // std :: cout << "\n";
+    // std :: cout << "Inside evaluate online new secret shares " ;
+    // //auto i = secret_shares_.begin();
+    // //std::cout << *i << " ";
+    // for (auto i = new_secret_share.begin(); i != new_secret_share.end(); ++i) std::cout << *i << " ";
+    // std :: cout << "\n";
+    // std :: cout << "Inside evaluate online secret shares " ;
+    //auto i = secret_shares_.begin();
+    //std::cout << *i << " ";
+    //for (auto i = std::begin(secret_shares_); i != std::end(secret_shares_); ++i) std::cout << &i << " ";
+    //std :: cout << secret_shares_[0];
+    //std :: cout << std::begin(secret_shares_) ;
+ //   try {
+//   int check = 15;
+//   if (check >= 20) {
+//     cout << "Disabled exception";
+//   } else {
+//     throw (check);
+//   }
+// }
+// catch (int myNum) {
+//    std::cout << boost::stacktrace::stacktrace() << std::endl;
+// } 
+ // }
+
+ /////////////////////////////Write to a file//////////////////////////////////////////////
+  std::vector<std::uint64_t>publicshare1;
+     //cout 
+     for(auto i=public_share.begin();i!=public_share.end();i++)
+     {
+      publicshare1.push_back(*i);
+      
+     }
+     std::vector<std::uint64_t>secretshare1;
+     for(auto i=new_secret_share.begin();i!=new_secret_share.end();i++)
+     {
+      secretshare1.push_back(*i);
+     }
+
+     if(file1.is_open())
+     {
+      file1<<publicshare1.size();
+      file1<<"\n";
+       for(auto i=0;i<publicshare1.size();i++)
+     {
+       file1<<publicshare1[i];
+       file1<<" ";
+
+       file1<<secretshare1[i];
+       file1<<"\n";
+     }
+         
+     }
+     file1.close();
+  }
+  else {
+    // input_->wait_online();
+    // const auto& public_share0 = input_->get_public_share();
+    // const auto& new_secret_share0 = input_->get_secret_share();
+    // std :: cout << "\n my_id";
+    // std :: cout << my_id;
+    // std :: cout << "\n";
+    // std :: cout << "Inside evaluate online public shares " ;
+    // //std:: cout << std::begin(public_share) << std::end(public_share) ;
+    // for (auto i = public_share0.begin(); i != public_share0.end(); ++i) std::cout << *i << " ";
+    // std :: cout << "\n";
+    // std :: cout << "Inside evaluate online new secret shares " ;
+    // //auto i = secret_shares_.begin();
+    // //std::cout << *i << " ";
+    // for (auto i = new_secret_share0.begin(); i != new_secret_share0.end(); ++i) std::cout << *i << " ";
+    // std :: cout << "\n";
+    /////////////////////Writing to a file ///////////////////////////
+    std::ofstream file2;
+     file2.open("/home/ramya/source-code/iudx-MOTION2NX/src/examples/tensor_split_functionality/B.txt",std::ios_base::out);
+     
+      if(!file2) {
+      std::cerr << " Error in reading file\n";
+      }
+     input_->wait_online();
+     const auto& public_share0 = input_->get_public_share();
+     const auto& new_secret_share0 = input_->get_secret_share();
+     std::vector<std::uint64_t>publicshare2;
+
+     /*for(auto i=public_share0.begin();i!=public_share0.end();i++)
+     {
+      std::cout<<*i;
+     }
+     std::cout<<" ";
+     for(auto i=new_secret_share0.begin();i!=new_secret_share0.end();i++)
+     {
+      std::cout<<*i;
+     }
+     std::cout<<"\n";
+     */
+
+      
+     for(auto i=public_share0.begin();i!=public_share0.end();i++)
+     {
+      publicshare2.push_back(*i);
+     }
+     std::vector<std::uint64_t>secretshare2;
+
+     for(auto i=new_secret_share0.begin();i!=new_secret_share0.end();i++)
+     {
+      secretshare2.push_back(*i);
+     }
+
+     if(file2.is_open())
+     {
+       file2<<publicshare2.size();
+       file2<<"\n";
+       for(auto i=0;i<publicshare2.size();i++)
+     {
+       file2<<publicshare2[i];
+       file2<<" ";
+
+       file2<<secretshare2[i];
+       file2<<"\n";
+     } 
+        
+     }
+     file2.close();    
   }
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -433,7 +598,9 @@ ArithmeticBEAVYTensorFlatten<T>::ArithmeticBEAVYTensorFlatten(
 }
 
 template <typename T>
-void ArithmeticBEAVYTensorFlatten<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorFlatten<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -516,7 +683,9 @@ template <typename T>
 ArithmeticBEAVYTensorConv2D<T>::~ArithmeticBEAVYTensorConv2D() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorConv2D<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorConv2D<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -691,7 +860,9 @@ template <typename T>
 ArithmeticBEAVYTensorGemm<T>::~ArithmeticBEAVYTensorGemm() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorGemm<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorGemm<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -867,7 +1038,9 @@ template <typename T>
 ArithmeticBEAVYTensorJoin<T>::~ArithmeticBEAVYTensorJoin() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorJoin<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorJoin<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1039,7 +1212,9 @@ template <typename T>
 ArithmeticBEAVYTensorMul<T>::~ArithmeticBEAVYTensorMul() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorMul<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorMul<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1195,7 +1370,9 @@ ArithmeticBEAVYTensorAveragePool<T>::ArithmeticBEAVYTensorAveragePool(
 }
 
 template <typename T>
-void ArithmeticBEAVYTensorAveragePool<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorAveragePool<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1307,7 +1484,9 @@ template <typename T>
 ArithmeticBEAVYTensorNegate<T>::~ArithmeticBEAVYTensorNegate() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorNegate<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorNegate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1414,7 +1593,9 @@ template <typename T>
 ArithmeticBEAVYTensorConstMul<T>::~ArithmeticBEAVYTensorConstMul() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorConstMul<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorConstMul<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1509,7 +1690,9 @@ template <typename T>
 ArithmeticBEAVYTensorAdd<T>::~ArithmeticBEAVYTensorAdd() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorAdd<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorAdd<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1614,7 +1797,9 @@ template <typename T>
 ArithmeticBEAVYTensorSplit<T>::~ArithmeticBEAVYTensorSplit() = default;
 
 template <typename T>
-void ArithmeticBEAVYTensorSplit<T>::evaluate_setup() {
+void ArithmeticBEAVYTensorSplit<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1779,7 +1964,9 @@ template <typename T>
 BooleanToArithmeticBEAVYTensorConversion<T>::~BooleanToArithmeticBEAVYTensorConversion() = default;
 
 template <typename T>
-void BooleanToArithmeticBEAVYTensorConversion<T>::evaluate_setup() {
+void BooleanToArithmeticBEAVYTensorConversion<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1937,7 +2124,9 @@ BooleanBEAVYTensorRelu::BooleanBEAVYTensorRelu(std::size_t gate_id, BEAVYProvide
 
 BooleanBEAVYTensorRelu::~BooleanBEAVYTensorRelu() = default;
 
-void BooleanBEAVYTensorRelu::evaluate_setup() {
+void BooleanBEAVYTensorRelu::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -2099,7 +2288,9 @@ template <typename T>
 BooleanXArithmeticBEAVYTensorRelu<T>::~BooleanXArithmeticBEAVYTensorRelu() = default;
 
 template <typename T>
-void BooleanXArithmeticBEAVYTensorRelu<T>::evaluate_setup() {
+void BooleanXArithmeticBEAVYTensorRelu<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -2338,7 +2529,9 @@ static void prepare_wires(std::size_t bit_size, const tensor::MaxPoolOp& maxpool
   }
 }
 
-void BooleanBEAVYTensorMaxPool::evaluate_setup() {
+void BooleanBEAVYTensorMaxPool::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {

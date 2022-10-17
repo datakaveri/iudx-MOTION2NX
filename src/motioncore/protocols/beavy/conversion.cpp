@@ -57,7 +57,9 @@ template <typename T>
 BooleanBitToArithmeticBEAVYGate<T>::~BooleanBitToArithmeticBEAVYGate() = default;
 
 template <typename T>
-void BooleanBitToArithmeticBEAVYGate<T>::evaluate_setup() {
+void BooleanBitToArithmeticBEAVYGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -198,7 +200,9 @@ template <typename T>
 BooleanToArithmeticBEAVYGate<T>::~BooleanToArithmeticBEAVYGate() = default;
 
 template <typename T>
-void BooleanToArithmeticBEAVYGate<T>::evaluate_setup() {
+void BooleanToArithmeticBEAVYGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -396,7 +400,9 @@ BooleanGMWToBEAVYGate::BooleanGMWToBEAVYGate(std::size_t gate_id, BEAVYProvider&
       beavy_provider_.register_for_bits_message(1 - my_id, gate_id_, num_wires * num_simd);
 }
 
-void BooleanGMWToBEAVYGate::evaluate_setup() {
+void BooleanGMWToBEAVYGate::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -518,7 +524,9 @@ ArithmeticGMWToBEAVYGate<T>::ArithmeticGMWToBEAVYGate(std::size_t gate_id,
 }
 
 template <typename T>
-void ArithmeticGMWToBEAVYGate<T>::evaluate_setup() {
+void ArithmeticGMWToBEAVYGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {

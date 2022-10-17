@@ -222,9 +222,12 @@ auto create_arith_add_circuit(const Options& options, MOTION::TwoPartyBackend& b
     input_1_arith = std::move(pair.second);
   }
 
-  // // create arithmetic gate to compute multiplication
+  // // create arithmetic gate to compute addition
   auto output = gate_factory_arith.make_binary_gate(
-      ENCRYPTO::PrimitiveOperationType::ADD, input_0_arith, input_1_arith);
+     ENCRYPTO::PrimitiveOperationType::MUL, input_0_arith, input_1_arith);
+       // create arithmetic gate to compute square
+  // auto output = gate_factory_arith.make_binary_gate(
+  //     ENCRYPTO::PrimitiveOperationType::SQR, input_0_arith, input_1_arith);
   // apply the circuit to the Boolean sahres
   // auto output = backend.make_circuit(ENCRYPTO::PrimitiveOperationType::ADD, input_0_arith, input_1_arith);
 
@@ -354,7 +357,8 @@ int main(int argc, char* argv[]) {
                                       options->sync_between_setup_and_online, logger);
       //run_circuit(*options, backend);
 
-      run_composite_circuit(*options, backend);
+      //run_composite_circuit(*options, backend);
+      run_add_circuit(*options, backend);
 
       comm_layer->sync();
       comm_stats.add(comm_layer->get_transport_statistics());

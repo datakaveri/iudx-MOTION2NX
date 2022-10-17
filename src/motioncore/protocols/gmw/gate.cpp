@@ -101,7 +101,9 @@ BooleanGMWInputGateSender::BooleanGMWInputGateSender(
                   [num_simd] { return std::make_shared<BooleanGMWWire>(num_simd); });
 }
 
-void BooleanGMWInputGateSender::evaluate_setup() {
+void BooleanGMWInputGateSender::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = gmw_provider_.get_logger();
     if (logger) {
@@ -184,7 +186,9 @@ BooleanGMWInputGateReceiver::BooleanGMWInputGateReceiver(std::size_t gate_id,
                   [num_simd] { return std::make_shared<BooleanGMWWire>(num_simd); });
 }
 
-void BooleanGMWInputGateReceiver::evaluate_setup() {
+void BooleanGMWInputGateReceiver::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = gmw_provider_.get_logger();
     if (logger) {
@@ -454,7 +458,9 @@ ArithmeticGMWInputGateSender<T>::ArithmeticGMWInputGateSender(
 }
 
 template <typename T>
-void ArithmeticGMWInputGateSender<T>::evaluate_setup() {
+void ArithmeticGMWInputGateSender<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = gmw_provider_.get_logger();
     if (logger) {
@@ -535,7 +541,9 @@ ArithmeticGMWInputGateReceiver<T>::ArithmeticGMWInputGateReceiver(std::size_t ga
       output_(std::make_shared<ArithmeticGMWWire<T>>(num_simd)) {}
 
 template <typename T>
-void ArithmeticGMWInputGateReceiver<T>::evaluate_setup() {
+void ArithmeticGMWInputGateReceiver<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = gmw_provider_.get_logger();
     if (logger) {

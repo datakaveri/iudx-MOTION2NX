@@ -109,7 +109,9 @@ BooleanBEAVYInputGateSender::BooleanBEAVYInputGateSender(
                   [num_simd] { return std::make_shared<BooleanBEAVYWire>(num_simd); });
 }
 
-void BooleanBEAVYInputGateSender::evaluate_setup() {
+void BooleanBEAVYInputGateSender::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -204,7 +206,9 @@ BooleanBEAVYInputGateReceiver::BooleanBEAVYInputGateReceiver(std::size_t gate_id
       beavy_provider_.register_for_bits_message(input_owner_, gate_id_, num_wires * num_simd);
 }
 
-void BooleanBEAVYInputGateReceiver::evaluate_setup() {
+void BooleanBEAVYInputGateReceiver::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -281,7 +285,9 @@ BooleanBEAVYOutputGate::get_output_future() {
   }
 }
 
-void BooleanBEAVYOutputGate::evaluate_setup() {
+void BooleanBEAVYOutputGate::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -313,6 +319,7 @@ void BooleanBEAVYOutputGate::evaluate_setup() {
 }
 
 void BooleanBEAVYOutputGate::evaluate_online() {
+  std::cerr << "Inside Boolean beavy \n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -342,6 +349,7 @@ void BooleanBEAVYOutputGate::evaluate_online() {
       output ^= inputs_[wire_i]->get_public_share();
       bit_offset += num_simd;
     }
+    
     output_promise_.set_value(std::move(outputs));
   }
 
@@ -360,7 +368,9 @@ BooleanBEAVYINVGate::BooleanBEAVYINVGate(std::size_t gate_id, const BEAVYProvide
                                          !beavy_provider.is_my_job(gate_id)),
       is_my_job_(beavy_provider.is_my_job(gate_id)) {}
 
-void BooleanBEAVYINVGate::evaluate_setup() {
+void BooleanBEAVYINVGate::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if (!is_my_job_) {
     return;
   }
@@ -393,7 +403,9 @@ BooleanBEAVYXORGate::BooleanBEAVYXORGate(std::size_t gate_id, BEAVYProvider&,
                                          BooleanBEAVYWireVector&& in_b)
     : detail::BasicBooleanBEAVYBinaryGate(gate_id, std::move(in_a), std::move(in_b)) {}
 
-void BooleanBEAVYXORGate::evaluate_setup() {
+void BooleanBEAVYXORGate::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   for (std::size_t wire_i = 0; wire_i < num_wires_; ++wire_i) {
     const auto& w_a = inputs_a_[wire_i];
     const auto& w_b = inputs_b_[wire_i];
@@ -434,7 +446,9 @@ BooleanBEAVYANDGate::BooleanBEAVYANDGate(std::size_t gate_id, BEAVYProvider& bea
 
 BooleanBEAVYANDGate::~BooleanBEAVYANDGate() = default;
 
-void BooleanBEAVYANDGate::evaluate_setup() {
+void BooleanBEAVYANDGate::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -533,7 +547,9 @@ ArithmeticBEAVYInputGateSender<T>::ArithmeticBEAVYInputGateSender(
 }
 
 template <typename T>
-void ArithmeticBEAVYInputGateSender<T>::evaluate_setup() {
+void ArithmeticBEAVYInputGateSender<T>::evaluate_setup() {std::cout << "\n";
+ std::cout << typeid(this).name();std::cout << __FUNCTION__ << std::endl;
+  std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -560,10 +576,10 @@ void ArithmeticBEAVYInputGateSender<T>::evaluate_setup() {
                    std::begin(my_public_share), std::plus{});
   }
 
-  std::cout << "Owner:- " << my_id << "\nSecret Share: ";
-  for(long unsigned int i=0;i<my_secret_share.size();i++){
-    std::cout << my_secret_share[i];
-  }
+  // std::cout << "Owner:- " << my_id << "\nSecret Share: ";
+  // for(long unsigned int i=0;i<my_secret_share.size();i++){
+  //   std::cout << my_secret_share[i];
+  // }
   std::cout << "\n\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
@@ -596,11 +612,11 @@ void ArithmeticBEAVYInputGateSender<T>::evaluate_online() {
                  std::begin(my_public_share), std::plus{});
   
   auto my_id = beavy_provider_.get_my_id();
-  std::cout << "Owner:- " << my_id << "\nPublic Share: ";
-  for(long unsigned int i=0;i<my_public_share.size();i++){
-    std::cout << my_public_share[i];
-  }
-  std::cout << "\n\n";
+  // std::cout << "Owner:- " << my_id << "\nPublic Share: ";
+  // for(long unsigned int i=0;i<my_public_share.size();i++){
+  //   std::cout << my_public_share[i];
+  // }
+  // std::cout << "\n\n";
 
   output_->set_online_ready();
   beavy_provider_.broadcast_ints_message(gate_id_, my_public_share);
@@ -635,7 +651,9 @@ ArithmeticBEAVYInputGateReceiver<T>::ArithmeticBEAVYInputGateReceiver(std::size_
 }
 
 template <typename T>
-void ArithmeticBEAVYInputGateReceiver<T>::evaluate_setup() {
+void ArithmeticBEAVYInputGateReceiver<T>::evaluate_setup() {std::cout << "\n";
+ std::cout << typeid(this).name();std::cout << __FUNCTION__ << std::endl;
+  std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -645,15 +663,18 @@ void ArithmeticBEAVYInputGateReceiver<T>::evaluate_setup() {
   }
 
   auto& mbp = beavy_provider_.get_motion_base_provider();
+  std::cout << "MBP:";
+  //std::cout << mbp;
+  std::cout << "\n";
   auto& rng = mbp.get_their_randomness_generator(input_owner_);
   output_->get_secret_share() = rng.GetUnsigned<T>(input_id_, num_simd_);
   auto &my_secret_share = output_->get_secret_share();
   
-  std::cout << "Owner:- " << input_owner_ << "\nSecret Share: ";
-  for(long unsigned int i=0;i<my_secret_share.size();i++){
-    std::cout << my_secret_share[i];
-  }
-  std::cout << "\n\n";
+  // std::cout << "Owner:- " << input_owner_ << "\nSecret Share: ";
+  // for(long unsigned int i=0;i<my_secret_share.size();i++){
+  //   std::cout << my_secret_share[i];
+  // }
+  // std::cout << "\n\n";
   output_->set_setup_ready();
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
@@ -677,11 +698,11 @@ void ArithmeticBEAVYInputGateReceiver<T>::evaluate_online() {
   output_->get_public_share() = public_share_future_.get();
 
   auto &my_public_share = output_->get_public_share();  
-  std::cout << "Owner:- " << input_owner_ << "\nPublic Share: ";
-  for(long unsigned int i=0;i<my_public_share.size();i++){
-    std::cout << my_public_share[i];
-  }
-  std::cout << "\n\n";
+  // std::cout << "Owner:- " << input_owner_ << "\nPublic Share: ";
+  // for(long unsigned int i=0;i<my_public_share.size();i++){
+  //   std::cout << my_public_share[i];
+  // }
+  // std::cout << "\n\n";
   output_->set_online_ready();
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -714,7 +735,9 @@ ArithmeticBEAVYInputGateShares<T>::ArithmeticBEAVYInputGateShares(
 }
 
 template <typename T>
-void ArithmeticBEAVYInputGateShares<T>::evaluate_setup() {
+void ArithmeticBEAVYInputGateShares<T>::evaluate_setup() {std::cout << "\n";
+ std::cout << typeid(this).name();std::cout << __FUNCTION__ << std::endl;
+  std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -791,7 +814,10 @@ ENCRYPTO::ReusableFiberFuture<std::vector<T>> ArithmeticBEAVYOutputGate<T>::get_
 }
 
 template <typename T>
-void ArithmeticBEAVYOutputGate<T>::evaluate_setup() {
+void ArithmeticBEAVYOutputGate<T>::evaluate_setup() {std::cout << "\n";
+ std::cout << typeid(this).name();std::cout << __FUNCTION__ << std::endl;
+  std::cout << "\n";
+  std::cerr << "Inside Arithmetic beavy output gate\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -875,7 +901,9 @@ ENCRYPTO::ReusableFiberFuture<std::vector<T>> ArithmeticBEAVYOutputShareGate<T>:
 }
 
 template <typename T>
-void ArithmeticBEAVYOutputShareGate<T>::evaluate_setup() {
+void ArithmeticBEAVYOutputShareGate<T>::evaluate_setup() {std::cout << "\n";
+ std::cout << typeid(this).name();std::cout << __FUNCTION__ << std::endl;
+  std::cout << "\n";
   input_->wait_setup();
   secret_share_promise_.set_value(input_->get_secret_share());
 }
@@ -953,7 +981,9 @@ ArithmeticBEAVYNEGGate<T>::ArithmeticBEAVYNEGGate(std::size_t gate_id,
 }
 
 template <typename T>
-void ArithmeticBEAVYNEGGate<T>::evaluate_setup() {
+void ArithmeticBEAVYNEGGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   this->input_->wait_setup();
   assert(this->output_->get_secret_share().size() == this->input_->get_num_simd());
   std::transform(std::begin(this->input_->get_secret_share()),
@@ -989,7 +1019,9 @@ ArithmeticBEAVYADDGate<T>::ArithmeticBEAVYADDGate(std::size_t gate_id,
 }
 
 template <typename T>
-void ArithmeticBEAVYADDGate<T>::evaluate_setup() {
+void ArithmeticBEAVYADDGate<T>::evaluate_setup() {std::cout << "\n";
+ std::cout << typeid(this).name();std::cout << __FUNCTION__ << std::endl;
+  std::cout << "\n";
   this->input_a_->wait_setup();
   this->input_b_->wait_setup();
   assert(this->output_->get_secret_share().size() == this->input_a_->get_num_simd());
@@ -1039,7 +1071,9 @@ template <typename T>
 ArithmeticBEAVYMULGate<T>::~ArithmeticBEAVYMULGate() = default;
 
 template <typename T>
-void ArithmeticBEAVYMULGate<T>::evaluate_setup() {
+void ArithmeticBEAVYMULGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1177,7 +1211,9 @@ template <typename T>
 ArithmeticBEAVYSQRGate<T>::~ArithmeticBEAVYSQRGate() = default;
 
 template <typename T>
-void ArithmeticBEAVYSQRGate<T>::evaluate_setup() {
+void ArithmeticBEAVYSQRGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -1311,7 +1347,9 @@ template <typename T>
 BooleanXArithmeticBEAVYMULGate<T>::~BooleanXArithmeticBEAVYMULGate() = default;
 
 template <typename T>
-void BooleanXArithmeticBEAVYMULGate<T>::evaluate_setup() {
+void BooleanXArithmeticBEAVYMULGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {

@@ -83,7 +83,10 @@ template class BasicArithmeticBEAVYPlainBinaryGate<std::uint64_t>;
 
 }  // namespace detail
 
-void BooleanBEAVYXORPlainGate::evaluate_setup() {
+void BooleanBEAVYXORPlainGate::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
+  std::cout << "BooleanBEAVYXORPlainGate evaluate setup \n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -137,7 +140,10 @@ void BooleanBEAVYXORPlainGate::evaluate_online() {
   }
 }
 
-void BooleanBEAVYANDPlainGate::evaluate_setup() {
+void BooleanBEAVYANDPlainGate::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
+  std::cout << "BooleanBEAVYANDPlainGate evaluate setup \n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -194,7 +200,10 @@ void BooleanBEAVYANDPlainGate::evaluate_online() {
 }
 
 template <typename T>
-void ArithmeticBEAVYADDPlainGate<T>::evaluate_setup() {
+void ArithmeticBEAVYADDPlainGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
+  std::cout << "ArithmeticBEAVYADDPlainGate evaluate setup \n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = this->beavy_provider_.get_logger();
     if (logger) {
@@ -247,7 +256,10 @@ template class ArithmeticBEAVYADDPlainGate<std::uint32_t>;
 template class ArithmeticBEAVYADDPlainGate<std::uint64_t>;
 
 template <typename T>
-void ArithmeticBEAVYMULPlainGate<T>::evaluate_setup() {
+void ArithmeticBEAVYMULPlainGate<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
+  std::cout << "ArithmeticBEAVYMULPlainGate evaluate setup \n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = this->beavy_provider_.get_logger();
     if (logger) {

@@ -89,6 +89,7 @@ TwoPartyBackend::TwoPartyBackend(Communication::CommunicationLayer& comm_layer,
   gate_factories_.emplace(MPCProtocol::BooleanGMW, *gmw_provider_);
   gate_factories_.emplace(MPCProtocol::Yao, *yao_provider_);
   comm_layer_.start();
+  std::cout << "Backend Constructor";
 }
 
 TwoPartyBackend::~TwoPartyBackend() = default;
@@ -113,6 +114,7 @@ void TwoPartyBackend::run_preprocessing() {
 }
 
 void TwoPartyBackend::run() {
+  std::cout << "Backend RUN";
   std::cout << "Before evaluate setup online \n";
   gate_executor_->evaluate_setup_online(run_time_stats_.back());
   std::cout << "After evaluate setup online \n";

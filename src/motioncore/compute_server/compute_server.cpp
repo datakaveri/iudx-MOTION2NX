@@ -102,7 +102,7 @@ std::pair <std::vector<Shares>,int > get_provider_dot_product_data(int port_numb
 
     //write operation  
     const string msg = "Server has received the number of elements \n"; 
-    boost::asio::write( socket_, boost::asio::buffer(msg) ); 
+     boost::asio::write( socket_, boost::asio::buffer(msg) ); 
     cout << "Servent sent message to Client!" << endl;
     
     //Read the data in the reuired format
@@ -110,10 +110,10 @@ std::pair <std::vector<Shares>,int > get_provider_dot_product_data(int port_numb
 
     socket_.close();
 
-    for(int i=0;i<num_elements;i++) {
-        std::cout << data[i].Delta << "  " << data[i].delta << " ";
-        std::cout << "\n\n";
-    }
+    // for(int i=0;i<num_elements;i++) {
+    //     std::cout << data[i].Delta << "  " << data[i].delta << " ";
+    //     std::cout << "\n\n";
+    // }
     std::cout << "Finished reading input \n\n";
 
     return std::make_pair(data,num_elements);

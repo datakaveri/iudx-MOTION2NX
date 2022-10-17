@@ -166,7 +166,7 @@ std::size_t GemmOp::compute_input_B_size() const noexcept {
 }
 
 TensorDimensions GemmOp::get_input_A_tensor_dims() const noexcept {
-  assert(verify());
+  //assert(verify());
   return {.batch_size_ = 1,
           .num_channels_ = 1,
           .height_ = input_A_shape_[0],
@@ -174,7 +174,7 @@ TensorDimensions GemmOp::get_input_A_tensor_dims() const noexcept {
 }
 
 TensorDimensions GemmOp::get_input_B_tensor_dims() const noexcept {
-  assert(verify());
+  //assert(verify());
   return {.batch_size_ = 1,
           .num_channels_ = 1,
           .height_ = input_B_shape_[0],
@@ -182,7 +182,7 @@ TensorDimensions GemmOp::get_input_B_tensor_dims() const noexcept {
 }
 
 TensorDimensions GemmOp::get_output_tensor_dims() const noexcept {
-  assert(verify());
+  //assert(verify());
   return {.batch_size_ = 1,
           .num_channels_ = 1,
           .height_ = output_shape_[0],
@@ -190,8 +190,8 @@ TensorDimensions GemmOp::get_output_tensor_dims() const noexcept {
 }
 
 bool GemmOp::operator==(const GemmOp& other) const noexcept {
-  assert(verify());
-  assert(other.verify());
+  //assert(verify());
+  //assert(other.verify());
   bool result = true;
   result = result && input_A_shape_ == other.input_A_shape_;
   result = result && input_B_shape_ == other.input_B_shape_;

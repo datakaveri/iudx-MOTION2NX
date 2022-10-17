@@ -73,7 +73,9 @@ ArithmeticGMWToYaoTensorConversionGarbler<T>::~ArithmeticGMWToYaoTensorConversio
     default;
 
 template <typename T>
-void ArithmeticGMWToYaoTensorConversionGarbler<T>::evaluate_setup() {
+void ArithmeticGMWToYaoTensorConversionGarbler<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -288,7 +290,9 @@ YaoToArithmeticGMWTensorConversionGarbler<T>::YaoToArithmeticGMWTensorConversion
 }
 
 template <typename T>
-void YaoToArithmeticGMWTensorConversionGarbler<T>::evaluate_setup() {
+void YaoToArithmeticGMWTensorConversionGarbler<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -383,7 +387,9 @@ YaoToArithmeticGMWTensorConversionEvaluator<T>::YaoToArithmeticGMWTensorConversi
 }
 
 template <typename T>
-void YaoToArithmeticGMWTensorConversionEvaluator<T>::evaluate_setup() {
+void YaoToArithmeticGMWTensorConversionEvaluator<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -497,7 +503,9 @@ YaoToBooleanGMWTensorConversionGarbler::YaoToBooleanGMWTensorConversionGarbler(
   }
 }
 
-void YaoToBooleanGMWTensorConversionGarbler::evaluate_setup() {
+void YaoToBooleanGMWTensorConversionGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -605,7 +613,9 @@ ArithmeticBEAVYToYaoTensorConversionGarbler<T>::~ArithmeticBEAVYToYaoTensorConve
     default;
 
 template <typename T>
-void ArithmeticBEAVYToYaoTensorConversionGarbler<T>::evaluate_setup() {
+void ArithmeticBEAVYToYaoTensorConversionGarbler<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -719,7 +729,9 @@ ArithmeticBEAVYToYaoTensorConversionEvaluator<T>::~ArithmeticBEAVYToYaoTensorCon
     default;
 
 template <typename T>
-void ArithmeticBEAVYToYaoTensorConversionEvaluator<T>::evaluate_setup() {
+void ArithmeticBEAVYToYaoTensorConversionEvaluator<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -837,7 +849,9 @@ YaoToArithmeticBEAVYTensorConversionGarbler<T>::YaoToArithmeticBEAVYTensorConver
 }
 
 template <typename T>
-void YaoToArithmeticBEAVYTensorConversionGarbler<T>::evaluate_setup() {
+void YaoToArithmeticBEAVYTensorConversionGarbler<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -972,7 +986,9 @@ YaoToArithmeticBEAVYTensorConversionEvaluator<T>::YaoToArithmeticBEAVYTensorConv
 }
 
 template <typename T>
-void YaoToArithmeticBEAVYTensorConversionEvaluator<T>::evaluate_setup() {
+void YaoToArithmeticBEAVYTensorConversionEvaluator<T>::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -1119,7 +1135,9 @@ YaoToBooleanBEAVYTensorConversionGarbler::YaoToBooleanBEAVYTensorConversionGarbl
   }
 }
 
-void YaoToBooleanBEAVYTensorConversionGarbler::evaluate_setup() {
+void YaoToBooleanBEAVYTensorConversionGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -1197,7 +1215,9 @@ YaoToBooleanBEAVYTensorConversionEvaluator::YaoToBooleanBEAVYTensorConversionEva
   }
 }
 
-void YaoToBooleanBEAVYTensorConversionEvaluator::evaluate_setup() {
+void YaoToBooleanBEAVYTensorConversionEvaluator::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -1279,7 +1299,9 @@ YaoTensorReluGarbler::YaoTensorReluGarbler(std::size_t gate_id, YaoProvider& yao
   }
 }
 
-void YaoTensorReluGarbler::evaluate_setup() {
+void YaoTensorReluGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -1372,7 +1394,9 @@ YaoTensorMaxPoolGarbler::YaoTensorMaxPoolGarbler(std::size_t gate_id, YaoProvide
   }
 }
 
-void YaoTensorMaxPoolGarbler::evaluate_setup() {
+void YaoTensorMaxPoolGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
@@ -1479,7 +1503,9 @@ YaoTensorGTGarbler::YaoTensorGTGarbler(std::size_t gate_id, YaoProvider& yao_pro
   }
 }
 
-void YaoTensorGTGarbler::evaluate_setup() {
+void YaoTensorGTGarbler::evaluate_setup() {//std::cout << "\n";
+ //std::cout << //typeid(this).name();//std::cout << __FUNCTION__ << std::endl;
+  //std::cout << "\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
     if (logger) {
