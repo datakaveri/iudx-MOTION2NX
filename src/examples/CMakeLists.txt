@@ -26,6 +26,12 @@ add_subdirectory(tensor_gt)
 add_subdirectory(tensor_matrix_multiplication)
 add_subdirectory(tensor_relu)
 add_subdirectory(tensor_relu_maxpool_dp)
+add_subdirectory(share_generator_test)
+add_subdirectory(tensor_gt_mul)
+add_subdirectory(tensor_gt_mul_test)
+add_subdirectory(tensor_gt_relu)
+add_subdirectory(argmax)
+
 
 if (MOTION_BUILD_ONNX_ADAPTER)
   add_subdirectory(onnx2motion)
