@@ -31,7 +31,7 @@ add_subdirectory(tensor_gt_mul)
 add_subdirectory(tensor_gt_mul_test)
 add_subdirectory(tensor_gt_relu)
 add_subdirectory(argmax)
-
+add_subdirectory(conversion_1)
 
 if (MOTION_BUILD_ONNX_ADAPTER)
   add_subdirectory(onnx2motion)
