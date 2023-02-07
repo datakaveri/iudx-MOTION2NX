@@ -79,6 +79,8 @@ struct AccumulatedCommunicationStats {
 
 std::string print_stats(const std::string& experiment_name, const AccumulatedRunTimeStats&,
                         const AccumulatedCommunicationStats&);
+std::string print_stats_short(const std::string& experiment_name, const AccumulatedRunTimeStats&,
+                          const AccumulatedCommunicationStats&);
 boost::json::object to_json(const std::string& experiment_name, const AccumulatedRunTimeStats&,
                             const AccumulatedCommunicationStats&);
 
