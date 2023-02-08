@@ -23,6 +23,7 @@
 #include "analysis.h"
 
 #include <cmath>
+#include <iostream>
 #include <sstream>
 
 #include <fmt/format.h>
@@ -33,7 +34,7 @@
 #include "communication/transport.h"
 #include "utility/runtime_info.h"
 #include "utility/version.h"
-
+using namespace std;
 namespace json = boost::json;
 
 namespace MOTION {
@@ -69,6 +70,7 @@ static std::string format_line(std::string name, std::string unit,
   ss << fmt::format("{:{}.3f} {:s}", std::sqrt(boost::accumulators::variance(accumulator)),
                     field_width, unit);
   ss << "\n";
+  std::cout << "Inside format line \n";
   return ss.str();
 }
 
@@ -77,6 +79,7 @@ std::string AccumulatedRunTimeStats::print_human_readable() const {
   std::stringstream ss;
   std::string unit = "ms";
 
+  ss << "print_human_readable() run time \n";
   ss << fmt::format("Run time statistics over {} iterations\n", count_)
      << "---------------------------------------------------------------------------\n"
      << fmt::format("                    {:>{}s}    {:>{}s}    {:>{}s}\n", "mean", field_width,
@@ -102,14 +105,29 @@ std::string AccumulatedRunTimeStats::print_human_readable() const {
   return ss.str();
 }
 
+///////////////New addition to return execution time ///////////////////
+
+std::string AccumulatedRunTimeStats::print_human_readable_execution_time() const {
+  std::size_t field_width = 10;
+  std::stringstream ss;
+  std::string unit = "ms";
+  ss << boost::accumulators::mean(at(accumulators_, StatID::evaluate));
+  return ss.str();
+}
+
+///////////////////////////////////////////////////////////////////////
+
 json::object AccumulatedRunTimeStats::to_json() const {
   const auto mk_triple = [this](const auto& stat_id) {
     const auto& acc = at(accumulators_, stat_id);
+    std::cout << "AccumulatedRunTimeStats"
+              << "\n";
     return json::object({{"mean", boost::accumulators::mean(acc)},
                          {"median", boost::accumulators::median(acc)},
                          // uncorrected standard deviation
                          {"stddev", std::sqrt(boost::accumulators::variance(acc))}});
   };
+  std::cout << "Print statistics:" << mk_triple(StatID::evaluate) << "\n";
   return {{"repetitions", count_},
           {"mt_setup", mk_triple(StatID::mt_setup)},
           {"sp_setup", mk_triple(StatID::sp_setup)},
@@ -140,6 +158,7 @@ void AccumulatedCommunicationStats::add(
 
 std::string AccumulatedCommunicationStats::print_human_readable() const {
   std::stringstream ss;
+  std::cout << "AccumulatedCommunicationStats::print_human_readable()\n";
   ss << "Communication with each other party:\n"
      << fmt::format("Sent: {:0.3f} MiB in {:d} messages\n",
                     boost::accumulators::mean(accumulators_[idx_num_bytes_sent]) / 1048576,
@@ -188,8 +207,19 @@ std::string print_stats(const std::string& experiment_name,
   return ss.str();
 }
 
+///////////// New function that returns only execution time ///////
+std::string print_stats_short(const std::string& experiment_name,
+                              const AccumulatedRunTimeStats& exec_stats,
+                              const AccumulatedCommunicationStats& comm_stats) {
+  std::stringstream ss;
+  ss << exec_stats.print_human_readable_execution_time();
+  return ss.str();
+}
+///////////////////////////////////////////////////////////////////
+
 json::object to_json(const std::string& experiment_name, const AccumulatedRunTimeStats& exec_stats,
                      const AccumulatedCommunicationStats& comm_stats) {
+  std::cout << "Inside to_json \n";
   json::object obj({{"experiment", experiment_name},
                     {"meta",
                      {{"invocation", get_cmdline()},
