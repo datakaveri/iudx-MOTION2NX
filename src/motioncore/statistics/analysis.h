@@ -55,6 +55,8 @@ struct AccumulatedRunTimeStats {
 
   void add(const RunTimeStats& stats);
   std::string print_human_readable() const;
+  /// New addition by ramya to return execution time///////////
+  std::string print_human_readable_execution_time() const;
   boost::json::object to_json() const;
 };
 
@@ -80,7 +82,7 @@ struct AccumulatedCommunicationStats {
 std::string print_stats(const std::string& experiment_name, const AccumulatedRunTimeStats&,
                         const AccumulatedCommunicationStats&);
 std::string print_stats_short(const std::string& experiment_name, const AccumulatedRunTimeStats&,
-                          const AccumulatedCommunicationStats&);
+                              const AccumulatedCommunicationStats&);
 boost::json::object to_json(const std::string& experiment_name, const AccumulatedRunTimeStats&,
                             const AccumulatedCommunicationStats&);
 
