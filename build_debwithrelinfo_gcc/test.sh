@@ -1,5 +1,4 @@
 #! /bin/bash
-chmod +x test.sh
 pwd
 DEFAULT_TABS_TITLE1="T1"
 DEFAULT_TABS_TITLE2="T2"
