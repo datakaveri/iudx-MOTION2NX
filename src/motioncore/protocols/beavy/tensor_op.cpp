@@ -22,6 +22,9 @@
 
 #include "tensor_op.h"
 
+#include <stdlib.h>
+#include <fstream>
+#include <iostream>
 #include <parallel/algorithm>
 #include <stdexcept>
 
@@ -210,12 +213,12 @@ void ArithmeticBEAVYTensorInputReceiver<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorInputReceiver<std::uint32_t>;
 template class ArithmeticBEAVYTensorInputReceiver<std::uint64_t>;
 
-
 // Definition of tensor input to take shares directly
 template <typename T>
 ArithmeticBEAVYTensorInputShares<T>::ArithmeticBEAVYTensorInputShares(
     std::size_t gate_id, BEAVYProvider& beavy_provider, const tensor::TensorDimensions& dimensions,
-    ENCRYPTO::ReusableFiberFuture<std::vector<T>>&& Delta_future, ENCRYPTO::ReusableFiberFuture<std::vector<T>>&& delta_future)
+    ENCRYPTO::ReusableFiberFuture<std::vector<T>>&& Delta_future,
+    ENCRYPTO::ReusableFiberFuture<std::vector<T>>&& delta_future)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
       dimensions_(dimensions),
@@ -258,10 +261,11 @@ void ArithmeticBEAVYTensorInputShares<T>::evaluate_setup() {
   // auto& rng = mbp.get_my_randomness_generator(1 - my_id);
   // rng.GetUnsigned<T>(input_id_, data_size, my_public_share.data());
   // __gnu_parallel::transform(std::begin(my_public_share), std::end(my_public_share),
-  //                           std::begin(my_secret_share), std::begin(my_public_share), std::plus{});
-  
+  //                           std::begin(my_secret_share), std::begin(my_public_share),
+  //                           std::plus{});
+
   auto& my_secret_share = output_->get_secret_share();
-  auto& my_public_share = output_->get_public_share(); 
+  auto& my_public_share = output_->get_public_share();
   my_secret_share = delta_.get();
   output_->set_setup_ready();
 
@@ -300,11 +304,9 @@ void ArithmeticBEAVYTensorInputShares<T>::evaluate_online() {
   // output_->set_online_ready();
   // beavy_provider_.broadcast_ints_message(gate_id_, my_public_share);
 
-  auto& my_public_share = output_->get_public_share(); 
+  auto& my_public_share = output_->get_public_share();
   my_public_share = Delta_.get();
   output_->set_online_ready();
-
-
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
@@ -383,15 +385,124 @@ void ArithmeticBEAVYTensorOutput<T>::evaluate_online() {
     }
   }
 
+  // std::string filename = std::filesystem::current_path();
+  // std::string filename_config = std::filesystem::current_path();
+  std::string homedir = getenv("BASE_DIR");
+  std::cout << homedir << std::endl;
+  std::string filename = homedir + "/build_debwithrelinfo_gcc";
+  std::string filename_config = homedir + "/build_debwithrelinfo_gcc";
+  // std::cout << filename << "\n";
+  std::ofstream file, file_config;
+
   auto my_id = beavy_provider_.get_my_id();
   if (output_owner_ == my_id) {
+    std::cout << "my_id is:" << my_id << "\n";
     input_->wait_online();
     const auto& public_share = input_->get_public_share();
+    const auto& new_secret_share = input_->get_secret_share();
     assert(public_share.size() == input_->get_dimensions().get_data_size());
     assert(secret_shares_.size() == input_->get_dimensions().get_data_size());
     __gnu_parallel::transform(std::begin(public_share), std::end(public_share),
                               std::begin(secret_shares_), std::begin(secret_shares_), std::minus{});
+
     output_promise_.set_value(std::move(secret_shares_));
+
+    std::vector<std::uint64_t> publicshare1;
+
+    for (auto i = public_share.begin(); i != public_share.end(); i++) {
+      publicshare1.push_back(*i);
+    }
+    std::vector<std::uint64_t> secretshare1;
+
+    for (auto i = new_secret_share.begin(); i != new_secret_share.end(); i++) {
+      secretshare1.push_back(*i);
+    }
+
+    // plugging output shares into a file for calculation for argmax for server 0
+
+    // creation of target file path
+    std::string file_ = filename + "/server1/outputshare_1";
+    // std::cout << file_ << "\n";
+
+    filename_config += "/file_config_input1";
+
+    file_config.open(filename_config, std::ios_base::out);
+    // assert(file_config);
+
+    file_config << file_;
+
+    file.open(file_, std::ios_base::out);
+    // assert(file);
+
+    if (!file) {
+      std::cerr << " Error in reading file\n";
+    }
+
+    file << publicshare1.size() << " ";
+    file << "1"
+         << "\n";
+
+    for (auto i = 0; i < publicshare1.size(); i++) {
+      file << publicshare1[i];
+
+      file << " ";
+
+      file << secretshare1[i];
+      file << "\n";
+    }
+
+    file.close();
+
+  }
+
+  else {
+    // plugging output shares into a file for calculation for argmax for server 1
+    std::cout << "my_id is:" << my_id << "\n";
+    // creation of target file path
+
+    std::string file_ = filename + "/server0/outputshare_0";
+    // std::cout << file_ << "\n";
+
+    filename_config += "/file_config_input0";
+
+    file_config.open(filename_config, std::ios_base::out);
+    // assert(file_config);
+
+    file_config << file_;
+
+    file.open(file_, std::ios_base::out);
+
+    if (!file) {
+      std::cerr << " Error in reading file\n";
+    }
+
+    input_->wait_online();
+    const auto& public_share0 = input_->get_public_share();
+    const auto& new_secret_share0 = input_->get_secret_share();
+    std::vector<std::uint64_t> publicshare2;
+
+    for (auto i = public_share0.begin(); i != public_share0.end(); i++) {
+      publicshare2.push_back(*i);
+    }
+    std::vector<std::uint64_t> secretshare2;
+
+    for (auto i = new_secret_share0.begin(); i != new_secret_share0.end(); i++) {
+      secretshare2.push_back(*i);
+    }
+
+    file << publicshare2.size() << " ";
+    file << "1"
+         << "\n";
+
+    for (auto i = 0; i < publicshare2.size(); i++) {
+      file << publicshare2[i];
+      file << " ";
+
+      file << secretshare2[i];
+      file << "\n";
+    }
+
+    file.close();
   }
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -827,7 +938,7 @@ void ArithmeticBEAVYTensorGemm<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorGemm<std::uint32_t>;
 template class ArithmeticBEAVYTensorGemm<std::uint64_t>;
 
-//Implementation of tensor Join operation (addnl)
+// Implementation of tensor Join operation (addnl)
 template <typename T>
 ArithmeticBEAVYTensorJoin<T>::ArithmeticBEAVYTensorJoin(std::size_t gate_id,
                                                         BEAVYProvider& beavy_provider,
@@ -896,7 +1007,8 @@ void ArithmeticBEAVYTensorJoin<T>::evaluate_setup() {
   // if (fractional_bits_ == 0) {
   //   // [Delta_y]_i += [delta_y]_i
   //   __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
-  //                             std::begin(delta_y_share), std::begin(Delta_y_share_), std::plus{});
+  //                             std::begin(delta_y_share), std::begin(Delta_y_share_),
+  //                             std::plus{});
   //   // NB: happens after truncation if that is requested
   // }
 
@@ -917,11 +1029,12 @@ void ArithmeticBEAVYTensorJoin<T>::evaluate_setup() {
   // }
   // // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
   // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
-  //                           std::begin(delta_ab_share1), std::begin(Delta_y_share_), std::plus{});
+  //                           std::begin(delta_ab_share1), std::begin(Delta_y_share_),
+  //                           std::plus{});
   // // [Delta_y]_i += [[delta_b]_i * [delta_a]_(1-i)]_i
   // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
-  //                           std::begin(delta_ab_share2), std::begin(Delta_y_share_), std::plus{});
-
+  //                           std::begin(delta_ab_share2), std::begin(Delta_y_share_),
+  //                           std::plus{});
 
   output_->get_secret_share() = std::move(delta_y_share);
   output_->set_setup_ready();
@@ -951,35 +1064,39 @@ void ArithmeticBEAVYTensorJoin<T>::evaluate_online() {
   const auto& Delta_b = input_B_->get_public_share();
   const auto& delta_a_share = input_A_->get_secret_share();
   const auto& delta_b_share = input_B_->get_secret_share();
-  std::vector<T> tmp(output_size,0);
+  std::vector<T> tmp(output_size, 0);
   Delta_y_ = tmp;
 
   // after setup phase, `Delta_y_share_` contains [delta_y]_i + [delta_ab]_i
 
   // [Delta_y]_i -= Delta_a * [delta_b]_i
   join_matrices(join_op_, Delta_a.data(), Delta_b.data(), Delta_y_.data());
-  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  // std::begin(tmp),
   //                           std::begin(Delta_y_share_), std::minus{});
 
   // // [Delta_y]_i -= Delta_b * [delta_a]_i
   // join_matrices(join_op_, delta_a_share.data(), Delta_b.data(), tmp.data());
-  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+  // __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  // std::begin(tmp),
   //                           std::begin(Delta_y_share_), std::minus{});
 
   // // [Delta_y]_i += Delta_ab (== Delta_a * Delta_b)
   // if (beavy_provider_.is_my_job(gate_id_)) {
   //   join_matrices(join_op_, Delta_a.data(), Delta_b.data(), tmp.data());
-  //   __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+  //   __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+  //   std::begin(tmp),
   //                             std::begin(Delta_y_share_), std::plus{});
   // }
 
   // if (fractional_bits_ > 0) {
-  //   fixed_point::truncate_shared<T>(Delta_y_share_.data(), fractional_bits_, Delta_y_share_.size(),
+  //   fixed_point::truncate_shared<T>(Delta_y_share_.data(), fractional_bits_,
+  //   Delta_y_share_.size(),
   //                                   beavy_provider_.is_my_job(gate_id_));
   //   // [Delta_y]_i += [delta_y]_i
   //   __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
-  //                             std::begin(output_->get_secret_share()), std::begin(Delta_y_share_),
-  //                             std::plus{});
+  //                             std::begin(output_->get_secret_share()),
+  //                             std::begin(Delta_y_share_), std::plus{});
   //   // NB: happens in setup phase if no truncation is requested
   // }
 
@@ -1282,11 +1399,11 @@ void ArithmeticBEAVYTensorAveragePool<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorAveragePool<std::uint32_t>;
 template class ArithmeticBEAVYTensorAveragePool<std::uint64_t>;
 
-//Implementation of Tensor Negation (addnl)
+// Implementation of Tensor Negation (addnl)
 template <typename T>
 ArithmeticBEAVYTensorNegate<T>::ArithmeticBEAVYTensorNegate(std::size_t gate_id,
-                                                        BEAVYProvider& beavy_provider,
-                                                        const ArithmeticBEAVYTensorCP<T> input)
+                                                            BEAVYProvider& beavy_provider,
+                                                            const ArithmeticBEAVYTensorCP<T> input)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
       input_(input),
@@ -1322,12 +1439,12 @@ void ArithmeticBEAVYTensorNegate<T>::evaluate_setup() {
 
   const auto& delta_a_share_ = input_->get_secret_share();
 
-  std::vector<T> zero_vector(output_size,0);
+  std::vector<T> zero_vector(output_size, 0);
   auto& delta_y_share_ = zero_vector;
 
-  std::vector<T> uint64_maxvector(output_size,std::numeric_limits<T>::max());
-  std::vector<T> one_vector(output_size,1);
-  
+  std::vector<T> uint64_maxvector(output_size, std::numeric_limits<T>::max());
+  std::vector<T> one_vector(output_size, 1);
+
   // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
   __gnu_parallel::transform(std::begin(uint64_maxvector), std::end(uint64_maxvector),
                             std::begin(delta_a_share_), std::begin(delta_y_share_), std::minus{});
@@ -1360,17 +1477,17 @@ void ArithmeticBEAVYTensorNegate<T>::evaluate_online() {
   const auto output_size = input_->get_dimensions().get_data_size();
   input_->wait_online();
   const auto& Delta_ = input_->get_public_share();
-  std::vector<T> zero_vector(output_size,0);
+  std::vector<T> zero_vector(output_size, 0);
 
-  std::vector<T> uint64_maxvector(output_size,std::numeric_limits<T>::max());
-  std::vector<T> one_vector(output_size,1);
-  
+  std::vector<T> uint64_maxvector(output_size, std::numeric_limits<T>::max());
+  std::vector<T> one_vector(output_size, 1);
+
   // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
   __gnu_parallel::transform(std::begin(uint64_maxvector), std::end(uint64_maxvector),
                             std::begin(Delta_), std::begin(Delta_y_), std::minus{});
   // [Delta_y]_i += [[delta_b]_i * [delta_a]_(1-i)]_i
-  __gnu_parallel::transform(std::begin(Delta_y_), std::end(Delta_y_),
-                            std::begin(one_vector), std::begin(Delta_y_), std::plus{});
+  __gnu_parallel::transform(std::begin(Delta_y_), std::end(Delta_y_), std::begin(one_vector),
+                            std::begin(Delta_y_), std::plus{});
 
   output_->get_public_share() = std::move(Delta_y_);
   output_->set_online_ready();
@@ -1387,12 +1504,11 @@ void ArithmeticBEAVYTensorNegate<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorNegate<std::uint32_t>;
 template class ArithmeticBEAVYTensorNegate<std::uint64_t>;
 
-//Implementation of Constant Multiplication with Tensor (addnl)
+// Implementation of Constant Multiplication with Tensor (addnl)
 template <typename T>
-ArithmeticBEAVYTensorConstMul<T>::ArithmeticBEAVYTensorConstMul(std::size_t gate_id,
-                                                        BEAVYProvider& beavy_provider,
-                                                        const T k,
-                                                        const ArithmeticBEAVYTensorCP<T> input)
+ArithmeticBEAVYTensorConstMul<T>::ArithmeticBEAVYTensorConstMul(
+    std::size_t gate_id, BEAVYProvider& beavy_provider, const T k,
+    const ArithmeticBEAVYTensorCP<T> input)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
       constant_(k),
@@ -1429,12 +1545,13 @@ void ArithmeticBEAVYTensorConstMul<T>::evaluate_setup() {
 
   const auto& delta_a_share_ = input_->get_secret_share();
 
-  std::vector<T> constant_vector(output_size,constant_);
+  std::vector<T> constant_vector(output_size, constant_);
   auto& delta_y_share_ = constant_vector;
-  
+
   // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
   __gnu_parallel::transform(std::begin(constant_vector), std::end(constant_vector),
-                            std::begin(delta_a_share_), std::begin(delta_y_share_), std::multiplies{});
+                            std::begin(delta_a_share_), std::begin(delta_y_share_),
+                            std::multiplies{});
 
   output_->get_secret_share() = std::move(delta_y_share_);
   output_->set_setup_ready();
@@ -1461,8 +1578,8 @@ void ArithmeticBEAVYTensorConstMul<T>::evaluate_online() {
   const auto output_size = input_->get_dimensions().get_data_size();
   input_->wait_online();
   const auto& Delta_ = input_->get_public_share();
-  std::vector<T> constant_vector(output_size,constant_);
-  
+  std::vector<T> constant_vector(output_size, constant_);
+
   // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
   __gnu_parallel::transform(std::begin(constant_vector), std::end(constant_vector),
                             std::begin(Delta_), std::begin(Delta_y_), std::multiplies{});
@@ -1482,12 +1599,12 @@ void ArithmeticBEAVYTensorConstMul<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorConstMul<std::uint32_t>;
 template class ArithmeticBEAVYTensorConstMul<std::uint64_t>;
 
-//Implementation of Addition with Tensor (addnl)
+// Implementation of Addition with Tensor (addnl)
 template <typename T>
 ArithmeticBEAVYTensorAdd<T>::ArithmeticBEAVYTensorAdd(std::size_t gate_id,
-                                                        BEAVYProvider& beavy_provider,
-                                                        const ArithmeticBEAVYTensorCP<T> inputA,
-                                                        const ArithmeticBEAVYTensorCP<T> inputB)
+                                                      BEAVYProvider& beavy_provider,
+                                                      const ArithmeticBEAVYTensorCP<T> inputA,
+                                                      const ArithmeticBEAVYTensorCP<T> inputB)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
       input_A_(inputA),
@@ -1526,9 +1643,9 @@ void ArithmeticBEAVYTensorAdd<T>::evaluate_setup() {
   const auto& delta_a_share_ = input_A_->get_secret_share();
   const auto& delta_b_share_ = input_B_->get_secret_share();
 
-  std::vector<T> constant_vector(output_size,0);
+  std::vector<T> constant_vector(output_size, 0);
   auto& delta_y_share_ = constant_vector;
-  
+
   // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
   __gnu_parallel::transform(std::begin(delta_a_share_), std::end(delta_a_share_),
                             std::begin(delta_b_share_), std::begin(delta_y_share_), std::plus{});
@@ -1561,9 +1678,9 @@ void ArithmeticBEAVYTensorAdd<T>::evaluate_online() {
 
   const auto& Delta_a_ = input_A_->get_public_share();
   const auto& Delta_b_ = input_B_->get_public_share();
-  
-  __gnu_parallel::transform(std::begin(Delta_a_), std::end(Delta_a_),
-                            std::begin(Delta_b_), std::begin(Delta_y_), std::plus{});
+
+  __gnu_parallel::transform(std::begin(Delta_a_), std::end(Delta_a_), std::begin(Delta_b_),
+                            std::begin(Delta_y_), std::plus{});
 
   output_->get_public_share() = std::move(Delta_y_);
   output_->set_online_ready();
@@ -1580,15 +1697,15 @@ void ArithmeticBEAVYTensorAdd<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorAdd<std::uint32_t>;
 template class ArithmeticBEAVYTensorAdd<std::uint64_t>;
 
-//Implementation of Splitting a Tensor (addnl)
+// Implementation of Splitting a Tensor (addnl)
 template <typename T>
 ArithmeticBEAVYTensorSplit<T>::ArithmeticBEAVYTensorSplit(std::size_t gate_id,
-                                                        BEAVYProvider& beavy_provider,
-                                                        const ArithmeticBEAVYTensorCP<T> input)
+                                                          BEAVYProvider& beavy_provider,
+                                                          const ArithmeticBEAVYTensorCP<T> input)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
       input_(input),
-      output_0_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)), 
+      output_0_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)),
       output_1_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)),
       output_2_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)),
       output_3_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)),
@@ -1597,7 +1714,7 @@ ArithmeticBEAVYTensorSplit<T>::ArithmeticBEAVYTensorSplit(std::size_t gate_id,
       output_6_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)),
       output_7_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)),
       output_8_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)),
-      output_9_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)){
+      output_9_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions_)) {
   const auto my_id = beavy_provider_.get_my_id();
   const auto output_size = input_->get_dimensions().get_data_size();
   Delta_y_.resize(output_size);

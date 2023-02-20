@@ -122,6 +122,8 @@ add_subdirectory(fbs)
 
 add_subdirectory(src/motioncore)
 
+add_subdirectory(Dataprovider)
+
 if (MOTION_BUILD_TESTS)
     if (NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/googletest/CMakeLists.txt")
         find_package(Git REQUIRED)
@@ -133,6 +135,7 @@ if (MOTION_BUILD_TESTS)
     set(BUILD_GMOCK OFF CACHE BOOL "Disable building gmock" FORCE)
     add_subdirectory(extern/googletest)
     add_subdirectory(src/test)
+    
 endif (MOTION_BUILD_TESTS)
 
 if (MOTION_BUILD_EXE)
