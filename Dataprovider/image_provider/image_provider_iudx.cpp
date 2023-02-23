@@ -150,16 +150,22 @@ int share_generation_csv(std::ifstream& indata, int num_elements, Shares* cs0_da
   std::vector<float> data;
   int i = 0;
   std::string line;
-  while (std::getline(indata, line)) {
-    std::stringstream lineStream(line);
-    std::string cell;
 
-    while (std::getline(lineStream, cell, ',')) {
-      data.push_back(stof(cell));
-      std::cout << i << " = " << data[i] << "\n";
-      i++;
-    }
+  while(indata)
+  { float temp;
+    indata>>temp;
+    data.push_back(temp);
   }
+  // while (std::getline(indata, line)) {
+  //   std::stringstream lineStream(line);
+  //   std::string cell;
+
+  //   while (std::getline(lineStream, cell, ',')) {
+  //     data.push_back(stof(cell));
+  //     std::cout << i << " = " << data[i] << "\n";
+  //     i++;
+  //   }
+  // }
   int actual_ans = data[0];
   std::cout << "\n";
   cout << "Share generation \n";

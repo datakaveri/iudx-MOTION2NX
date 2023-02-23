@@ -15,8 +15,11 @@ pwd
 
 j=13
 
-DEFAULT_TABS_CMD1="$build_path/bin/Weights_Share_Generator --my-id 0 --party 0,::1,7003 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $j --file-names $abs_path2 --current-path $build_path"
-DEFAULT_TABS_CMD2="$build_path/bin/Weights_Share_Generator --my-id 1 --party 0,::1,7003 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $j --file-names $abs_path2 --current-path $build_path"
+
+#--party 0,::1,7003 --party 1,::1,7000
+
+DEFAULT_TABS_CMD1="$build_path/bin/Weights_Share_Reciever --my-id 0 --file-names $abs_path2 --current-path $build_path"
+DEFAULT_TABS_CMD2="$build_path/bin/Weights_Share_Reciever --my-id 1 --file-names $abs_path2 --current-path $build_path"
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE1'; $DEFAULT_TABS_CMD1; exec bash;"
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE2'; $DEFAULT_TABS_CMD2; exec bash;"
 
@@ -43,8 +46,8 @@ for i in "${list[@]}"
 do
 
 
-DEFAULT_TABS_CMD1="$build_path/bin/Image_Share_Generator --my-id 0 --party 0,::1,7003 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $j --file-names $abs_path --index $i --current-path $build_path"
-DEFAULT_TABS_CMD2="$build_path/bin/Image_Share_Generator --my-id 1 --party 0,::1,7003 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $j --file-names $abs_path --index $i --current-path $build_path"
+DEFAULT_TABS_CMD1="$build_path/bin/Image_Share_Reciever --my-id 0 --fractional-bits $j --file-names $abs_path --index $i --current-path $build_path"
+DEFAULT_TABS_CMD2="$build_path/bin/Image_Share_Reciever --my-id 1 --fractional-bits $j --file-names $abs_path --index $i --current-path $build_path"
 
  gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE1'; $DEFAULT_TABS_CMD1; exec bash;"
  gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE2'; $DEFAULT_TABS_CMD2; exec bash;"
