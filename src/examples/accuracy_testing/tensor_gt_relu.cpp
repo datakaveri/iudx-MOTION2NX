@@ -191,10 +191,8 @@ void input_shares(Options* options, std::string p) {
   std::cout << options->num_elements << " " << options->column_size << "\n";
   for (int i = 0; i < options->num_elements; ++i) {
     std::uint64_t m1 = read_file(indata2);
-    std::cout << m1 << " ";
     options->input.Delta.push_back(m1);
     std::uint64_t m2 = read_file(indata2);
-    std::cout << m2 << std::endl;
     options->input.delta.push_back(m2);
   }
   std::cout << "Helllo\n";

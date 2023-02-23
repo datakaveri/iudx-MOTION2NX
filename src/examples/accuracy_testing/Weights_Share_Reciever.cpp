@@ -1,12 +1,8 @@
 /*
-./bin/Weights_Share_Generator --my-id 0 --party 0,::1,7003 --party 1,::1,7000 --arithmetic-protocol
-beavy --boolean-protocol yao --fractional-bits 13 --file-names file_config_model
---file-names-image file_config_input
+./bin/Weights_Share_Reciever --my-id 0 --file-names file_config_model --file-names-image file_config_input
 
 
-./bin/Weights_Share_Generator --my-id 1 --party 0,::1,7003 --party 1,::1,7000 --arithmetic-protocol
-beavy --boolean-protocol yao --fractional-bits 13 --file-names file_config_model
---file-names-image file_config_input
+./bin/Weights_Share_Reciever --my-id 1 --file-names file_config_model --file-names-image file_config_input
 
 ./weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --dp-id 1
 --fractional-bits 13
@@ -93,17 +89,13 @@ struct Matrix {
 struct Options {
   std::size_t threads;
   bool json;
-  std::size_t num_repetitions;
   std::size_t num_simd;
   bool sync_between_setup_and_online;
-  MOTION::MPCProtocol arithmetic_protocol;
-  MOTION::MPCProtocol boolean_protocol;
   Matrix image;
   Matrix weights[2];
   Matrix biases[2];
-  std::size_t fractional_bits;
   std::size_t my_id;
-  MOTION::Communication::tcp_parties_config tcp_config;
+  // MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
   std::string filenames;
   std::vector<std::string> data;
@@ -232,15 +224,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("config-file", po::value<std::string>(), "config file containing options")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
-    ("party", po::value<std::vector<std::string>>()->multitoken(),
-     "(party id, IP, port), e.g., --party 1,127.0.0.1,7777")
     ("threads", po::value<std::size_t>()->default_value(0), "number of threads to use for gate evaluation")
     ("json", po::bool_switch()->default_value(false), "output data in JSON format")
-    ("fractional-bits", po::value<std::size_t>()->default_value(16),
-     "number of fractional bits for fixed-point arithmetic")
-    ("arithmetic-protocol", po::value<std::string>()->required(), "2PC protocol (GMW or BEAVY)")
-    ("boolean-protocol", po::value<std::string>()->required(), "2PC protocol (Yao, GMW or BEAVY)")
-    ("repetitions", po::value<std::size_t>()->default_value(1), "number of repetitions")
     ("num-simd", po::value<std::size_t>()->default_value(1), "number of SIMD values")
     ("file-names",po::value<std::string>()->required(), "filename")
     ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
@@ -272,38 +257,13 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.my_id = vm["my-id"].as<std::size_t>();
   options.threads = vm["threads"].as<std::size_t>();
   options.json = vm["json"].as<bool>();
-  options.num_repetitions = vm["repetitions"].as<std::size_t>();
   options.num_simd = vm["num-simd"].as<std::size_t>();
   options.sync_between_setup_and_online = vm["sync-between-setup-and-online"].as<bool>();
   options.no_run = vm["no-run"].as<bool>();
-  options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   options.filenames = vm["file-names"].as<std::string>();
   options.currentpath = vm["current-path"].as<std::string>();
   if (options.my_id > 1) {
     std::cerr << "my-id must be one of 0 and 1\n";
-    return std::nullopt;
-  }
-
-  auto arithmetic_protocol = vm["arithmetic-protocol"].as<std::string>();
-  boost::algorithm::to_lower(arithmetic_protocol);
-  if (arithmetic_protocol == "gmw") {
-    options.arithmetic_protocol = MOTION::MPCProtocol::ArithmeticGMW;
-  } else if (arithmetic_protocol == "beavy") {
-    options.arithmetic_protocol = MOTION::MPCProtocol::ArithmeticBEAVY;
-  } else {
-    std::cerr << "invalid protocol: " << arithmetic_protocol << "\n";
-    return std::nullopt;
-  }
-  auto boolean_protocol = vm["boolean-protocol"].as<std::string>();
-  boost::algorithm::to_lower(boolean_protocol);
-  if (boolean_protocol == "yao") {
-    options.boolean_protocol = MOTION::MPCProtocol::Yao;
-  } else if (boolean_protocol == "gmw") {
-    options.boolean_protocol = MOTION::MPCProtocol::BooleanGMW;
-  } else if (boolean_protocol == "beavy") {
-    options.boolean_protocol = MOTION::MPCProtocol::BooleanBEAVY;
-  } else {
-    std::cerr << "invalid protocol: " << boolean_protocol << "\n";
     return std::nullopt;
   }
 
@@ -328,45 +288,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
-  const auto parse_party_argument =
-      [](const auto& s) -> std::pair<std::size_t, MOTION::Communication::tcp_connection_config> {
-    const static std::regex party_argument_re("([01]),([^,]+),(\\d{1,5})");
-    std::smatch match;
-    if (!std::regex_match(s, match, party_argument_re)) {
-      throw std::invalid_argument("invalid party argument");
-    }
-    auto id = boost::lexical_cast<std::size_t>(match[1]);
-    auto host = match[2];
-    auto port = boost::lexical_cast<std::uint16_t>(match[3]);
-    return {id, {host, port}};
-  };
-
-  const std::vector<std::string> party_infos = vm["party"].as<std::vector<std::string>>();
-  if (party_infos.size() != 2) {
-    std::cerr << "expecting two --party options\n";
-    return std::nullopt;
-  }
-
-  options.tcp_config.resize(2);
-  std::size_t other_id = 2;
-
-  const auto [id0, conn_info0] = parse_party_argument(party_infos[0]);
-  const auto [id1, conn_info1] = parse_party_argument(party_infos[1]);
-  if (id0 == id1) {
-    std::cerr << "need party arguments for party 0 and 1\n";
-    return std::nullopt;
-  }
-  options.tcp_config[id0] = conn_info0;
-  options.tcp_config[id1] = conn_info1;
-
   return options;
-}
-
-std::unique_ptr<MOTION::Communication::CommunicationLayer> setup_communication(
-    const Options& options) {
-  MOTION::Communication::TCPSetupHelper helper(options.my_id, options.tcp_config);
-  return std::make_unique<MOTION::Communication::CommunicationLayer>(options.my_id,
-                                                                     helper.setup_connections());
 }
 
 int main(int argc, char* argv[]) {
@@ -374,16 +296,10 @@ int main(int argc, char* argv[]) {
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
-
   try {
-    auto comm_layer = setup_communication(*options);
     auto logger = std::make_shared<MOTION::Logger>(options->my_id,
                                                    boost::log::trivial::severity_level::trace);
-    comm_layer->set_logger(logger);
-    MOTION::TwoPartyTensorBackend backend(*comm_layer, options->threads,
-                                          options->sync_between_setup_and_online, logger);
-    // run_composite_circuit(*options, backend);
-    comm_layer->shutdown();
+
   } catch (std::runtime_error& e) {
     std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
     return EXIT_FAILURE;

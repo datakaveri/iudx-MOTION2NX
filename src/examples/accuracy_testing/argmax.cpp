@@ -153,6 +153,7 @@ std::string read_filepath(std::ifstream& indata) {
 void input_shares(Options* options, std::string p) {
   std::ifstream indata;
   indata.open(p);
+  std::cout << "p:" << p << std::endl;
   assert(indata);
 
   options->num_elements = read_file(indata);
@@ -179,8 +180,8 @@ void file_read(Options* options) {
   // std::string path = std::filesystem::current_path();
   std::string t1 = path + "/" + options->filepath;
 
-  std::string t2 =
-      path + "/" + "server" + std::to_string(options->my_id) + "/" + options->inputfilename;
+  std::string t2 = path + "/" + "server" + std::to_string(options->my_id) + "/Actual_label/" +
+                   options->inputfilename;
 
   std::ifstream file1;
   file1.open(t1);

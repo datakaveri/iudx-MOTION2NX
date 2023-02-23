@@ -6,11 +6,11 @@ from bash file we are giving ip1 and in this file it is appended to ip1_0 and ip
 
 At the argument "--filepath " give the path of the file containing shares from build_deb.... folder
 Server-0
-./bin/tensor_gt_mul --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
+./bin/tensor_gt_mul_test --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
 --boolean-protocol yao --fractional-bits 13 --config-file-model file_config_model0 --layer-id 1
 
 Server-1
-./bin/tensor_gt_mul --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
+./bin/tensor_gt_mul_test --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
 --boolean-protocol yao --fractional-bits 13 --config-file-model file_config_model1 --layer-id 1
 
 */
@@ -187,7 +187,7 @@ std::string read_filepath(std::ifstream& indata, int count) {
 void image_shares(Options* options, std::string p) {
   std::ifstream temps;
   temps.open(p);
-  // std::cout << "p:" << p << "\n";
+  std::cout << "p:" << p << "\n";
   if (temps) {
     std::cout << "File found\n";
   } else {
@@ -274,7 +274,8 @@ void file_read(Options* options) {
   // else read file_config_input (id is appended)
   if (options->layer_id == 1) {
     std::cout << "hello\n";
-    t1 = path + "/server" + std::to_string(options->my_id) + "/" + options->imageprovider;
+    t1 = path + "/server" + std::to_string(options->my_id) + "/Image_shares/" +
+         options->imageprovider;
   } else if (options->layer_id > 1) {
     // outputshare_0/1 inside server 1/0
     t1 = path + "/server" + std::to_string(options->my_id) + "/" + options->imageprovider + "_" +
@@ -476,20 +477,17 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   /*const MOTION::tensor::GemmOp gemm_op1 = {
       .input_A_shape_ = {256, 784}, .input_B_shape_ = {784, 1}, .output_shape_ = {256, 1}};
 */
-  std::cout << "begin\n";
 
   std::cout << options.W_file.row << " " << options.W_file.col << "\n";
   std::cout << options.image_file.row << " " << options.image_file.col << "\n";
-
-  std::cout << "end\n";
 
   const MOTION::tensor::GemmOp gemm_op1 = {
       .input_A_shape_ = {options.W_file.row, options.W_file.col},
       .input_B_shape_ = {options.image_file.row, options.image_file.col},
       .output_shape_ = {options.W_file.row, options.image_file.col}};
-  std::cout << "begin\n";
+
   const auto W1_dims = gemm_op1.get_input_A_tensor_dims();
-  std::cout << "end\n";
+
   const auto X_dims = gemm_op1.get_input_B_tensor_dims();
   const auto B1_dims = gemm_op1.get_output_tensor_dims();
 
