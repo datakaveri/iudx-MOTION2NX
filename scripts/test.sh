@@ -9,8 +9,6 @@ DEFAULT_TABS_TITLE1="T1"
 DEFAULT_TABS_TITLE2="T2"
 
 
-BASE_DIR=/home/srishti04/IUDX/iudx-MOTION2NX
-
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 
 
