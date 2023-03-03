@@ -1,52 +1,103 @@
-# MOTION2NX -- A Framework for Generic Hybrid Two-Party Computation and Private Inference with Neural Networks
+# IUDX-MOTION2NX 
 
-This software is an extension of the [MOTION framework for multi-party
-computation](https://github.com/encryptogroup/MOTION).
-We additionally implemented five 2PC protocols with passive security together
-with all 20 possible conversions among each other to enable private evaluation
-of hybrid circuits:
+This software is an extension of the [Encrypto group’s MOTION2NX framework for Generic Hybrid Two-Party
+Computation](https://github.com/encryptogroup/MOTION2NX). The goal of this extension is to implement a neural network
+inferencing task on a framework where the data is supplied to the “secure compute servers” by the “data providers”. More
+specifically, we added two data providers to supply private and public shares to the compute servers. These data providers
+support only ArithmeticBEAVY secret sharing protocol. We can extend this setting to multiple (>2) data providers as well.
 
-- Yao's Garbled Circuits with FreeXOR and Half-Gates
-- Arithmetic and Boolean variants of Goldreich-Micali-Wigderson
-- Arithmetic and Boolean variants of the secret-sharing-based protocols from [ABY2.0 (Patra et al., USENIX Security '21)](https://eprint.iacr.org/2020/1225)
-
-Moreover, we support private inference with neural networks by providing secure
-tensor data types and specialized building blocks for common tensor operations.
-With support of the [Open Neural Network Exchange (ONNX)](https://onnx.ai) file
-format, this makes our framework interoperable with industry-standard deep
-learning frameworks such as TensorFlow and PyTorch.
-
-Compared to the original MOTION codebase, we made architectural improvements
-to increase flexibility and performance of the framework.
-Although the interfaces of this work are currently not compatible with the
-original framework due to the concurrent development of both branches, it is
-planned to integrate the MOTION2NX features into MOTION itself.
-
-
-More information about this work is given in [this extended
-abstract](https://encrypto.de/papers/BCS21PriMLNeurIPS.pdf) which was accepted
-at the [PriML@NeurIPS 2021](https://priml2021.github.io/) workshop.
-It is the result of Lennart Braun's master's thesis in the [ENCRYPTO
-group](https://encrypto.de) at [TU
-Darmstadt](https://www.informatik.tu-darmstadt.de) supervised by Thomas
-Schneider and Rosario Cammarota.
-
-This code is provided as a experimental implementation for testing purposes and
-should not be used in a productive environment. We cannot guarantee security
-and correctness.
+New additions
+1. Data providers: Implemented data providers that provide shares of their respective private data to the secure compute
+servers for performing privacy preserving operations.
+2. New gates to support constant multiplication: This operation is multiplying a constant (which is common knowledge to
+both the parties) with private data. This new gate does not require creation of shares for the constant, thereby making the
+operation faster.
+3. Modular approach to Neural Network Inferencing on MNIST data: Two compute servers are involved in the inferencing
+task. There are two data providers, one of them provides the neural network model (weights and biases) to the compute
+servers and the other data provider (Image provider) provides image that has to be inferred. We do not reconstruct the final
+output “in clear” at the compute servers in order to maintain privacy. The compute servers send their respective output shares
+to the image provider. The image provider then reconstructs the output “in clear”.
+In our modular approach, we split the deep (multi-layer) network model into smaller modules that are executed sequentially.
+We ensure that each module still preserves the privacy of its respective input and output (thereby preserving the privacy of
+the intermediate results in the deep neural network). The modular approach helps us to accomplish the following: \
+(a) Reduce the memory usage for secure computation of the neural network inferencing task \
+(b) Provides us with the ability to easily execute a deep neural network with large number of layers (>2) because the
+memory usage does not scale up with the number of layers in our modular approach 
+4. Accuracy and Cross Entropy Loss testing for MNIST Neural Network Inference 
 
 
-## Build Instructions
+This code is provided as a experimental implementation for testing purposes and should not be used in a production environment. 
+
+## Prerequisites
+Make sure you have installed all of the following prerequisites on your development machine:
+* Git - [Download & Install Git](https://git-scm.com/downloads). OSX and Linux machines typically have this already installed. You can install it using 
+```sudo apt install git```
+
+* g++ compiler - OSX and Linux machines typically have this already installed. The latest version should ideally be above 9 for gcc or g++. To install g++ ,   install using ```sudo apt install g++```
+* Boost libraries - 
+
+    1. First uninstall the existing boost libraries present on the system. The following commands delete boost except its dependencies. 
+    	
+       ```sudo apt-get update ```  \
+       ```sudo apt-get -y --purge remove libboost-all-dev libboost-doc libboost-dev ``` \
+       ```sudo rm -f /usr/lib/libboost_* ``` 
+ 
+       
+    2. Now install the latest version of boost and some additional dependencies, which can be done using :    
+    
+       ``` sudo apt-get -y install build-essential g++ python-dev autotools-dev libicu-dev libbz2-dev```
+    
+    3. Once the set up is ready, [ download boost](https://www.boost.org/users/history/version_1_79_0.html). Make sure to install the .tar.gz extension as it is easier to install.
+   
+    4. Go to the place where it got downloaded and to extract the folder do , ```tar -zxvf boost_1_79_0.tar.gz```
+    
+    5. Run the following commands before proceeding to the next step.
+
+		```cpuCores=`cat /proc/cpuinfo | grep "cpu cores" | uniq | awk '{print $NF}'```
+
+		```echo "Available CPU cores: "$cpuCores```
+   
+    6. Change directory to the folder where boost was extracted and run the following commands. 
+
+	``` ./bootstrap.sh --with libraries=atomic,date_time,exception,filesystem,iostreams,locale,program_options,regex,signals,system,test,thread,timer,log```
+
+	``` sudo ./b2 --with=all -j $cpuCores install ```
+	
+	This might take upto an hour to setup the full boost library.
+    
+    7. To check if it is installed successfully, in the command line interface type :
+    
+       	```cat /usr/local/include/boost/version.hpp | grep "BOOST_LIB_VERSION" ``` 
+    
+       Good to go if boost version is greater than or equal to 1.75.
+    
+* Eigen - [Download Eigen](https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2)
+
+  1. After downloading, extract the above folder using ```tar -xvf eigen-3.4.0```
+		```
+		cd eigen-3.4.0
+		mkdir build_dir
+		cd build_dir
+		cmake ~/Downloads/eigen-3.4.0
+		make install or sudo make install
+		```
+		
+  2. Eigen is installed, check the version using the following instruction 
+
+ 	```grep "#define EIGEN_[^_]*_VERSION" /usr/local/include/eigen3/Eigen/src/Core/util/Macros.h```
+
+ 
+
+## Working Environment
 
 
-This software was developed and tested in the following environment (it might
-also work with older versions):
+This software was developed and tested in the following environment (it might not work with older versions):
 
-- [Arch Linux](https://archlinux.org/)
-- [GCC 11.1.0](https://gcc.gnu.org/) or [Clang/LLVM 12.0.1](https://clang.llvm.org/)
-- [CMake 3.21.4](https://cmake.org/)
-- [Boost 1.76.0](https://www.boost.org/)
-- [OpenSSL 1.1.1.l](https://openssl.org/)
+- [Ubuntu 22.04.2 LTS](https://ubuntu.com/download/desktop)
+- [GCC 11.3.0](https://gcc.gnu.org/) 
+- [CMake 3.22.1](https://cmake.org/)
+- [Boost 1.79.0](https://www.boost.org/users/history/version_1_79_0.html)
+- [OpenSSL 3.0.2](https://openssl.org/)
 - [Eigen 3.4.0](https://eigen.tuxfamily.org/)
 - [fmt 8.0.1](https://github.com/fmtlib/fmt)
 - [flatbuffers 2.0.0](https://github.com/google/flatbuffers)
@@ -56,74 +107,83 @@ also work with older versions):
 - [ONNX 1.10.2 (optional, for the ONNXAdapter)](https://github.com/onnx/onnx)
 
 The build system downloads and builds GoogleTest and Benchmark if required.
-It also tries to download and build Boost, fmt, and flatbuffers if it cannot
-find these libraries in the system.
-
-The framework can for example be compiled as follows:
-```
-$ CC=gcc CXX=g++ cmake \
-    -B build_debwithrelinfo_gcc \
-    -DCMAKE_BUILD_TYPE=DebWithRelInfo \
-    -DMOTION_BUILD_EXE=On \
-    -DMOTION_BUILD_TESTS=On \
-    -DMOTION_USE_AVX=AVX2
-$ cmake --build build_debwithrelinfo_gcc
-```
-Explanation of the flags:
-
-- `CC=gcc CXX=g++`: select GCC as compiler
-- `-B build_debwithrelinfo_gcc`: create a build directory
-- `-DCMAKE_BUILD_TYPE=DebWithRelInfo`: compile with optimization and also add
-  debug symbols -- makes tests run faster and debugging easier
-- `-DMOTION_BUILD_EXE=On`: build example executables and benchmarks
-- `-DMOTION_BUILD_TESTS=On`: build tests
-- `-DMOTION_USE_AVX=AVX2`: compile with AVX2 instructions (choose one of `AVX`/`AVX2`/`AVX512`)
-
-### HyCC Support for Hybrid Circuits
-
-To enable support for HyCC circuits, the HyCC library must be compiled and the
-following flags need additionally be passed to CMake:
-
-- `-DMOTION_BUILD_HYCC_ADAPTER=On`
-- `-DMOTION_HYCC_PATH=/path/to/HyCC` where `/path/to/HyCC` points to the HyCC
-  directory, i.e., the top-level directory of the cloned repository
-
-This builds the library target `motion_hycc` and the `hycc2motion` executable.
+It also tries to download and build fmt, and flatbuffers if it cannot find these libraries in the system.
 
 
 
-### ONNX Support for Neural Networks
+## Steps for Installing the Repository
 
-For ONNX support, the ONNX library must be installed and the following flag
-needs additionally be passed to CMake:
+ - Check whether gnome is installed using \
+   ```gnome-shell --version```\
+   If if is not installed, install it using\
+   ```sudo apt install ubuntu-gnome-desktop```
+ - Clone the Repository\
+   ```git clone https://github.com/datakaveri/iudx-MOTION2NX.git ```
+   
+   (or)
+	
+   If you want to clone the modulartensor branch:\
+   ```git clone -b modulartensor https://github.com/datakaveri/iudx-MOTION2NX.git ```
+- Now cd into the repository and build it using the following command
 
-- `-DMOTION_BUILD_ONNX_ADAPTER=On`
+  ```
+  CC=gcc CXX=g++ cmake \
+  -B build_debwithrelinfo_gcc \
+  -DCMAKE_BUILD_TYPE=DebWithRelInfo \
+  -DMOTION_BUILD_EXE=On \
+  -DMOTION_BUILD_TESTS=On \
+  -DMOTION_USE_AVX=AVX2
+  ```
+- The above code builds the necessary folder, and each of the flags indicate the requirements to be fulfilled for the build.
+ 
+  Explanation of the flags:\
+          `CC=gcc CXX=g++`: select GCC as compiler\
+          `-B build_debwithrelinfo_gcc`: create a build directory\
+          `-DCMAKE_BUILD_TYPE=DebWithRelInfo`: compile with optimization and also add debug symbols -- makes tests run faster and debugging easier\
+          `-DMOTION_BUILD_EXE=On`: build example executables and benchmarks\
+          `-DMOTION_BUILD_TESTS=On`: build tests\
+          `-DMOTION_USE_AVX=AVX2`: compile with AVX2 instructions (choose one of `AVX`/`AVX2`/`AVX512`)
 
-This builds the library target `motion_onnx` and the `onnx2motion` executable.
 
+- Once that is done, execute the command to install the executables and their dependencies. This process can take upto an hour:\
+  ```cmake --build build_debwithrelinfo_gcc```
+  
+- cd into the repository folder, and run the following ONCE\
+  ```sudo -s source setup.sh ```\
+  This sets the required environment variables in ~/.bashrc, ~/.profile, and /etc/environment files.\
+  Execute this command only once.
+  
+  
+  ## Steps for running the Modular Neural Network Inference code
+  
+- cd into the [path_to_repository_folder]/scripts folder.
+ - Open a new terminal and run the script.
+  ```
+  bash sharegenerator.sh
+  ```
+  
+ This script opens multiple gnome tabs and generates MNIST image shares and neural network model shares (weights and bias      shares). The image and neural network shares are saved inside [path_to_repository_folder]/build_debwithrelinfo_gcc/server0 in   server0, and [Repository_folder_path]/build_debwithrelinfo_gcc/server1 in server1. Once the program finishes execution, close  all the opened tabs.
+  
+  
+ (or)
+ 
+ 
+ - To classify a new MNIST image, follow the steps given below.
+	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column).
+	- Save it in [path_to_repository_folder]/image_provider/images folder with the filename of the format ‘X[image_number].csv.
+	- Open [path_to_repository_folder]/scripts/sharegenerator.sh and assign the image number to the list. 
+     	```
+      	list=([your_image_number])
+        ```
+    - Run the script 
+      ```
+      bash sharegenerator.sh
+      ```
 
-
-### Examples
-
-
-#### Using the MOTION2NX Low-Level API
-
-See [here](src/examples/millionaires_problem) for an example solution of Yao's
-Millionaires' Problem.
-
-
-#### Using the `onnx2motion` Application
-
-```
-$ ./bin/onnx2motion \
-    --my-id ${PARTY_ID} \
-    --party 0,::1,7000 \
-    --party 1,::1,7001 \
-    --arithmetic-protocol GMW \
-    --boolean-protocol GMW \
-    --model /path/to/model.onnx \
-    --json
-```
-with "${PARTY_ID}" either 0 or 1.
-
+- Open a new terminal, and run the following script.
+  ```
+  bash test.sh
+  ```
+  This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer and saves the intermediate results. \
+  The final MNIST classification result is displayed on the terminal.  
 
