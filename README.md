@@ -6,13 +6,13 @@ inferencing task on a framework where the data is supplied to the “secure comp
 specifically, we added two data providers to supply private and public shares to the compute servers. These data providers
 support only ArithmeticBEAVY secret sharing protocol. We can extend this setting to multiple (>2) data providers as well.
 
-New additions
-1. Data providers: Implemented data providers that provide shares of their respective private data to the secure compute
+## New additions
+1. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
 servers for performing privacy preserving operations.
-2. New gates to support constant multiplication: This operation is multiplying a constant (which is common knowledge to
+2. **New gates to support constant multiplication:** This operation is multiplying a constant (which is common knowledge to
 both the parties) with private data. This new gate does not require creation of shares for the constant, thereby making the
 operation faster.
-3. Modular approach to Neural Network Inferencing on MNIST data: Two compute servers are involved in the inferencing
+3. **Modular approach to Neural Network Inferencing on MNIST data:** Two compute servers are involved in the inferencing
 task. There are two data providers, one of them provides the neural network model (weights and biases) to the compute
 servers and the other data provider (Image provider) provides image that has to be inferred. We do not reconstruct the final
 output “in clear” at the compute servers in order to maintain privacy. The compute servers send their respective output shares
@@ -30,11 +30,11 @@ This code is provided as a experimental implementation for testing purposes and 
 
 ## Prerequisites
 Make sure you have installed all of the following prerequisites on your development machine:
-* Git - [Download & Install Git](https://git-scm.com/downloads). OSX and Linux machines typically have this already installed. You can install it using 
+* **Git** - [Download & Install Git](https://git-scm.com/downloads). OSX and Linux machines typically have this already installed. You can install it using 
 ```sudo apt install git```
 
-* g++ compiler - OSX and Linux machines typically have this already installed. The latest version should ideally be above 9 for gcc or g++. To install g++ ,   install using ```sudo apt install g++```
-* Boost libraries - 
+* **g++ compiler** - OSX and Linux machines typically have this already installed. The latest version should ideally be above 9 for gcc or g++. To install g++ ,   install using ```sudo apt install g++```
+* **Boost libraries** - 
 
     1. First uninstall the existing boost libraries present on the system. The following commands delete boost except its dependencies. 
     	
@@ -59,11 +59,11 @@ Make sure you have installed all of the following prerequisites on your developm
    
     6. Change directory to the folder where boost was extracted and run the following commands. 
 
-	``` ./bootstrap.sh --with libraries=atomic,date_time,exception,filesystem,iostreams,locale,program_options,regex,signals,system,test,thread,timer,log```
+		``` ./bootstrap.sh --with libraries=atomic,date_time,exception,filesystem,iostreams,locale,program_options,regex,signals,system,test,thread,timer,log```
 
-	``` sudo ./b2 --with=all -j $cpuCores install ```
+		``` sudo ./b2 --with=all -j $cpuCores install ```
 	
-	This might take upto an hour to setup the full boost library.
+		This might take upto an hour to setup the full boost library.
     
     7. To check if it is installed successfully, in the command line interface type :
     
@@ -71,7 +71,7 @@ Make sure you have installed all of the following prerequisites on your developm
     
        Good to go if boost version is greater than or equal to 1.75.
     
-* Eigen - [Download Eigen](https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2)
+* **Eigen** - [Download Eigen](https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2)
 
   1. After downloading, extract the above folder using ```tar -xvf eigen-3.4.0```
 		```
@@ -84,7 +84,7 @@ Make sure you have installed all of the following prerequisites on your developm
 		
   2. Eigen is installed, check the version using the following instruction 
 
- 	```grep "#define EIGEN_[^_]*_VERSION" /usr/local/include/eigen3/Eigen/src/Core/util/Macros.h```
+ 		```grep "#define EIGEN_[^_]*_VERSION" /usr/local/include/eigen3/Eigen/src/Core/util/Macros.h```
 
  
 
@@ -156,26 +156,27 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   
   ## Steps for running the Modular Neural Network Inference code
   
-- cd into the [path_to_repository_folder]/scripts folder.
- - Open a new terminal and run the script.
-  ```
-  bash sharegenerator.sh
-  ```
+- To classify the given sample MNIST images, do the following.
+	- cd into the [path_to_repository_folder]/scripts folder.
+	- Open a new terminal and run the script.
+    	
+	  ```
+	  bash sharegenerator.sh
+	  ```
+ 	- This script opens multiple gnome tabs and generates MNIST image shares and neural network model shares (weights and bias shares). The image and neural 	network shares are saved inside [path_to_repository_folder]/build_debwithrelinfo_gcc/server0 in   server0, and [Repository_folder_path]/build_debwithrelinfo_gcc/server1 in server1. Once the program finishes execution, close  all the opened tabs.
   
- This script opens multiple gnome tabs and generates MNIST image shares and neural network model shares (weights and bias      shares). The image and neural network shares are saved inside [path_to_repository_folder]/build_debwithrelinfo_gcc/server0 in   server0, and [Repository_folder_path]/build_debwithrelinfo_gcc/server1 in server1. Once the program finishes execution, close  all the opened tabs.
-  
-  
- (or)
- 
+  <p align="center">	(or)	</p>
  
  - To classify a new MNIST image, follow the steps given below.
 	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column).
 	- Save it in [path_to_repository_folder]/image_provider/images folder with the filename of the format ‘X[image_number].csv.
-	- Open [path_to_repository_folder]/scripts/sharegenerator.sh and assign the image number to the list. 
+	- Open [path_to_repository_folder]/scripts/sharegenerator.sh and assign the image number to the list.
+ 
      	```
       	list=([your_image_number])
         ```
     - Run the script 
+    
       ```
       bash sharegenerator.sh
       ```
