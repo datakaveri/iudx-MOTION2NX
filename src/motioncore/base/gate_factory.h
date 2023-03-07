@@ -89,6 +89,9 @@ class GateFactory {
   virtual ENCRYPTO::ReusableFiberFuture<BitValues> make_boolean_output_gate_my(
       std::size_t output_owner, const WireVector&);
 
+  virtual std::size_t make_boolean_output_gate_my_wo_getting_output(
+    std::size_t, const WireVector&);
+
   virtual void make_boolean_output_gate_other(std::size_t output_owner, const WireVector&);
 
   // arithmetic outputs

@@ -171,6 +171,19 @@ ENCRYPTO::ReusableFiberFuture<BitValues> BEAVYProvider::make_boolean_output_gate
   return future;
 }
 
+std::size_t BEAVYProvider::make_boolean_output_gate_my_wo_getting_output(
+    std::size_t output_owner, const WireVector& in) {
+  if (output_owner != ALL_PARTIES && output_owner != my_id_) {
+    throw std::logic_error("trying to create output gate for wrong party");
+  }
+  auto gate_id = gate_register_.get_next_gate_id();
+  auto input = cast_wires(in);
+  auto gate =
+      std::make_unique<BooleanBEAVYOutputGate>(gate_id, *this, std::move(input), output_owner);
+  gate_register_.register_gate(std::move(gate));
+  return gate_id;
+}
+
 void BEAVYProvider::make_boolean_output_gate_other(std::size_t output_owner, const WireVector& in) {
   if (output_owner == ALL_PARTIES || output_owner == my_id_) {
     throw std::logic_error("trying to create output gate for wrong party");

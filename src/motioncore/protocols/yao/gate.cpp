@@ -23,6 +23,8 @@
 #include "gate.h"
 
 #include <stdexcept>
+#include <filesystem>
+#include <fstream>
 
 #include "crypto/oblivious_transfer/ot_flavors.h"
 #include "crypto/oblivious_transfer/ot_provider.h"
@@ -500,6 +502,52 @@ void YaoOutputGateGarbler::evaluate_setup() {
   }
 }
 
+void YaoOutputGateGarbler::evaluate_setup_wo_broadcast() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = yao_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: YaoOutputGateGarbler::evaluate_setup start", gate_id_));
+    }
+  }
+
+  auto num_bits = detail::count_bits(inputs_);
+  ENCRYPTO::BitVector<> decoding_info(num_bits);
+
+  // Collect the decoding information which consists of the lsb of each zero
+  // key.
+  std::size_t bit_offset = 0;
+  for (const auto& wire : inputs_) {
+    wire->wait_setup();
+    for (const auto& key : wire->get_keys()) {
+      decoding_info.Set(bool(*key.data() & std::byte(0x01)), bit_offset);
+      ++bit_offset;
+    }
+  }
+
+  // If we receive output, we need to store the decoding information.  If the
+  // evaluator receives output, we need to send them the decoding information.
+  switch (output_recipient_) {
+    case OutputRecipient::garbler:
+      decoding_info_ = std::move(decoding_info);
+      break;
+    case OutputRecipient::evaluator:
+      yao_provider_.send_bits_message(gate_id_, std::move(decoding_info));
+      break;
+    case OutputRecipient::both:
+      decoding_info_ = std::move(decoding_info);
+      yao_provider_.send_bits_message(gate_id_, decoding_info_);
+      break;
+  }
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = yao_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format("Gate {}: YaoOutputGateGarbler::evaluate_setup end", gate_id_));
+    }
+  }
+}
+
 void YaoOutputGateGarbler::evaluate_online() {
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = yao_provider_.get_logger();
@@ -508,6 +556,8 @@ void YaoOutputGateGarbler::evaluate_online() {
           fmt::format("Gate {}: YaoOutputGateGarbler::evaluate_online start", gate_id_));
     }
   }
+
+  // std::cout << "aaa" << std::endl;
 
   if (output_recipient_ != OutputRecipient::evaluator) {
     std::vector<ENCRYPTO::BitVector<>> outputs;
@@ -531,6 +581,53 @@ void YaoOutputGateGarbler::evaluate_online() {
     }
   }
 }
+
+// void YaoOutputGateGarbler::evaluate_online_wo_output() {
+//   if constexpr (MOTION_VERBOSE_DEBUG) {
+//     auto logger = yao_provider_.get_logger();
+//     if (logger) {
+//       logger->LogTrace(
+//           fmt::format("Gate {}: YaoOutputGateGarbler::evaluate_online start", gate_id_));
+//     }
+//   }
+
+//   // std::cout << "aaa" << std::endl;
+
+//   std::ofstream output_file;
+//   auto p = std::filesystem::current_path();
+//   if(my_id == 0) {
+//     p += "/server0/Boolean_Output_Shares/output_share_for_server0_gate";
+//     p += std::to_string(gate_id_);
+//     p += ".txt";
+//   }
+//   else {
+//     p += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
+//     p += std::to_string(gate_id_);
+//     p += ".txt";
+//   }
+
+//   if (output_recipient_ != OutputRecipient::evaluator) {
+//     std::vector<ENCRYPTO::BitVector<>> outputs;
+//     outputs.reserve(num_wires_);
+//     // Receive encoded output and decode it.
+//     auto plain_output = bits_future_.get() ^ decoding_info_;
+//     // Split the bits corresponding to the wires.
+//     std::size_t bit_offset = 0;
+//     for (const auto& wire : inputs_) {
+//       auto num_simd = wire->get_num_simd();
+//       outputs.push_back(plain_output.Subset(bit_offset, bit_offset + num_simd));
+//       bit_offset += num_simd;
+//     }
+//     output_promise_.set_value(std::move(outputs));
+//   }
+
+//   if constexpr (MOTION_VERBOSE_DEBUG) {
+//     auto logger = yao_provider_.get_logger();
+//     if (logger) {
+//       logger->LogTrace(fmt::format("Gate {}: YaoOutputGateGarbler::evaluate_online end", gate_id_));
+//     }
+//   }
+// }
 
 YaoOutputGateEvaluator::YaoOutputGateEvaluator(std::size_t gate_id, YaoProvider& yao_provider,
                                                YaoWireVector&& in, OutputRecipient output_recipient)
@@ -588,6 +685,8 @@ void YaoOutputGateEvaluator::evaluate_online() {
           fmt::format("Gate {}: YaoOutputGateEvaluator::evaluate_online start", gate_id_));
     }
   }
+
+  std::cout << "aaa" << std::endl;
 
   // Compute the decoded output which consists of the lsb of each active key.
   auto num_bits = detail::count_bits(inputs_);

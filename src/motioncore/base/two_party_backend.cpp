@@ -119,6 +119,13 @@ void TwoPartyBackend::run() {
 
 }
 
+void TwoPartyBackend::run_wo_broadcast() {
+  std::cout << "Before evaluate setup online \n";
+  gate_executor_->evaluate_setup_online_wo_broadcast(run_time_stats_.back());
+  std::cout << "After evaluate setup online \n";
+
+}
+
 std::optional<MPCProtocol> TwoPartyBackend::convert_via(MPCProtocol src_proto,
                                                         MPCProtocol dst_proto) {
   if (src_proto == MPCProtocol::ArithmeticGMW && dst_proto == MPCProtocol::BooleanGMW) {
