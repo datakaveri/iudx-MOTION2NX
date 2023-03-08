@@ -8,10 +8,12 @@ support only ArithmeticBEAVY secret sharing protocol. We can extend this setting
 
 ## New additions
 1. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
-servers for performing privacy preserving operations.
+servers for performing privacy preserving operations. 
+
 2. **New gates to support constant multiplication:** This operation is multiplying a constant (which is common knowledge to
 both the parties) with private data. This new gate does not require creation of shares for the constant, thereby making the
-operation faster.
+operation faster. 
+
 3. **Modular approach to Neural Network Inferencing on MNIST data:** Two compute servers are involved in the inferencing
 task. There are two data providers, one of them provides the neural network model (weights and biases) to the compute
 servers and the other data provider (Image provider) provides image that has to be inferred. We do not reconstruct the final
@@ -19,10 +21,11 @@ output “in clear” at the compute servers in order to maintain privacy. The c
 to the image provider. The image provider then reconstructs the output “in clear”.
 In our modular approach, we split the deep (multi-layer) network model into smaller modules that are executed sequentially.
 We ensure that each module still preserves the privacy of its respective input and output (thereby preserving the privacy of
-the intermediate results in the deep neural network). The modular approach helps us to accomplish the following: \
-(a) Reduce the memory usage for secure computation of the neural network inferencing task \
-(b) Provides us with the ability to easily execute a deep neural network with large number of layers (>2) because the
-memory usage does not scale up with the number of layers in our modular approach 
+the intermediate results in the deep neural network). \
+The modular approach helps us to accomplish the following: \
+	(a)    Reduce the memory usage for secure computation of the neural network inferencing task. \
+	(b)    Provides us with the ability to easily execute a deep neural network with large number of layers (>2) because the memory usage does not scale up with the number of layers in our modular approach. 
+
 4. Accuracy and Cross Entropy Loss testing for MNIST Neural Network Inference 
 
 
