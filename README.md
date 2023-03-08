@@ -178,7 +178,7 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
 	- Open "[ path to repository folder ]/scripts/sharegenerator.sh" and assign the image number to the list.
  
      	```
-      	list=([your_image_number])
+      	image_ids=([your_image_number])
         ```
     - Run the script 
     
