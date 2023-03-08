@@ -78,6 +78,7 @@ class TwoPartyBackend : public CircuitBuilder {
 
   void run_preprocessing();
   void run();
+  void run_wo_broadcast();
 
   std::optional<MPCProtocol> convert_via(MPCProtocol src_proto, MPCProtocol dst_proto) override;
   GateFactory& get_gate_factory(MPCProtocol proto) override;

@@ -241,6 +241,27 @@ ENCRYPTO::ReusableFiberFuture<BitValues> YaoProvider::make_boolean_output_gate_m
   return future;
 }
 
+std::size_t YaoProvider::make_boolean_output_gate_my_wo_getting_output(
+    std::size_t output_owner, const WireVector& in) {
+  if (output_owner == 1 - my_id_) {
+    throw std::logic_error("trying to create output gate for wrong party");
+  }
+  auto output_recipient =
+      (output_owner == ALL_PARTIES) ? OutputRecipient::both : static_cast<OutputRecipient>(my_id_);
+  auto gate_id = gate_register_.get_next_gate_id();
+  auto input = cast_wires(in);
+  std::unique_ptr<detail::BasicYaoOutputGate> gate;
+  if (role_ == Role::garbler) {
+    gate =
+        std::make_unique<YaoOutputGateGarbler>(gate_id, *this, std::move(input), output_recipient);
+  } else {
+    gate = std::make_unique<YaoOutputGateEvaluator>(gate_id, *this, std::move(input),
+                                                    output_recipient);
+  }
+  gate_register_.register_gate(std::move(gate));
+  return gate_id;
+}
+
 void YaoProvider::make_boolean_output_gate_other(std::size_t output_owner, const WireVector& in) {
   if (output_owner != 1 - my_id_) {
     throw std::logic_error("trying to create output gate for wrong party");

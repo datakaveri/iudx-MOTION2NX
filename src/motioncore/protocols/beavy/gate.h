@@ -128,7 +128,9 @@ class BooleanBEAVYOutputGate : public NewGate {
   bool need_setup() const noexcept override { return true; }
   bool need_online() const noexcept override { return true; }
   void evaluate_setup() override;
+  void evaluate_setup_wo_broadcast() override;
   void evaluate_online() override;
+  void evaluate_online_wo_output() override;
 
  private:
   BEAVYProvider& beavy_provider_;

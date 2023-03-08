@@ -46,12 +46,14 @@ class NewGateExecutor {
   // Run the setup phases first for all gates before starting with the online
   // phases.
   void evaluate_setup_online(Statistics::RunTimeStats& stats);
+  void evaluate_setup_online_wo_broadcast(Statistics::RunTimeStats& stats);
   // Run setup and online phase of each gate as soon as possible.
   void evaluate(Statistics::RunTimeStats& stats);
 
  private:
   void evaluate_setup_online_multi_threaded(Statistics::RunTimeStats& stats);
   void evaluate_setup_online_single_threaded(Statistics::RunTimeStats& stats);
+  void evaluate_setup_online_wo_broadcast_multi_threaded(Statistics::RunTimeStats& stats);
 
   GateRegister& register_;
   std::function<void()> preprocessing_fctn_;

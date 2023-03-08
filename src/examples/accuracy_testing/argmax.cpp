@@ -146,7 +146,7 @@ std::string read_filepath(std::ifstream& indata) {
   while (indata) {
     std::getline(indata, str);
   }
-  std::cout << str << std::endl;
+  // std::cout << str << std::endl;
   return str;
 }
 
@@ -180,8 +180,12 @@ void file_read(Options* options) {
   // std::string path = std::filesystem::current_path();
   std::string t1 = path + "/" + options->filepath;
 
-  std::string t2 = path + "/" + "server" + std::to_string(options->my_id) + "/Actual_label/" +
-                   options->inputfilename;
+  // std::cout << t1 << std::endl;
+
+  std::string t2 =
+      path + "/" + "server" + std::to_string(options->my_id) + "/" + options->inputfilename;
+
+  // std::cout << t2 << std::endl;
 
   std::ifstream file1;
   file1.open(t1);
@@ -387,9 +391,9 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyBackend& b
       circuit_loader.load_gtmux_circuit(64, options.boolean_protocol != MOTION::MPCProtocol::Yao);
 
   auto max = std::move(input_bool[0]);
-  // auto output_future = gate_factory_arith.make_arithmetic_64_output_gate_my(MOTION::ALL_PARTIES,
-  // max); auto output_bool_0 = gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES,
-  // max);
+  // auto output_future = gate_factory_arith.make_arithmetic_64_output_gate_my(MOTION::ALL_PARTIES, max); 
+  // auto output_bool_0 = gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES, max);
+  
   auto n = input_bool.size();
   for (int i = 1; i < n; ++i) {
     auto intermediate_wire = std::move(input_bool[i]);
@@ -411,18 +415,84 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyBackend& b
 
   int k = options.num_elements;
 
-  std::array<ENCRYPTO::ReusableFiberFuture<MOTION::BitValues>, 26>* outputbool =
-      new std::array<ENCRYPTO::ReusableFiberFuture<MOTION::BitValues>, 26>();
+  // std::array<ENCRYPTO::ReusableFiberFuture<MOTION::BitValues>, 26>* outputbool =
+      // new std::array<ENCRYPTO::ReusableFiberFuture<MOTION::BitValues>, 26>();
+  std::vector<size_t> gate_ids(10);
   for (int i = 0; i < options.num_elements; i++) {
-    (*outputbool)[i] =
-        gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES, output_final[i]);
+    // (*outputbool)[i] =
+    //     gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES, output_final[i]);
+    gate_ids[i] =
+        gate_factory_bool.make_boolean_output_gate_my_wo_getting_output(MOTION::ALL_PARTIES, output_final[i]);
+    // std::cout << gate_ids[i] << std::endl;
   }
 
-  return std::make_pair(std::move(*outputbool), std::move(input_1));
+  return std::make_pair(gate_ids, std::move(input_1));
+}
+
+// Reads the public and private share from each gate file and consolidates it to a single file to share to the image provider.
+void consolidate_share_files(const Options& options, size_t num_outputs, size_t first_gate_number){
+
+  auto op = std::filesystem::current_path();
+  std::ofstream outdata;
+
+  if(options.my_id == 0){
+    op += "/server0/Boolean_Output_Shares/Final_Boolean_Shares_server0_";
+    op += options.inputfilename;
+    op += ".txt";
+  }
+  else{
+    op += "/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_";
+    op += options.inputfilename;
+    op += ".txt";
+  }
+
+  outdata.open(op);
+
+  //outdata << options.my_id <<"\n";
+
+  // outdata << options.inputfilename << "\n";
+
+  outdata << num_outputs << "\n";
+
+  for(size_t i = 0; i < num_outputs; ++i){
+    auto ip = std::filesystem::current_path();
+    std::ifstream indata;
+
+    if(options.my_id == 0){
+    ip += "/server0/Boolean_Output_Shares/output_share_for_server0_gate";
+    ip += std::to_string(first_gate_number+i);
+    ip += ".txt";
+  }
+  else{
+    // ip += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
+    ip += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
+    ip += std::to_string(first_gate_number+i);
+    ip += ".txt";
+  }
+
+  indata.open(ip);
+  assert(indata);
+  if (!indata) {
+    std::cerr << " Error in reading file\n";
+    return ;
+  }
+
+  auto output_Delta = read_file(indata);
+  auto output_delta = read_file(indata);
+
+  // outdata << first_gate_number+i << " ";
+
+  outdata << output_Delta << " " << output_delta << "\n";
+
+  remove(ip);
+  }
+
+  outdata.close();
 }
 
 void run_composite_circuit(const Options& options, MOTION::TwoPartyBackend& backend) {
-  auto [output_futures, input_promises] = create_composite_circuit(options, backend);
+  // auto [output_futures, input_promises] = create_composite_circuit(options, backend);
+  auto [gate_ids, input_promises] = create_composite_circuit(options, backend);
   auto& gate_factory_bool = backend.get_gate_factory(options.boolean_protocol);
   auto& gate_factory_arith = backend.get_gate_factory(options.arithmetic_protocol);
   if (options.no_run) {
@@ -438,22 +508,29 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyBackend& back
     j += 2;
   }
 
+  // backend.run_wo_broadcast();
   backend.run();
 
+  std::sort(gate_ids.begin(), gate_ids.end());
+
+  // std::cout << gate_ids[0] << std::endl;
+
+  consolidate_share_files(options, gate_ids.size(), gate_ids[0]);
+
   // execute the protocol
-  int ans = 0;
-  std::vector<bool> gt_result;
-  for (int i = 0; i < options.num_elements; i++) {
-    auto temp = output_futures[i].get().at(0).Get(0);
+  // int ans = 0;
+  // std::vector<bool> gt_result;
+  // for (int i = 0; i < options.num_elements; i++) {
+  //   auto temp = output_futures[i].get().at(0).Get(0);
 
-    if (temp == 0) {
-      ans = i;
-      break;
-    }
-    gt_result.push_back(temp);
-  }
+  //   if (temp == 0) {
+  //     ans = i;
+  //     break;
+  //   }
+  //   gt_result.push_back(temp);
+  // }
 
-  std::string fn = options.inputfilename;
+  // std::string fn = options.inputfilename;
   // delete [] output_futures;
   // delete output_futures;
   // auto bvs=output_futures.get();
@@ -461,40 +538,40 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyBackend& back
   // auto mult_result = bvs.at(0);
   // auto temp=bvs.at(0).Get(0);
 
-  if (!options.json) {
-    std::cout << "Input is " << options.x << " and output is " << ans;
-    if (options.x == ans && options.my_id == 1) {
-      /////// Read the counter number from counter file
-      // std::string path = std::filesystem::current_path();
-      std::string path = options.currentpath;
-      std::string t1 = path + "/" + "count";
-      std::ifstream file1;
-      file1.open(t1);
-      if (file1) {
-        std::cout << "File found\n";
-      } else {
-        std::cout << "File not found\n";
-      }
-      int counter;
-      file1 >> counter;
+  // if (!options.json) {
+  //   // std::cout << "Input is " << options.x << " and output is " << ans;
+  //   if (options.x == ans && options.my_id == 1) {
+  //     /////// Read the counter number from counter file
+  //     // std::string path = std::filesystem::current_path();
+  //     std::string path = options.currentpath;
+  //     std::string t1 = path + "/" + "count";
+  //     std::ifstream file1;
+  //     file1.open(t1);
+  //     if (file1) {
+  //       std::cout << "File found\n";
+  //     } else {
+  //       std::cout << "File not found\n";
+  //     }
+  //     int counter;
+  //     file1 >> counter;
 
-      file1.close();
+  //     file1.close();
 
-      ///// Increment the number by 1 and rewrite it to the counter file.
-      std::ofstream file2;
-      file2.open(t1, std::ios_base::out);
-      counter = counter + 1;
-      file2 << counter;
-      file2.close();
-    } else if (options.x != ans) {
-      std::string path = options.currentpath;
-      // std::string path = std::filesystem::current_path();
-      std::string t1 = path + "/" + "nomatch";
-      std::ofstream file2;
-      file2.open(t1, std::ios_base::app);
-      file2 << options.inputfilename << "\n";
-    }
-  }
+  //     ///// Increment the number by 1 and rewrite it to the counter file.
+  //     std::ofstream file2;
+  //     file2.open(t1, std::ios_base::out);
+  //     counter = counter + 1;
+  //     file2 << counter;
+  //     file2.close();
+  //   } else if (options.x != ans) {
+  //     std::string path = options.currentpath;
+  //     // std::string path = std::filesystem::current_path();
+  //     std::string t1 = path + "/" + "nomatch";
+  //     std::ofstream file2;
+  //     file2.open(t1, std::ios_base::app);
+  //     file2 << options.inputfilename << "\n";
+  //   }
+  // }
 }
 
 int main(int argc, char* argv[]) {
@@ -539,7 +616,7 @@ int main(int argc, char* argv[]) {
           MOTION::Statistics::print_stats_short("argmax", run_time_stats, comm_stats);
       std::cout << "Execution time string:" << time_str << "\n";
       double exec_time = std::stod(time_str);
-      std::cout << "Execution time:" << exec_time << "\n";
+      // std::cout << "Execution time:" << exec_time << "\n";
       file2 << "Execution time - " << exec_time << "msec\n";
       file2 << "\n";
       file2.close();

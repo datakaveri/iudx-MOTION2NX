@@ -1,4 +1,4 @@
-#!bin/bash 
+#!/bin/bash 
 
 variable_name=BASE_DIR
 variable_value=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )

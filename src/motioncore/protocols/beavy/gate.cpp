@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
+#include <filesystem>
+#include <fstream>
 #include "gate.h"
 
 #include "base/gate_factory.h"
@@ -36,6 +38,8 @@
 #include "utility/helpers.h"
 #include "utility/logger.h"
 #include "wire.h"
+
+namespace fs = std::filesystem;
 
 namespace MOTION::proto::beavy {
 
@@ -294,13 +298,36 @@ void BooleanBEAVYOutputGate::evaluate_setup() {
     wire->wait_setup();
     my_secret_share_.Append(wire->get_secret_share());
   }
-  std::size_t my_id = beavy_provider_.get_my_id();
-  if (output_owner_ != my_id) {
-    if (output_owner_ == ALL_PARTIES) {
-      beavy_provider_.broadcast_bits_message(gate_id_, my_secret_share_);
-    } else {
-      beavy_provider_.send_bits_message(output_owner_, gate_id_, my_secret_share_);
+  // std::size_t my_id = beavy_provider_.get_my_id();
+  // if (output_owner_ != my_id) { // have to omit this portion
+  //   if (output_owner_ == ALL_PARTIES) {
+  //     beavy_provider_.broadcast_bits_message(gate_id_, my_secret_share_);
+  //   } else {
+  //     beavy_provider_.send_bits_message(output_owner_, gate_id_, my_secret_share_);
+  //   }
+  // }
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: BooleanBEAVYOutputGate::evaluate_setup end", gate_id_));
     }
+  }
+}
+
+void BooleanBEAVYOutputGate::evaluate_setup_wo_broadcast() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: BooleanBEAVYOutputGate::evaluate_setup start", gate_id_));
+    }
+  }
+
+  for (const auto& wire : inputs_) {
+    wire->wait_setup();
+    my_secret_share_.Append(wire->get_secret_share());
   }
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -322,28 +349,114 @@ void BooleanBEAVYOutputGate::evaluate_online() {
   }
 
   std::size_t my_id = beavy_provider_.get_my_id();
-  if (output_owner_ == ALL_PARTIES || output_owner_ == my_id) {
-    std::size_t num_parties = beavy_provider_.get_num_parties();
-    for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
-      if (party_id == my_id) {
-        continue;
-      }
-      const auto other_share = share_futures_[party_id].get();
-      my_secret_share_ ^= other_share;
+  
+  std::ofstream output_file;
+
+  auto p = std::filesystem::current_path();
+  if(my_id == 0) {
+    p += "/server0/Boolean_Output_Shares";
+    if(!fs::is_directory(p)){
+        std::filesystem::create_directories(p);
     }
+    p += "/output_share_for_server0_gate";
+    p += std::to_string(gate_id_);
+    p += ".txt";
+  }
+  else {
+    p += "/server1/Boolean_Output_Shares";
+    if(!fs::is_directory(p)){
+        std::filesystem::create_directories(p);
+    }
+    p += "/output_share_for_server1_gate";
+    p += std::to_string(gate_id_);
+    p += ".txt";
+  }
+
+  // std::cout << p << std::endl;
+
+  output_file.open(p);
+
+  
+  if (output_owner_ == ALL_PARTIES || output_owner_ == my_id) {
+  //   std::size_t num_parties = beavy_provider_.get_num_parties();
+  //   for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
+  //     if (party_id == my_id) {
+  //       continue;
+  //     }
+      // const auto other_share = share_futures_[party_id].get();
+      // my_secret_share_ ^= other_share;
+    // }
+
     std::vector<ENCRYPTO::BitVector<>> outputs;
     outputs.reserve(num_wires_);
     std::size_t bit_offset = 0;
     for (std::size_t wire_i = 0; wire_i < num_wires_; ++wire_i) {
       auto num_simd = inputs_[wire_i]->get_num_simd();
-      auto& output =
-          outputs.emplace_back(my_secret_share_.Subset(bit_offset, bit_offset + num_simd));
+      // auto& output =
+      //     outputs.emplace_back(my_secret_share_.Subset(bit_offset, bit_offset + num_simd));
       inputs_[wire_i]->wait_online();
-      output ^= inputs_[wire_i]->get_public_share();
-      bit_offset += num_simd;
+      auto public_share = inputs_[wire_i]->get_public_share();
+
+      // output ^= public_share;
+      // bit_offset += num_simd;
+
+      // std::cout << public_share << " " << my_secret_share_ << std::endl;
+      output_file << public_share << " " << my_secret_share_ << "\n";
+
     }
-    output_promise_.set_value(std::move(outputs));
+    // output_promise_.set_value(std::move(outputs));
   }
+
+  output_file.close();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: BooleanBEAVYOutputGate::evaluate_online end", gate_id_));
+    }
+  }
+}
+
+void BooleanBEAVYOutputGate::evaluate_online_wo_output() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: BooleanBEAVYOutputGate::evaluate_online start", gate_id_));
+    }
+  }
+
+  std::size_t my_id = beavy_provider_.get_my_id();
+
+  std::ofstream output_file;
+  auto p = std::filesystem::current_path();
+  if(my_id == 0) {
+    p += "/server0/Boolean_Output_Shares/output_share_for_server0_gate";
+    p += std::to_string(gate_id_);
+    p += ".txt";
+  }
+  else {
+    p += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
+    p += std::to_string(gate_id_);
+    p += ".txt";
+  }
+
+  output_file.open(p);
+  
+  if (output_owner_ == ALL_PARTIES || output_owner_ == my_id) {
+    std::size_t num_parties = beavy_provider_.get_num_parties();
+    for (std::size_t wire_i = 0; wire_i < num_wires_; ++wire_i) {
+      inputs_[wire_i]->wait_online();
+      auto public_share = inputs_[wire_i]->get_public_share();
+
+      std::cout << public_share << " " << my_secret_share_ << std::endl;
+
+      output_file << public_share << " " << my_secret_share_ << "\n";
+    }
+  }
+
+  output_file.close();
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
