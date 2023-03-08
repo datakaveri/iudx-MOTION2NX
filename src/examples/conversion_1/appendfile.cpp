@@ -25,12 +25,14 @@ std::uint64_t read_file(std::ifstream& indata) {
 
 int main() {
   std::ofstream indata1;
-  indata1.open("/home/srishti04/Desktop/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/finaloutput_0",
-               std::ios_base::app);
+  std::string basedir = getenv("BASE_DIR");
+  std::string filename = basedir + "/build_debwithrelinfo_gcc";
+  std::string filename1 = filename + "/finaloutput_0";
+  indata1.open(filename1, std::ios_base::app);
 
+  std::string filename2 = filename + "/server0/outputshare_0";
   std::ifstream indata2;
-  indata2.open(
-      "/home/srishti04/Desktop/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/server0/outputshare_0");
+  indata2.open(filename2);
 
   std::uint64_t rows = read_file(indata2);
   std::uint64_t col = read_file(indata2);
@@ -44,11 +46,11 @@ int main() {
   indata1.close();
   indata2.close();
 
-  indata1.open("/home/srishti04/Desktop/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/finaloutput_1",
-               std::ios_base::app);
+  filename1 = filename + "/finaloutput_1";
+  filename2 = filename + "/server1/outputshare_1";
 
-  indata2.open(
-      "/home/srishti04/Desktop/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/server1/outputshare_1");
+  indata1.open(filename1, std::ios_base::app);
+  indata2.open(filename2);
 
   rows = read_file(indata2);
   col = read_file(indata2);
