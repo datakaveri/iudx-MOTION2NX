@@ -54,5 +54,5 @@ gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE2';$D
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE3';$DEFAULT_TABS_CMD1;$DEFAULT_TABS_CMD3;$DEFAULT_TABS_CMD5;$DEFAULT_TABS_CMD7;$DEFAULT_TABS_CMD11;exec bash;exit;"
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE4';$DEFAULT_TABS_CMD2;$DEFAULT_TABS_CMD4;$DEFAULT_TABS_CMD6;$DEFAULT_TABS_CMD8;$DEFAULT_TABS_CMD12;exec bash;exit;"
 
-sleep 80
+sleep 150
 done
