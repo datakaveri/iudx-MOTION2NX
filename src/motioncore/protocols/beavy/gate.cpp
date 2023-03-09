@@ -352,9 +352,9 @@ void BooleanBEAVYOutputGate::evaluate_online() {
   
   std::ofstream output_file;
 
-  auto p = std::filesystem::current_path();
+  std::string p = getenv("BASE_DIR");
   if(my_id == 0) {
-    p += "/server0/Boolean_Output_Shares";
+    p += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares";
     if(!fs::is_directory(p)){
         std::filesystem::create_directories(p);
     }
@@ -363,7 +363,7 @@ void BooleanBEAVYOutputGate::evaluate_online() {
     p += ".txt";
   }
   else {
-    p += "/server1/Boolean_Output_Shares";
+    p += "/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares";
     if(!fs::is_directory(p)){
         std::filesystem::create_directories(p);
     }

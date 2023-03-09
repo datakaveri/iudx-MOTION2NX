@@ -432,19 +432,21 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyBackend& b
 // Reads the public and private share from each gate file and consolidates it to a single file to share to the image provider.
 void consolidate_share_files(const Options& options, size_t num_outputs, size_t first_gate_number){
 
-  auto op = std::filesystem::current_path();
+  std::string op = getenv("BASE_DIR");
   std::ofstream outdata;
 
   if(options.my_id == 0){
-    op += "/server0/Boolean_Output_Shares/Final_Boolean_Shares_server0_";
+    op += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares/Final_Boolean_Shares_server0_";
     op += options.inputfilename;
     op += ".txt";
   }
   else{
-    op += "/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_";
+    op += "/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_";
     op += options.inputfilename;
     op += ".txt";
   }
+
+  std::cout << op << "\n";
 
   outdata.open(op);
 
@@ -455,36 +457,38 @@ void consolidate_share_files(const Options& options, size_t num_outputs, size_t 
   outdata << num_outputs << "\n";
 
   for(size_t i = 0; i < num_outputs; ++i){
-    auto ip = std::filesystem::current_path();
+    std::filesystem::__cxx11::path ip = getenv("BASE_DIR");
     std::ifstream indata;
 
     if(options.my_id == 0){
-    ip += "/server0/Boolean_Output_Shares/output_share_for_server0_gate";
+    ip += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares/output_share_for_server0_gate";
     ip += std::to_string(first_gate_number+i);
     ip += ".txt";
   }
-  else{
-    // ip += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
-    ip += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
-    ip += std::to_string(first_gate_number+i);
-    ip += ".txt";
-  }
+    else{
+      // ip += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
+      ip += "/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares/output_share_for_server1_gate";
+      ip += std::to_string(first_gate_number+i);
+      ip += ".txt";
+    }
 
-  indata.open(ip);
-  assert(indata);
-  if (!indata) {
-    std::cerr << " Error in reading file\n";
-    return ;
-  }
+    indata.open(ip);
+    assert(indata);
+    if (!indata) {
+      std::cerr << " Error in reading file\n";
+      return ;
+    }
 
-  auto output_Delta = read_file(indata);
-  auto output_delta = read_file(indata);
+    auto output_Delta = read_file(indata);
+    auto output_delta = read_file(indata);
 
-  // outdata << first_gate_number+i << " ";
+    // outdata << first_gate_number+i << " ";
 
-  outdata << output_Delta << " " << output_delta << "\n";
+    // std::cout << output_Delta << " " << output_delta << "\n";
 
-  remove(ip);
+    outdata << output_Delta << " " << output_delta << "\n";
+
+    remove(ip);
   }
 
   outdata.close();
