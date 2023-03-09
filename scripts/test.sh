@@ -2,16 +2,18 @@
 # chmod +x test.sh
 DEFAULT_TABS_TITLE1="T1"
 DEFAULT_TABS_TITLE2="T2"
+
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
+
 fractional_bits=13
+
 #Delete the old count file if any. Write a new count file with 0 as its data
 if [ -f count ]; then
    rm count
    echo "count is removed"
 fi
-touch count
-touch nomatch
-echo 0 >> count
+
+
 
 image_ids=(0 1) 
 for i in "${image_ids[@]}"

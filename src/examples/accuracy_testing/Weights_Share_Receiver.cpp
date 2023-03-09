@@ -1,8 +1,10 @@
 /*
-./bin/Weights_Share_Reciever --my-id 0 --file-names file_config_model --file-names-image file_config_input
+./bin/Weights_Share_Reciever --my-id 0 --file-names file_config_model --file-names-image
+file_config_input
 
 
-./bin/Weights_Share_Reciever --my-id 1 --file-names file_config_model --file-names-image file_config_input
+./bin/Weights_Share_Reciever --my-id 1 --file-names file_config_model --file-names-image
+file_config_input
 
 ./weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --dp-id 1
 --fractional-bits 13
