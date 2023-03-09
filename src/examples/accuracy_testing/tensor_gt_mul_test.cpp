@@ -281,7 +281,7 @@ void file_read(Options* options) {
     t1 = path + "/server" + std::to_string(options->my_id) + "/" + options->imageprovider + "_" +
          std::to_string(options->my_id);
   }
-
+  
   image_shares(options, t1);
   std::cout << "i:" << t1 << "\n";
   // model path
