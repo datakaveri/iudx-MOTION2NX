@@ -36,14 +36,14 @@ target_link_libraries(tensor_gt_mul_test
     Boost::program_options
 )
 
-target_link_libraries(Image_Share_Reciever
+target_link_libraries(Image_Share_Receiver
     MOTION::motion
     Boost::json
     Boost::log
     Boost::program_options
 )
 
-target_link_libraries(Weights_Share_Reciever
+target_link_libraries(Weights_Share_Receiver
     MOTION::motion
     Boost::json
     Boost::log

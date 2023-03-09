@@ -140,7 +140,7 @@ void read_filenames(Options* options) {
 }
 
 void generate_filepaths(Options* options) {
-  // creation of directory eg. server0
+  // creation of  eg. server0
   std::error_code err;
   std::string dirname = "server" + std::to_string(options->my_id);
   // std::filesystem::create_directories(dirname, err);
