@@ -7,8 +7,8 @@ image_path=${BASE_DIR}/Dataprovider/image_provider
 
 fractional_bits=13
 pwd
-DEFAULT_TABS_CMD1="$build_path/bin/Weights_Share_Reciever --my-id 0 --file-names $model_config --current-path $build_path"
-DEFAULT_TABS_CMD2="$build_path/bin/Weights_Share_Reciever --my-id 1 --file-names $model_config --current-path $build_path"
+DEFAULT_TABS_CMD1="$build_path/bin/Weights_Share_Receiver --my-id 0 --file-names $model_config --current-path $build_path"
+DEFAULT_TABS_CMD2="$build_path/bin/Weights_Share_Receiver --my-id 1 --file-names $model_config --current-path $build_path"
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE1'; $DEFAULT_TABS_CMD1; exec bash;"
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE2'; $DEFAULT_TABS_CMD2; exec bash;"
 
@@ -23,8 +23,8 @@ image_ids=(0 1)
 
 for i in "${image_ids[@]}"
 do
-DEFAULT_TABS_CMD1="$build_path/bin/Image_Share_Reciever --my-id 0 --fractional-bits $fractional_bits --file-names $image_config --index $i --current-path $build_path"
-DEFAULT_TABS_CMD2="$build_path/bin/Image_Share_Reciever --my-id 1 --fractional-bits $fractional_bits --file-names $image_config --index $i --current-path $build_path"
+DEFAULT_TABS_CMD1="$build_path/bin/Image_Share_Receiver --my-id 0 --fractional-bits $fractional_bits --file-names $image_config --index $i --current-path $build_path"
+DEFAULT_TABS_CMD2="$build_path/bin/Image_Share_Receiver --my-id 1 --fractional-bits $fractional_bits --file-names $image_config --index $i --current-path $build_path"
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE1'; $DEFAULT_TABS_CMD1; exec bash;"
 gnome-terminal --tab -- bash -ic "export TITLE_DEFAULT='$DEFAULT_TABS_TITLE2'; $DEFAULT_TABS_CMD2; exec bash;"
 
