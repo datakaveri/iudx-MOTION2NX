@@ -70,7 +70,7 @@ static std::string format_line(std::string name, std::string unit,
   ss << fmt::format("{:{}.3f} {:s}", std::sqrt(boost::accumulators::variance(accumulator)),
                     field_width, unit);
   ss << "\n";
-  std::cout << "Inside format line \n";
+  // std::cout << "Inside format line \n";
   return ss.str();
 }
 
