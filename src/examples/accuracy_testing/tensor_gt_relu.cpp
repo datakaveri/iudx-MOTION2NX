@@ -195,7 +195,7 @@ void input_shares(Options* options, std::string p) {
     std::uint64_t m2 = read_file(indata2);
     options->input.delta.push_back(m2);
   }
-  std::cout << "Helllo\n";
+  // std::cout << "Helllo\n";
   indata2.close();
 }
 
@@ -426,20 +426,20 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
   auto output_future = create_composite_circuit(options, backend);
   backend.run();
-  if (options.my_id == 1) {
-    auto main = output_future.get();
+  // if (options.my_id == 1) {
+  //   auto main = output_future.get();
 
-    for (int i = 0; i < main.size(); ++i) {
-      long double temp =
-          MOTION::fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
+  //   for (int i = 0; i < main.size(); ++i) {
+  //     long double temp =
+  //         MOTION::fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
 
-      std::cout << temp << " , ";
-    }
-  }
+  //     std::cout << temp << " , ";
+  //   }
+  // }
 }
 int main(int argc, char* argv[]) {
   // testMemoryOccupied();
-  std::cout << "Inside main";
+  // std::cout << "Inside main";
   bool WriteToFiles = 1;
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
