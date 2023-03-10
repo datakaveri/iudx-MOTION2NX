@@ -203,33 +203,32 @@ void send_message(tcp::socket& socket, const string& message) {
 }
 
 // sends the shares stored in a data structure to the image provider.
-void write_struct(tcp::socket &socket, std::vector<std::vector<int>> &data, int num_elements)
+void write_struct(tcp::socket &socket, int data[][2], int num_elements)
 {
+    // boost::system::error_code error;
+    // boost::asio::write(socket, boost::asio::buffer(&data, sizeof(data)), error);
+
+    // if (!error)
+    // {
+    //     cout << "successfully sent\n";
+    // }
+    // else
+    // {
+    //     cout << "send failed: " << error.message() << endl;
+    // }
+
     for (int i = 0; i < num_elements; i++)
     {
-        // bool arr[2];
-
-        int Delta, delta;
-        Delta = data[i][0];
-        delta = data[i][1];
-
-        std::size_t size_Delta = sizeof(Delta), size_delta = sizeof(delta);
-
-        // std::cout << size_Delta << "\t" << size_delta << std::endl;
-
-        // std::string Delta_ = std::to_string(Delta), delta_ = std::to_string(delta);
-
-        //std::cout << arr[0] << " " << arr[1] << "\n"; 
+        // int Delta, delta;
+        // Delta = data[i][0];
+        // delta = data[i][1];
 
         boost::system::error_code error;
-        // boost::asio::write(socket, boost::asio::buffer(&size_Delta, sizeof(size_Delta)), error);
-        boost::asio::write(socket, boost::asio::buffer(&Delta, sizeof(Delta)), error);
-        // boost::asio::write(socket, boost::asio::buffer(&size_delta, sizeof(size_delta)), error);
-        boost::asio::write(socket, boost::asio::buffer(&delta, sizeof(delta)), error);
+        boost::asio::write(socket, boost::asio::buffer(&data[i], sizeof(data[i])), error);
+        // boost::asio::write(socket, boost::asio::buffer(&delta, sizeof(delta)), error);
 
         if (!error)
         {
-            // cout << Delta << " " << delta << " successfully sent\n";
             cout << "successfully sent\n";
         }
         else
@@ -241,17 +240,19 @@ void write_struct(tcp::socket &socket, std::vector<std::vector<int>> &data, int 
 
 // Send the image provider shares via a tcp connection
 void send_provider_shares(int server_num, int port_number, Options& options) {
-    auto ip = std::filesystem::current_path();
+    string ip = getenv("BASE_DIR");
     if(server_num == 0){
-        ip += "/server0/Boolean_Output_Shares/Final_Boolean_Shares_server0_";
+        ip += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares/Final_Boolean_Shares_server0_";
         ip += options.inputfilename;
         ip += ".txt";
     }
     else{
-        ip += "/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_";
+        ip += "/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_";
         ip += options.inputfilename;
         ip += ".txt";
     }
+
+    // cout << ip << std::endl;
 
     std::ifstream indata;
 
@@ -286,7 +287,7 @@ void send_provider_shares(int server_num, int port_number, Options& options) {
 
     read_message(socket);
 
-    std::string server_num_str = std::to_string(server_num) + '\n', num_outputs_str = std::to_string(num_outputs) + '\n';
+    std::string server_num_str = std::to_string(server_num), num_outputs_str = std::to_string(num_outputs);
 
     boost::asio::write(socket, boost::asio::buffer(&server_num, sizeof(server_num)), ec);
     if (!ec)
@@ -308,14 +309,32 @@ void send_provider_shares(int server_num, int port_number, Options& options) {
         cout << "Server "<< server_num_str << ": send failed: " << ec.message() << endl;
     }
 
+    string img_num_str = options.inputfilename.substr(1, options.inputfilename.length()-1);
+
+    int img_num = std::stoi(img_num_str);
+
+    boost::asio::write(socket, boost::asio::buffer(&img_num, sizeof(img_num)), ec);
+    if (!ec)
+    {
+        cout << "Server "<< server_num_str << ": Sent successfully X" << img_num << endl;
+    }
+    else
+    {
+        cout << "Server "<< server_num_str << ": send failed: " << ec.message() << endl;
+    }
+
     std::string message = "Going to start sending boolean shares";
     send_message(socket, message);
 
-    std::vector<std::vector<int>> data(num_outputs);
+    // std::vector<std::vector<int>> data(num_outputs);
+
+    int data[num_outputs][2];
 
     for(int i = 0; i < num_outputs; ++i) {
-        data[i].push_back(read_file(indata));
-        data[i].push_back(read_file(indata));
+        // data[i].push_back(read_file(indata));
+        // data[i].push_back(read_file(indata));
+        data[i][0] = read_file(indata);
+        data[i][1] = read_file(indata);
     }
 
     indata.close();

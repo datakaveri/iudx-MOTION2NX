@@ -273,7 +273,7 @@ void file_read(Options* options) {
   // if layer_id=1 then read filename inside server
   // else read file_config_input (id is appended)
   if (options->layer_id == 1) {
-    std::cout << "hello\n";
+    // std::cout << "hello\n";
     t1 = path + "/server" + std::to_string(options->my_id) + "/Image_shares/" +
          options->imageprovider;
   } else if (options->layer_id > 1) {
@@ -540,31 +540,31 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
   auto output_future = create_composite_circuit(options, backend);
   backend.run();
-  if (options.my_id == 1) {
-    auto main = output_future.get();
-    std::vector<long double> mod_x;
-    // std::string path = std::filesystem::current_path();
-    std::string path = options.currentpath;
-    string filename = path + "/" + "output_tensor";
-    std::ofstream x;
-    x.open(filename, std::ios_base::app);
-    x << options.imageprovider << "\n";
-    for (int i = 0; i < main.size(); ++i) {
-      long double temp =
-          MOTION::new_fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
-      mod_x.push_back(temp);
-      std::cout << temp << ",";
-      if (options.layer_id == 2) {
-        x << temp << ",";
-      }
-    }
-    x << "\n";
-    x << "\n";
-  }
+  // if (options.my_id == 1) {
+  //   auto main = output_future.get();
+  //   std::vector<long double> mod_x;
+  //   // std::string path = std::filesystem::current_path();
+  //   std::string path = options.currentpath;
+  //   string filename = path + "/" + "output_tensor";
+  //   std::ofstream x;
+  //   x.open(filename, std::ios_base::app);
+  //   x << options.imageprovider << "\n";
+  //   for (int i = 0; i < main.size(); ++i) {
+  //     long double temp =
+  //         MOTION::new_fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
+  //     mod_x.push_back(temp);
+  //     std::cout << temp << ",";
+  //     if (options.layer_id == 2) {
+  //       x << temp << ",";
+  //     }
+  //   }
+  //   x << "\n";
+  //   x << "\n";
+  // }
 }
 
 int main(int argc, char* argv[]) {
-  std::cout << "Inside main";
+  // std::cout << "Inside main";
   auto options = parse_program_options(argc, argv);
   int WriteToFiles = 1;
   if (!options.has_value()) {
