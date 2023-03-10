@@ -101,7 +101,7 @@ struct Options {
   std::string imageprovider;
   std::string modelpath;
   std::size_t layer_id;
-
+  std::string currentpath;
   std::size_t my_id;
   // std::string filepath_frombuild;
   MOTION::Communication::tcp_parties_config tcp_config;
@@ -117,7 +117,7 @@ struct Options {
   int splits;
 };
 
-void testMemoryOccupied(bool WriteToFiles, int my_id, int layer_id, int p) {
+void testMemoryOccupied(bool WriteToFiles, int my_id, int layer_id, int p, std::string path) {
   int tSize = 0, resident = 0, share = 0;
   std::ifstream buffer("/proc/self/statm");
   buffer >> tSize >> resident >> share;
@@ -133,7 +133,7 @@ void testMemoryOccupied(bool WriteToFiles, int my_id, int layer_id, int p) {
   std::cout << std::endl;
   if (WriteToFiles == 1) {
     /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
-    std::string path = std::filesystem::current_path();
+
     std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
     std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
 
@@ -148,8 +148,7 @@ void testMemoryOccupied(bool WriteToFiles, int my_id, int layer_id, int p) {
 
     std::ofstream file2;
     file2.open(t2, std::ios_base::app);
-    file2 << "Multiplication layer " << layer_id << "." << p << " : \n";
-
+    file2 << "Multiplication layer : \n";
     file2 << "RSS - " << std::fixed << std::stod(ss.str()) << " kB\n";
     file2 << "Shared Memory - " << shared_mem << " kB\n";
     file2 << "Private Memory - " << rss - shared_mem << "kB\n";
@@ -358,13 +357,15 @@ void B_shares(Options* options, std::string p) {
 
 // changes made in this function
 void file_read(Options* options) {
-  std::string path = std::filesystem::current_path();
+  std::string path = options->currentpath;
+  // std::string path = std::filesystem::current_path();
   std::string t1, i;
   // if layer_id=1 then read filename inside server
   // else read file_config_input (id is appended)
   if (options->layer_id == 1) {
     std::cout << "hello\n";
-    t1 = path + "/server" + std::to_string(options->my_id) + "/" + options->imageprovider;
+    t1 = path + "/server" + std::to_string(options->my_id) + "/Image_shares/" +
+         options->imageprovider;
   } else if (options->layer_id > 1) {
     t1 = path + "/" + options->imageprovider + std::to_string(options->my_id);
   }
@@ -430,6 +431,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("config-file-input", po::value<std::string>()->required(), "config file containing options")
     ("config-file-model", po::value<std::string>()->required(), "config file containing options")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
+    ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
     ("layer-id", po::value<std::size_t>()->required(), "layer id")
     ("party", po::value<std::vector<std::string>>()->multitoken(),
      "(party id, IP, port), e.g., --party 1,127.0.0.1,7777")
@@ -476,6 +478,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.num_simd = vm["num-simd"].as<std::size_t>();
   options.sync_between_setup_and_online = vm["sync-between-setup-and-online"].as<bool>();
   options.no_run = vm["no-run"].as<bool>();
+  options.currentpath = vm["current-path"].as<std::string>();
   //////////////////////////////////////////////////////////////////
   options.imageprovider = vm["config-file-input"].as<std::string>();
   options.modelpath = vm["config-file-model"].as<std::string>();
@@ -698,12 +701,15 @@ int main(int argc, char* argv[]) {
     comm_stats.add(comm_layer->get_transport_statistics());
     comm_layer->reset_transport_statistics();
     run_time_stats.add(backend.get_run_time_stats());
-    testMemoryOccupied(WriteToFiles, options->my_id, options->layer_id, options->splits);
+    testMemoryOccupied(WriteToFiles, options->my_id, options->layer_id, options->splits,
+                       options->currentpath);
     comm_layer->shutdown();
     print_stats(*options, run_time_stats, comm_stats);
     if (WriteToFiles == 1) {
       /////// Generate path for the AverageTimeDetails file and MemoryDetails file
-      std::string path = std::filesystem::current_path();
+      // std::string path = std::filesystem::current_path();
+      std::string path = options->currentpath;
+
       std::string t1 = path + "/" + "AverageTimeDetails" + std::to_string(options->my_id);
       std::string t2 = path + "/" + "MemoryDetails" + std::to_string(options->my_id);
 

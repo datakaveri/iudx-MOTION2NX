@@ -182,8 +182,8 @@ void file_read(Options* options) {
 
   // std::cout << t1 << std::endl;
 
-  std::string t2 =
-      path + "/" + "server" + std::to_string(options->my_id) + "/" + options->inputfilename;
+  std::string t2 = path + "/" + "server" + std::to_string(options->my_id) + "/Actual_label/" +
+                   options->inputfilename;
 
   // std::cout << t2 << std::endl;
 
@@ -391,9 +391,10 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyBackend& b
       circuit_loader.load_gtmux_circuit(64, options.boolean_protocol != MOTION::MPCProtocol::Yao);
 
   auto max = std::move(input_bool[0]);
-  // auto output_future = gate_factory_arith.make_arithmetic_64_output_gate_my(MOTION::ALL_PARTIES, max); 
-  // auto output_bool_0 = gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES, max);
-  
+  // auto output_future = gate_factory_arith.make_arithmetic_64_output_gate_my(MOTION::ALL_PARTIES,
+  // max); auto output_bool_0 = gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES,
+  // max);
+
   auto n = input_bool.size();
   for (int i = 1; i < n; ++i) {
     auto intermediate_wire = std::move(input_bool[i]);
@@ -416,31 +417,30 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyBackend& b
   int k = options.num_elements;
 
   // std::array<ENCRYPTO::ReusableFiberFuture<MOTION::BitValues>, 26>* outputbool =
-      // new std::array<ENCRYPTO::ReusableFiberFuture<MOTION::BitValues>, 26>();
+  // new std::array<ENCRYPTO::ReusableFiberFuture<MOTION::BitValues>, 26>();
   std::vector<size_t> gate_ids(10);
   for (int i = 0; i < options.num_elements; i++) {
     // (*outputbool)[i] =
     //     gate_factory_bool.make_boolean_output_gate_my(MOTION::ALL_PARTIES, output_final[i]);
-    gate_ids[i] =
-        gate_factory_bool.make_boolean_output_gate_my_wo_getting_output(MOTION::ALL_PARTIES, output_final[i]);
+    gate_ids[i] = gate_factory_bool.make_boolean_output_gate_my_wo_getting_output(
+        MOTION::ALL_PARTIES, output_final[i]);
     // std::cout << gate_ids[i] << std::endl;
   }
 
   return std::make_pair(gate_ids, std::move(input_1));
 }
 
-// Reads the public and private share from each gate file and consolidates it to a single file to share to the image provider.
-void consolidate_share_files(const Options& options, size_t num_outputs, size_t first_gate_number){
-
+// Reads the public and private share from each gate file and consolidates it to a single file to
+// share to the image provider.
+void consolidate_share_files(const Options& options, size_t num_outputs, size_t first_gate_number) {
   std::string op = getenv("BASE_DIR");
   std::ofstream outdata;
 
-  if(options.my_id == 0){
+  if (options.my_id == 0) {
     op += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares/Final_Boolean_Shares_server0_";
     op += options.inputfilename;
     op += ".txt";
-  }
-  else{
+  } else {
     op += "/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_";
     op += options.inputfilename;
     op += ".txt";
@@ -449,26 +449,25 @@ void consolidate_share_files(const Options& options, size_t num_outputs, size_t 
   std::cout << op << "\n";
 
   outdata.open(op);
-
-  //outdata << options.my_id <<"\n";
+  assert(outdata);
+  // outdata << options.my_id <<"\n";
 
   // outdata << options.inputfilename << "\n";
 
   outdata << num_outputs << "\n";
 
-  for(size_t i = 0; i < num_outputs; ++i){
+  for (size_t i = 0; i < num_outputs; ++i) {
     std::filesystem::__cxx11::path ip = getenv("BASE_DIR");
     std::ifstream indata;
 
-    if(options.my_id == 0){
-    ip += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares/output_share_for_server0_gate";
-    ip += std::to_string(first_gate_number+i);
-    ip += ".txt";
-  }
-    else{
+    if (options.my_id == 0) {
+      ip += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares/output_share_for_server0_gate";
+      ip += std::to_string(first_gate_number + i);
+      ip += ".txt";
+    } else {
       // ip += "/server1/Boolean_Output_Shares/output_share_for_server1_gate";
       ip += "/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares/output_share_for_server1_gate";
-      ip += std::to_string(first_gate_number+i);
+      ip += std::to_string(first_gate_number + i);
       ip += ".txt";
     }
 
@@ -476,7 +475,7 @@ void consolidate_share_files(const Options& options, size_t num_outputs, size_t 
     assert(indata);
     if (!indata) {
       std::cerr << " Error in reading file\n";
-      return ;
+      return;
     }
 
     auto output_Delta = read_file(indata);
