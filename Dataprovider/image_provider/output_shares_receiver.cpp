@@ -1,6 +1,6 @@
 /*
-./bin/output_shares_receiver --my-id 0 --listening_port 1234
-./bin/output_shares_receiver --my-id 1 --listening_port 1235
+./bin/output_shares_receiver --my-id 0 --listening-port 1234
+./bin/output_shares_receiver --my-id 1 --listening-port 1235
 */
 // MIT License
 //
@@ -117,63 +117,50 @@ void read_message(tcp::socket& socket) {
 void read_write_to_file(tcp::socket& socket, std::ofstream &outdata, int num_elements) {
     cout << "Before reading of data\n";
 
-    std::vector<std::vector<int>> Shares (num_elements);
+    int shares[num_elements][2];
+
+    // boost::system::error_code ec;
+
+    // read(socket, boost::asio::buffer(&shares, sizeof(shares)), ec);
+    // if (ec) {
+    //     cout << ec << "\n";
+    // } else {
+    //     // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
+    //     cout << "No Error\n"; 
+    // }    
+
+    // std::vector<std::vector<int>> Shares (num_elements);
 
     for (int i = 0; i < num_elements; i++) {
         cout << i << "\n";
         boost::system::error_code ec;
-     
-        // bool arr[2];
+             
+        // int Delta, delta;
 
-        std::size_t size_Delta, size_delta;
-        int Delta, delta;
-
-        // read(socket, boost::asio::buffer(&size_Delta, sizeof(size_Delta)), ec);
-        // if (ec) {
-        //      cout << ec << "\n";
-        // } else {
-        //      // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
-        //     //  cout << "Size of Delta is " << size_Delta << "\t"; 
-        // }
-        read(socket, boost::asio::buffer(&Delta, sizeof(Delta)), ec);
+        read(socket, boost::asio::buffer(&shares[i], sizeof(shares[i])), ec);
         if (ec) {
             cout << ec << "\n";
         } else {
             // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
-            cout << "No Error\t"; 
+            cout << "No Error\n"; 
         }
 
-        // read(socket, boost::asio::buffer(&size_delta, sizeof(size_delta)), ec);
+        // read(socket, boost::asio::buffer(&delta, sizeof(delta)), ec);
         // if (ec) {
-        //      cout << ec << "\n";
+        //     cout << ec << "\n";
         // } else {
-        //      // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
-        //     //  cout << "Size of Delta is " << size_delta << "\t"; 
+        //     // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
+        //     cout << "No Error" << std::endl; 
         // }
-        read(socket, boost::asio::buffer(&delta, sizeof(delta)), ec);
-        if (ec) {
-            cout << ec << "\n";
-        } else {
-            // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
-            cout << "No Error" << std::endl; 
-        }
 
-        Shares[i].push_back(Delta);
-        Shares[i].push_back(delta);
+        // Shares[i].push_back(Delta);
+        // Shares[i].push_back(delta);
 
-        // auto Delta = arr[0];
-        // std::cout << temp.Delta << " ";
-        // auto delta = arr[1];
-        // std::cout << temp.delta << "\n";
-
-        //outdata << Delta << " " << delta << "\n";
-
-        //std::cout << Delta << " " << delta << std::endl;
     }
 
     for(int i = 0; i < num_elements; ++i){
-        // std::cout << Shares[i][0] << " " << Shares[i][1] << "\n";
-        outdata << Shares[i][0] << " " << Shares[i][1] << "\n";
+        // std::cout << shares[i][0] << " " << shares[i][1] << "\n";
+        outdata << shares[i][0] << " " << shares[i][1] << "\n";
     }
 }
 
@@ -193,7 +180,7 @@ std::uint64_t read_file(std::ifstream& indata) {
 }
 
 // receving shares from the compute server via a tcp socket connection.
-void receive_shares(int port_number){
+int receive_shares(int port_number){
 
     std::cout << "Server listening on port " << port_number << std::endl;
 
@@ -213,10 +200,6 @@ void receive_shares(int port_number){
     std::string message = "The image provider is ready to receive the message\n";
     boost::asio::write(socket, boost::asio::buffer(message), ec);
 
-    std::string image_name;
-    int str_size;
-
-
     int server_num;
     boost::asio::read(socket, boost::asio::buffer(&server_num, sizeof(server_num)), ec);
     if (ec) {
@@ -233,6 +216,14 @@ void receive_shares(int port_number){
         cout << ec << "\n";
     } else {
         cout << "No Error. The number of outputs are " << num_outputs << std::endl;
+    }
+
+    int img_num;;
+    boost::asio::read(socket, boost::asio::buffer(&img_num, sizeof(img_num)), ec);
+    if (ec) {
+        cout << ec << "\n";
+    } else {
+        cout << "No Error." << std::endl;
     }
 
     read_message(socket);
@@ -253,10 +244,14 @@ void receive_shares(int port_number){
     }
     
     if(server_num == 0){
-        op += "/server0_shares.txt";
+        op += "/server0_shares_X";
+        op += std::to_string(img_num);
+        op += ".txt";
     }
     else{
-        op += "/server1_shares.txt";
+        op += "/server1_shares_X";
+        op += std::to_string(img_num);
+        op += ".txt";
     }
 
     outdata.open(op);
@@ -275,16 +270,18 @@ void receive_shares(int port_number){
 
     // socket.close();
 
+    return img_num;
+
 }
 // reconstructs the final boolean answer based on the final output shares
-void reconstruct() {
+void reconstruct(int img_num) {
     std::ifstream indata0, indata1;
     std::string base_dir = getenv("BASE_DIR");
 
     auto dir = base_dir + "/Dataprovider/image_provider/Final_Output_Shares/";
 
-    auto ip0 = dir + "server0_shares.txt";
-    auto ip1 = dir + "server1_shares.txt";
+    auto ip0 = dir + "server0_shares_X" + std::to_string(img_num) + ".txt";
+    auto ip1 = dir + "server1_shares_X" + std::to_string(img_num) + ".txt";
 
     //  cout << ip0 << "\n" << ip1 << "\n";
      
@@ -333,8 +330,8 @@ void reconstruct() {
 int main(int argc, char* argv[]) {
     auto options = parse_program_options(argc, argv);
 
-    receive_shares(options->listening_port_number);
+    int img_num = receive_shares(options->listening_port_number);
 
-    reconstruct();
+    reconstruct(img_num);
 
 }
