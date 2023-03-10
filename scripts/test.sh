@@ -14,7 +14,7 @@ fi
 
 
 for((i=1;i<=20;i++))
-# image_ids=(0 1) 
+# image_ids=(0) 
 # for i in "${image_ids[@]}"
 do 
 layer_id=1
@@ -39,8 +39,8 @@ then
 fi
 
 # layer_id =2 and k=file_config_input ... 0 and 1 is appended in tensor_gt_mul_test
-DEFAULT_TABS_CMD5="$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $j --config-file-input $k --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path"
-DEFAULT_TABS_CMD6="$build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $j --config-file-input $k --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path"
+DEFAULT_TABS_CMD5="$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path"
+DEFAULT_TABS_CMD6="$build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path"
 DEFAULT_TABS_CMD7="$build_path/bin/argmax --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input X$i --current-path $build_path"
 DEFAULT_TABS_CMD8="$build_path/bin/argmax --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input X$i --current-path $build_path"
 DEFAULT_TABS_CMD9="$build_path/bin/output_shares_receiver --my-id 0 --listening-port 1234"
