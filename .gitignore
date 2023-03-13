@@ -40,3 +40,5 @@ CTestTestfile.cmake
 
 # doxygen
 docs/Doxyfile
+
+Dataprovider/image_provider/Final_Output_Shares/
