@@ -58,6 +58,10 @@ struct Options {
     int x;
 };
 
+struct Shares {
+    int Delta, delta;
+};
+
 std::uint64_t read_file(std::ifstream& indata) {
     std::string str;
     char num;
@@ -203,7 +207,7 @@ void send_message(tcp::socket& socket, const string& message) {
 }
 
 // sends the shares stored in a data structure to the image provider.
-void write_struct(tcp::socket &socket, int data[][2], int num_elements)
+void write_struct(tcp::socket &socket, std::vector<Shares> &data, int num_elements)
 {
     // boost::system::error_code error;
     // boost::asio::write(socket, boost::asio::buffer(&data, sizeof(data)), error);
@@ -220,12 +224,12 @@ void write_struct(tcp::socket &socket, int data[][2], int num_elements)
     for (int i = 0; i < num_elements; i++)
     {
         // int Delta, delta;
-        // Delta = data[i][0];
-        // delta = data[i][1];
+        // Delta = data[i].Delta;
+        // delta = data[i].delta;
 
         boost::system::error_code error;
         boost::asio::write(socket, boost::asio::buffer(&data[i], sizeof(data[i])), error);
-        // boost::asio::write(socket, boost::asio::buffer(&delta, sizeof(delta)), error);
+
 
         if (!error)
         {
@@ -235,6 +239,7 @@ void write_struct(tcp::socket &socket, int data[][2], int num_elements)
         {
             cout << "send failed: " << error.message() << endl;
         }
+        sleep(1);
     }
 }
 
@@ -328,13 +333,15 @@ void send_provider_shares(int server_num, int port_number, Options& options) {
 
     // std::vector<std::vector<int>> data(num_outputs);
 
-    int data[num_outputs][2];
+    // uint64_t data[num_outputs][2];
+
+    std::vector<Shares> data(num_outputs);
 
     for(int i = 0; i < num_outputs; ++i) {
         // data[i].push_back(read_file(indata));
         // data[i].push_back(read_file(indata));
-        data[i][0] = read_file(indata);
-        data[i][1] = read_file(indata);
+        data[i].Delta = read_file(indata);
+        data[i].delta = read_file(indata);
     }
 
     indata.close();
