@@ -51,6 +51,10 @@ struct Options {
     int listening_port_number;
 };
 
+struct Shares {
+    int Delta, delta;
+};
+
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
     Options options;
     boost::program_options::options_description desc("Allowed options");
@@ -115,24 +119,13 @@ void read_message(tcp::socket& socket) {
 }
 
 void read_write_to_file(tcp::socket& socket, std::ofstream &outdata, int num_elements) {
+
     cout << "Before reading of data\n";
 
-    int shares[num_elements][2];
-
-    // boost::system::error_code ec;
-
-    // read(socket, boost::asio::buffer(&shares, sizeof(shares)), ec);
-    // if (ec) {
-    //     cout << ec << "\n";
-    // } else {
-    //     // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
-    //     cout << "No Error\n"; 
-    // }    
-
-    // std::vector<std::vector<int>> Shares (num_elements);
+    std::vector<Shares> shares(num_elements);
 
     for (int i = 0; i < num_elements; i++) {
-        cout << i << "\n";
+        cout << i << ":\t";
         boost::system::error_code ec;
              
         // int Delta, delta;
@@ -152,15 +145,11 @@ void read_write_to_file(tcp::socket& socket, std::ofstream &outdata, int num_ele
         //     // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
         //     cout << "No Error" << std::endl; 
         // }
-
-        // Shares[i].push_back(Delta);
-        // Shares[i].push_back(delta);
-
     }
 
-    for(int i = 0; i < num_elements; ++i){
-        // std::cout << shares[i][0] << " " << shares[i][1] << "\n";
-        outdata << shares[i][0] << " " << shares[i][1] << "\n";
+    for(int i = 0; i < num_elements; ++i) {
+        // std::cout << shares[i].Delta << " " << shares[i].delta << "\n";
+        outdata << shares[i].Delta << " " << shares[i].delta << "\n";
     }
 }
 
@@ -186,7 +175,7 @@ int receive_shares(int port_number){
 
     boost::asio::io_context io_context;
 
-    io_context.run();
+    // boost::asio::io_service io_service;
 
     tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), port_number));
 
@@ -283,7 +272,19 @@ void reconstruct(int img_num) {
     auto ip0 = dir + "server0_shares_X" + std::to_string(img_num) + ".txt";
     auto ip1 = dir + "server1_shares_X" + std::to_string(img_num) + ".txt";
 
-    //  cout << ip0 << "\n" << ip1 << "\n";
+    auto answer_dir = base_dir + "/Dataprovider/image_provider/answer";
+
+    if(!fs::is_directory(answer_dir)){
+        std::filesystem::create_directories(answer_dir);
+    }
+
+    answer_dir += "/reconstructed_answer_img" + std::to_string(img_num) + ".txt";
+
+    std::ofstream outdata;
+
+    outdata.open(answer_dir);
+
+    // cout << ip0 << "\n" << ip1 << "\n";
      
     indata0.open(ip0);
     indata1.open(ip1);
@@ -311,6 +312,7 @@ void reconstruct(int img_num) {
         int reconstructed_answer = Delta ^ delta0 ^ delta1;
 
         std::cout << reconstructed_answer << " ";
+        outdata << reconstructed_answer << " ";
 
         if(reconstructed_answer == 0){
             answer = i;
@@ -318,9 +320,8 @@ void reconstruct(int img_num) {
 
     }
 
-    std::cout << "\n";
-
-    cout << answer << "\n";
+    std::cout << "\n" << answer << "\n";;
+    outdata << "\n" << answer;
 
     return;
 }
@@ -331,7 +332,8 @@ int main(int argc, char* argv[]) {
     auto options = parse_program_options(argc, argv);
 
     int img_num = receive_shares(options->listening_port_number);
-
+    cout << "Answer Reconstruction\n";
+    sleep(5);
     reconstruct(img_num);
 
 }
