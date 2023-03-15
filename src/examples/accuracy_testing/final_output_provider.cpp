@@ -207,8 +207,7 @@ void send_message(tcp::socket& socket, const string& message) {
 }
 
 // sends the shares stored in a data structure to the image provider.
-void write_struct(tcp::socket &socket, std::vector<Shares> &data, int num_elements)
-{
+void write_struct(tcp::socket &socket, std::vector<Shares> &data, int num_elements) {
     // boost::system::error_code error;
     // boost::asio::write(socket, boost::asio::buffer(&data, sizeof(data)), error);
 
@@ -221,8 +220,7 @@ void write_struct(tcp::socket &socket, std::vector<Shares> &data, int num_elemen
     //     cout << "send failed: " << error.message() << endl;
     // }
 
-    for (int i = 0; i < num_elements; i++)
-    {
+    for (int i = 0; i < num_elements; i++) {
         // int Delta, delta;
         // Delta = data[i].Delta;
         // delta = data[i].delta;
@@ -231,12 +229,10 @@ void write_struct(tcp::socket &socket, std::vector<Shares> &data, int num_elemen
         boost::asio::write(socket, boost::asio::buffer(&data[i], sizeof(data[i])), error);
 
 
-        if (!error)
-        {
+        if (!error) {
             cout << "successfully sent\n";
         }
-        else
-        {
+        else {
             cout << "send failed: " << error.message() << endl;
         }
         sleep(1);
@@ -246,12 +242,12 @@ void write_struct(tcp::socket &socket, std::vector<Shares> &data, int num_elemen
 // Send the image provider shares via a tcp connection
 void send_provider_shares(int server_num, int port_number, Options& options) {
     string ip = getenv("BASE_DIR");
-    if(server_num == 0){
+    if(server_num == 0) {
         ip += "/build_debwithrelinfo_gcc/server0/Boolean_Output_Shares/Final_Boolean_Shares_server0_";
         ip += options.inputfilename;
         ip += ".txt";
     }
-    else{
+    else {
         ip += "/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_";
         ip += options.inputfilename;
         ip += ".txt";
@@ -295,22 +291,18 @@ void send_provider_shares(int server_num, int port_number, Options& options) {
     std::string server_num_str = std::to_string(server_num), num_outputs_str = std::to_string(num_outputs);
 
     boost::asio::write(socket, boost::asio::buffer(&server_num, sizeof(server_num)), ec);
-    if (!ec)
-    {
+    if (!ec) {
         cout << "Server "<< server_num_str << ": Sent successfully" << endl;
     }
-    else
-    {
+    else {
         cout << "Server "<< server_num_str << ": send failed: " << ec.message() << endl;
     }
   
     boost::asio::write(socket, boost::asio::buffer(&num_outputs, sizeof(num_outputs)), ec);
-    if (!ec)
-    {
+    if (!ec) {
         cout << "Server "<< server_num_str << ": Sent successfully " << num_outputs_str << endl;
     }
-    else
-    {
+    else {
         cout << "Server "<< server_num_str << ": send failed: " << ec.message() << endl;
     }
 
@@ -319,12 +311,10 @@ void send_provider_shares(int server_num, int port_number, Options& options) {
     int img_num = std::stoi(img_num_str);
 
     boost::asio::write(socket, boost::asio::buffer(&img_num, sizeof(img_num)), ec);
-    if (!ec)
-    {
+    if (!ec) {
         cout << "Server "<< server_num_str << ": Sent successfully X" << img_num << endl;
     }
-    else
-    {
+    else {
         cout << "Server "<< server_num_str << ": send failed: " << ec.message() << endl;
     }
 
@@ -335,7 +325,9 @@ void send_provider_shares(int server_num, int port_number, Options& options) {
 
     // uint64_t data[num_outputs][2];
 
-    std::vector<Shares> data(num_outputs);
+    // std::vector<Shares> data(num_outputs);
+
+    Shares data[num_outputs];
 
     for(int i = 0; i < num_outputs; ++i) {
         // data[i].push_back(read_file(indata));
@@ -346,7 +338,15 @@ void send_provider_shares(int server_num, int port_number, Options& options) {
 
     indata.close();
 
-    write_struct(socket, data, num_outputs);
+    // write_struct(socket, data, num_outputs);
+
+    boost::asio::write(socket, boost::asio::buffer(&data, sizeof(data)), ec);
+    if (!ec) {
+        cout << "successfully sent\n";
+    }
+    else {
+        cout << "send failed: " << ec.message() << endl;
+    }
   
     read_message(socket);
     
