@@ -122,30 +122,43 @@ void read_write_to_file(tcp::socket& socket, std::ofstream &outdata, int num_ele
 
     cout << "Before reading of data\n";
 
-    std::vector<Shares> shares(num_elements);
+    // std::vector<Shares> shares(num_elements);
 
-    for (int i = 0; i < num_elements; i++) {
-        cout << i << ":\t";
-        boost::system::error_code ec;
-             
-        // int Delta, delta;
+    Shares shares[num_elements];
 
-        read(socket, boost::asio::buffer(&shares[i], sizeof(shares[i])), ec);
-        if (ec) {
-            cout << ec << "\n";
-        } else {
-            // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
-            cout << "No Error\n"; 
-        }
-
-        // read(socket, boost::asio::buffer(&delta, sizeof(delta)), ec);
-        // if (ec) {
-        //     cout << ec << "\n";
-        // } else {
-        //     // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
-        //     cout << "No Error" << std::endl; 
-        // }
+    boost::system::error_code ec;
+    read(socket, boost::asio::buffer(&shares, sizeof(shares)), ec);
+    if (ec) {
+        cout << ec << "\n";
+    } else {
+        // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
+        cout << "No Error\n"; 
     }
+
+    // cout << sizeof(shares) << "\n";
+
+    // for (int i = 0; i < num_elements; i++) {
+    //     cout << i << ":\t";
+    //     boost::system::error_code ec;
+             
+    //     // int Delta, delta;
+
+    //     read(socket, boost::asio::buffer(&shares[i], sizeof(shares[i])), ec);
+    //     if (ec) {
+    //         cout << ec << "\n";
+    //     } else {
+    //         // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
+    //         cout << "No Error\n"; 
+    //     }
+
+    //     // read(socket, boost::asio::buffer(&delta, sizeof(delta)), ec);
+    //     // if (ec) {
+    //     //     cout << ec << "\n";
+    //     // } else {
+    //     //     // cout << "No Error\t" << arr[0] << " " << arr[1] << std::endl;
+    //     //     cout << "No Error" << std::endl; 
+    //     // }
+    // }
 
     for(int i = 0; i < num_elements; ++i) {
         // std::cout << shares[i].Delta << " " << shares[i].delta << "\n";
