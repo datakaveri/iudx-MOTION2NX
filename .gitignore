@@ -41,4 +41,6 @@ CTestTestfile.cmake
 # doxygen
 docs/Doxyfile
 
+# All the result files, such as the intermediary output shares, etc.
 Dataprovider/image_provider/Final_Output_Shares/
+Dataprovider/image_provider/answer/
