@@ -1,13 +1,13 @@
 
 /*
-./bin/Image_Share_Reciever --my-id 0 --fractional-bits 13 --file-names file_config_image.txt --index
-1
+./bin/Image_Share_Receiver --my-id 0 --fractional-bits $fractional_bits --file-names $image_config
+--index $i --current-path $build_path
 
-./bin/Image_Share_Reciever --my-id 1 --fractional-bits 13 --file-names file_config_image.txt --index
-1
+./bin/Image_Share_Receiver --my-id 1 --fractional-bits $fractional_bits --file-names $image_config
+--index $i --current-path $build_path
 
-./image_provider_iudx --compute-server0-port 1234 --compute-server1-port 1235 --fractional-bits
-13 --NameofImageFile X6_n.csv
+./bin/image_provider_iudx --compute-server0-port 1234 --compute-server1-port 1235 --fractional-bits
+$fractional_bits --NameofImageFile X$i --filepath $image_path
 
 */
 
@@ -98,8 +98,6 @@ struct Options {
   std::size_t num_simd;
   bool sync_between_setup_and_online;
   Matrix image;
-  Matrix weights[2];
-  Matrix biases[2];
   std::size_t fractional_bits;
   std::size_t my_id;
   // MOTION::Communication::tcp_parties_config tcp_config;

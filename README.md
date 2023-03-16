@@ -188,7 +188,7 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
 
 - Open a new terminal, and run the following script.
   ```
-  bash test.sh
+  bash inference.sh
   ```
   This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer and saves the intermediate results. \
   The final MNIST classification result is displayed on the terminal.  

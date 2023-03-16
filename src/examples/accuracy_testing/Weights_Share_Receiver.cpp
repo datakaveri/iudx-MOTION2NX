@@ -1,13 +1,12 @@
 /*
-./bin/Weights_Share_Reciever --my-id 0 --file-names file_config_model --file-names-image
-file_config_input
+./bin/Weights_Share_Receiver --my-id 0 --file-names $model_config --current-path $build_path
 
 
-./bin/Weights_Share_Reciever --my-id 1 --file-names file_config_model --file-names-image
-file_config_input
+./bin/Weights_Share_Receiver --my-id 1--file-names $model_config --current-path $build_path
 
-./weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --dp-id 1
---fractional-bits 13
+./bin/weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --dp-id 0
+--fractional-bits $fractional_bits --filepath $build_path_model
+
 */
 /* This code generates shares files for w1,b1,w2,b2.
 This function needs a config file as input sample file_config_weights_1.txt is as follows
@@ -93,7 +92,6 @@ struct Options {
   bool json;
   std::size_t num_simd;
   bool sync_between_setup_and_online;
-  Matrix image;
   Matrix weights[2];
   Matrix biases[2];
   std::size_t my_id;
@@ -152,11 +150,9 @@ void generate_filepaths(Options* options) {
   std::string fullfilename;
 
   // creation of file_config_0.txt and file_config_1.txt
-  // std::string image_later = temp + "/" + "file_config_input" + std::to_string(options->my_id);
   std::string model_later =
       options->currentpath + "/file_config_model" + std::to_string(options->my_id);
   std::ofstream file_later1, file_later2;
-  // file_later1.open(image_later, std::ios_base::out);
   file_later2.open(model_later, std::ios_base::out);
 
   //../server0/filename
@@ -281,13 +277,6 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     retrieve_shares(1234, &options);
   } else {
     retrieve_shares(1235, &options);
-  }
-
-  if (options.weights[0].col != options.image.row) {
-    std::cout << options.weights[0].col << "image :" << options.image.row << "\n";
-    std::cerr
-        << "Invalid inputs, number of columns for dp0 must be equal to number of rows for dp1 \n";
-    return std::nullopt;
   }
 
   return options;

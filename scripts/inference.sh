@@ -1,14 +1,24 @@
 #! /bin/bash
-# chmod +x test.sh
 
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_provider_path=${BASE_DIR}/Dataprovider/image_provider/Final_Output_Shares
 fractional_bits=13
 
+debug_0="$build_path/server0/debug_files"
+debug_1="$build_path/server1/debug_files"
 
-image_ids=(31 32 33 34 35 36 37 38 39 40 445 447 448 449 495 582 583 613 619)
-for i in "${image_ids[@]}"
-# for((i=20;i<=40;i++))
+if [ ! -d "$debug_0" ]; then
+   echo "$debug_0 does not exist."
+   mkdir $debug_0
+fi
+if [ ! -d "$debug_1" ]; then
+   echo "$debug_1 does not exist."
+   mkdir $debug_1
+fi
+
+# image_ids=(31 32 33 34 35 36 37 38 39 40 445 447 448 449 495 582 583 613 619)
+# for i in "${image_ids[@]}"
+for((i=1;i<=5;i++))
 do 
 echo 
 echo "Inferencing task of example X$i"
@@ -30,13 +40,13 @@ pid2=$!
 wait $pid1 $pid2 
 echo "layer 1 - gt mul is done"
 
-$build_path/bin/output_shares_receiver0 --my-id 0 --listening-port 1234 --current-path $image_provider_path --index $i> $build_path/server0/debug_files/output_shares_receiver0.txt &
+$build_path/bin/output_shares_receiver --my-id 0 --listening-port 1234 --current-path $image_provider_path --index $i> $build_path/server0/debug_files/output_shares_receiver0.txt &
 #$build_path/bin/output_shares_receiver0 --my-id 0 --listening-port 1234 > $build_path/server0/debug_files/output_shares_receiver0.txt &
 pid5=$!
 #echo "$pid5:output shares receiver0, Party 0"
 
 
-$build_path/bin/output_shares_receiver0 --my-id 1 --listening-port 1235 --current-path $image_provider_path --index $i> $build_path/server1/debug_files/output_shares_receiver1.txt &
+$build_path/bin/output_shares_receiver --my-id 1 --listening-port 1235 --current-path $image_provider_path --index $i> $build_path/server1/debug_files/output_shares_receiver1.txt &
 #$build_path/bin/output_shares_receiver0 --my-id 1 --listening-port 1235 > $build_path/server1/debug_files/output_shares_receiver1.txt &
 pid6=$!
 #echo "$pid6:output shares receiver0, Party 1"
@@ -90,13 +100,13 @@ wait $pid1 $pid2
 echo "layer 2 - argmax is done"
 
 
-$build_path/bin/final_output_provider0 --my-id 0 --connection-port 1234 --config-input X$i --current-path $build_path > $build_path/server0/debug_files/final_output_provider0.txt &
+$build_path/bin/final_output_provider --my-id 0 --connection-port 1234 --config-input X$i --current-path $build_path > $build_path/server0/debug_files/final_output_provider0.txt &
 pid3=$!
 #echo "$pid3:final output provider0, Party 0"
 # wait $pid1 $pid3 
 echo "Output shares of server 0 sent to the Image provider"
 
-$build_path/bin/final_output_provider0 --my-id 1 --connection-port 1235 --config-input X$i --current-path $build_path > $build_path/server1/debug_files/final_output_provider1.txt &
+$build_path/bin/final_output_provider --my-id 1 --connection-port 1235 --config-input X$i --current-path $build_path > $build_path/server1/debug_files/final_output_provider1.txt &
 pid4=$!
 #echo "$pid4:final output provider0, Party 1"
 wait $pid5 $pid3 $pid6 $pid4 
