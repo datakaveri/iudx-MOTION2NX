@@ -154,7 +154,7 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   ```cmake --build build_debwithrelinfo_gcc```
   
 - cd into the repository folder, and run the following ONCE\
-  ```sudo -s source setup.sh ```\
+  ```source setup.sh ```\
   This sets the required environment variables in ~/.bashrc, ~/.profile, and /etc/environment files.\
   Execute this command only once.
   
@@ -188,7 +188,7 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
 
 - Open a new terminal, and run the following script.
   ```
-  bash test.sh
+  bash inference.sh
   ```
   This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer and saves the intermediate results. \
   The final MNIST classification result is displayed on the terminal.  
