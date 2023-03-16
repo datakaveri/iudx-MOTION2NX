@@ -266,8 +266,8 @@ class Matrix {
     std::cout << "Sending to servers\n";
 
     for (int i = 0; i < 2; i++) {
-      std::cin.ignore();
-
+      // std::cin.ignore();
+      sleep(10);
       cout << "\nStart of send to compute server\n";
 
       boost::asio::io_service io_service;
@@ -295,7 +295,7 @@ class Matrix {
 
       // getting a response from the server
       boost::asio::streambuf receive_buffer_init;
-      boost::asio::read_until(socket, receive_buffer_init, "v");
+      boost::asio::read_until(socket, receive_buffer_init, "\n");
       if (error_init && error_init != boost::asio::error::eof) {
         cout << "receive failed: " << error_init.message() << endl;
       } else {
@@ -315,7 +315,7 @@ class Matrix {
 
       // getting a response from the server
       boost::asio::streambuf receive_buffer;
-      boost::asio::read_until(socket, receive_buffer, "v");
+      boost::asio::read_until(socket, receive_buffer, "\n");
       if (error && error != boost::asio::error::eof) {
         cout << "receive failed: " << error.message() << endl;
       } else {

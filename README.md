@@ -154,7 +154,7 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   ```cmake --build build_debwithrelinfo_gcc```
   
 - cd into the repository folder, and run the following ONCE\
-  ```sudo -s source setup.sh ```\
+  ```source setup.sh ```\
   This sets the required environment variables in ~/.bashrc, ~/.profile, and /etc/environment files.\
   Execute this command only once.
   

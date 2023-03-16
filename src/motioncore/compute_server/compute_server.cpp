@@ -86,9 +86,9 @@ std::vector<Shares> read_struct(tcp::socket& socket, int num_elements) {
     read(socket, boost::asio::buffer(&arr, sizeof(arr)), ec);
     Shares temp;
     temp.Delta = arr[0];
-    std::cout << temp.Delta << " ";
+    // std::cout << temp.Delta << " ";
     temp.delta = arr[1];
-    std::cout << temp.delta << "\n";
+    // std::cout << temp.delta << "\n";
     data.push_back(temp);
   }
 
