@@ -195,7 +195,7 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   bash inference.sh
   ```
   
-  This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer and       saves the intermediate results. \
+  This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer. \
   The final MNIST classification result is displayed on the terminal.  
   
   <p align="center">	(or)	</p>
