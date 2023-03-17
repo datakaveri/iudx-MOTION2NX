@@ -16,7 +16,7 @@ if [ ! -d "$debug_1" ]; then
    mkdir $debug_1
 fi
 
-# image_ids=(31 32 33 34 35 36 37 38 39 40 445 447 448 449 495 582 583 613 619)
+image_ids=(1 2 4 5 6 7)
 # for i in "${image_ids[@]}"
 for((i=1;i<=5;i++))
 do 
