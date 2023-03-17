@@ -176,8 +176,13 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   <p align="center">	(or)	</p>
  
  - To create a new MNIST image matrix , follow the steps given below.
-	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column). Use the "flatten_image.py"               python code given in "[path to repository folder ]/image_provider" to flatten the image matrix. 
-	- Save it in "[ path to repository folder ]/image_provider/images" folder with the filename of the format       ‘X[image_number].csv.
+	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column). Use the "flatten_image.py"               python code given in "[path to repository folder ]/Dataprovider/image_provider" to flatten the image matrix.
+	-  To run flatten_image.py, run the following command.
+	
+		``` 
+		python3 flatten_image.py --input_image_path [path to image] --output_image_ID [image number] 
+		```
+	
 	- Open "[ path to repository folder ]/scripts/sharegenerator.sh" and assign the image number to the image_ids list.               For example, to create shares of image X23 , put ```image_ids=(23)```
  
      	```
