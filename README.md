@@ -188,14 +188,14 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
       ```
       bash sharegenerator.sh
       ```
-
+The script inference.sh performs the inferencing task on the image index given by $i$ in the script.
 - Open a new terminal, and run the following script.
   
   ```
   bash inference.sh
   ```
   
-  This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer and       saves the intermediate results. \
+  This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer. \
   The final MNIST classification result is displayed on the terminal.  
   
   <p align="center">	(or)	</p>
@@ -205,6 +205,6 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   ```
   bash inference_split.sh
   ```
- 
-  This reduces the average memory requirement by the number of splits specified in the inference_split script. To change the     number of splits, update the split variable in the script. For example, ```split=2```. User can change this number to be         1, 2, 4, 8, 16.  
+ The script inference_split.sh performs the inferencing task with splits on layer 1 matrix multiplication on the image index given by image_ids in the script.
+  This script reduces the average memory requirement by the number of splits specified in the inference_split script. To change the     number of splits, update the split variable in the script. For example, ```split=2```. User can change this number to be         1, 2, 4, 8, 16.  
 
