@@ -161,6 +161,8 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   
   ## Steps for running the Modular Neural Network Inference code
   
+    There are sample MNIST images in [path to repository folder]/iudx-MOTION2NX/Dataprovider/image_provider/images. We use the   following convention X<sub>i</sub> i \in {0,1,2,...}$
+  
 - To classify the given sample MNIST images, do the following.
 	- cd into the "[ path to repository folder ]/scripts" folder.
 	- Open a new terminal and run the script.
