@@ -157,25 +157,28 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   ```source setup.sh ```\
   This sets the required environment variables in ~/.bashrc, ~/.profile, and /etc/environment files.\
   Execute this command only once.
-  
+  $Xi, i 
   
   ## Steps for running the Modular Neural Network Inference code
   
-    There are sample MNIST images in [path to repository folder]/iudx-MOTION2NX/Dataprovider/image_provider/images. We use the   following convention X<sub>i</sub> i \in {0,1,2,...}$
+    There are sample MNIST images in [path to repository folder]/iudx-MOTION2NX/Dataprovider/image_provider/images. We use the   following convention $Xi, i\in \{0,1,2,...\}$. We provide images $X0$ to $X98$ in the images folder. Each image is a column     matrix of size $785 \times 1$. The first number of every column matrix is the actual label of the image. All the remaining     numbers are normalised pixel values ranging from 0 to 1.
+    
+  The sharegenerator.sh script creates secret shares of the image and sends it to the compute servers. Set image_ids in the       script to create shares of the specified images. For example, to create shares of image X23 , put ```image_ids=(23)``` 
   
-- To classify the given sample MNIST images, do the following.
+- To create shares for a given sample MNIST image, do the following.
 	- cd into the "[ path to repository folder ]/scripts" folder.
 	- Open a new terminal and run the script.
     	
 	  ```
 	  bash sharegenerator.sh
 	  ```
- 	- This script opens multiple gnome tabs and generates MNIST image shares and neural network model shares (weights and bias shares). The image and neural 	network shares are saved inside "[ path to repository folder ]/build_debwithrelinfo_gcc/server0" in  Server-0, and "[ path to repository folder ]/build_debwithrelinfo_gcc/server1" in Server-1. Once the program finishes execution, close  all the opened tabs.
+ 	- This script generates MNIST image shares and neural network model shares (weights and bias shares). The image and neural 	network shares are saved inside "[ path to repository folder ]/build_debwithrelinfo_gcc/server0" in  Server-0, and "[ path to repository folder ]/build_debwithrelinfo_gcc/server1" in Server-1.
   
   <p align="center">	(or)	</p>
  
- - To classify a new MNIST image, follow the steps given below.
+ - To create a new MNIST image matrix , follow the steps given below.
 	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column).
+	- 
 	- Save it in "[ path to repository folder ]/image_provider/images" folder with the filename of the format ‘X[image_number].csv.
 	- Open "[ path to repository folder ]/scripts/sharegenerator.sh" and assign the image number to the list.
  
