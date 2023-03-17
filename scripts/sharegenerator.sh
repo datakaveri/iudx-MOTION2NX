@@ -31,9 +31,9 @@ wait $pid3
 wait $pid1 $pid2 
 
 
-# image_ids=(445 447 448 449 495 582 583 613 619)
-# for i in "${image_ids[@]}"
-for((i=1;i<=5;i++))
+image_ids=(1 2 4 5 6 7)
+for i in "${image_ids[@]}"
+# for((i=1;i<=5;i++))
 do
 $build_path/bin/Image_Share_Receiver --my-id 0 --fractional-bits $fractional_bits --file-names $image_config --index $i --current-path $build_path >> $debug_0/Image_Share_Receiver0.txt &
 pid1=$!

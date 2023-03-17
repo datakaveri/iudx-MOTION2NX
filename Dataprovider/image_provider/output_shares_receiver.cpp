@@ -1,8 +1,6 @@
 /*
-./bin/output_shares_receiver --my-id 0 --listening-port 1234 --index i --current-path
-path_upto_build_deb..
-./bin/output_shares_receiver --my-id 1 --listening-port 1235 --index i --current-path
-path_upto_build_deb..
+./bin/output_shares_receiver --my-id 0 --listening-port 1234 --index i --current-path path_upto_build_deb..
+./bin/output_shares_receiver --my-id 1 --listening-port 1235 --index i --current-path path_upto_build_deb..
 */
 // MIT License
 //
@@ -31,14 +29,14 @@ path_upto_build_deb..
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <regex>
 #include <stdexcept>
+#include <optional>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
+#include <boost/asio.hpp>
 
 using namespace boost::asio;
 using ip::tcp;
@@ -49,14 +47,14 @@ namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
 struct Options {
-  std::size_t my_id;
-  int listening_port_number;
-  std::string currentpath;
-  std::string index;
+    std::size_t my_id;
+    int listening_port_number;
+    std::string currentpath  ;
+    std::string index  ;
 };
 
 struct Shares {
-  bool Delta, delta;
+    bool Delta, delta;
 };
 
 std::vector<Shares> read_struct(tcp::socket& socket, int num_elements) {
@@ -78,8 +76,8 @@ std::vector<Shares> read_struct(tcp::socket& socket, int num_elements) {
   return data;
 }
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
-  Options options;
-  boost::program_options::options_description desc("Allowed options");
+    Options options;
+    boost::program_options::options_description desc("Allowed options");
   // clang-format off
     desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
@@ -90,40 +88,42 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ;
   // clang-format on
 
-  po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  bool help = vm["help"].as<bool>();
-  if (help) {
-    std::cerr << desc << "\n";
-    return std::nullopt;
-  }
-  if (vm.count("config-file")) {
-    std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
-    po::store(po::parse_config_file(ifs, desc), vm);
-  }
-  try {
-    po::notify(vm);
-  } catch (std::exception& e) {
-    std::cerr << "error:" << e.what() << "\n\n";
-    std::cerr << desc << "\n";
-    return std::nullopt;
-  }
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    bool help = vm["help"].as<bool>();
+    if (help) {
+        std::cerr << desc << "\n";
+        return std::nullopt;
+    }
+    if (vm.count("config-file")) {
+        std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
+        po::store(po::parse_config_file(ifs, desc), vm);
+    }
+    try {
+        po::notify(vm);
+    } catch (std::exception& e) {
+        std::cerr << "error:" << e.what() << "\n\n";
+        std::cerr << desc << "\n";
+        return std::nullopt;
+    }
 
-  options.my_id = vm["my-id"].as<std::size_t>();
-  options.listening_port_number = vm["listening-port"].as<int>();
-  options.currentpath = vm["current-path"].as<std::string>();
-  options.index = vm["index"].as<std::string>();
-  if (options.my_id > 1) {
-    std::cerr << "my-id must be one of 0 and 1\n";
-    return std::nullopt;
-  }
+    options.my_id = vm["my-id"].as<std::size_t>();
+    options.listening_port_number = vm["listening-port"].as<int>();
+    options.currentpath  = vm["current-path"].as<std::string>();
+    options.index  = vm["index"].as<std::string>();
+    if (options.my_id > 1) {
+        std::cerr << "my-id must be one of 0 and 1\n";
+        return std::nullopt;
+    }
 
-  return options;
+    return options;
 }
 
+
+
 int main(int argc, char* argv[]) {
-  auto options = parse_program_options(argc, argv);
-  // //////////////////////////////////////////////////////
+    auto options = parse_program_options(argc, argv);
+// //////////////////////////////////////////////////////
   int num_elements = 10;
   boost::asio::io_service io_service;
   cout << "Inside new function \n";
@@ -136,26 +136,31 @@ int main(int argc, char* argv[]) {
   // waiting for the connection
   acceptor_.accept(socket_);
 
+  //int actualanswer;
   boost::system::error_code ec;
   // Read the data in the reuired format
   std::vector<Shares> data = read_struct(socket_, num_elements);
 
   std::cout << "Finished reading input \n\n";
   //////////////////////////////////////////
-  std::string path = options->currentpath;
+std::string path = options->currentpath  ;
+     
+      std::string t1 = path +"/server"+std::to_string(options->my_id)+"_shares_X"+options->index;
+      
 
-  std::string t1 = path + "/server" + std::to_string(options->my_id) + "_shares_X" + options->index;
-
-  ///// Write to files
-  std::ofstream file1;
-  file1.open(t1, std::ios_base::out);
-  for (int i = 0; i < 10; i++) {
-    file1 << data[i].Delta;
-    file1 << " ";
-    file1 << data[i].delta;
-    file1 << "\n";
-  }
-  file1.close();
-
-  /////////////////////////////////////////////////////////
+      ///// Write to files
+      std::ofstream file1;
+      file1.open(t1, std::ios_base::out);
+      for(int i=0;i<10;i++)
+      {
+      file1 << data[i].Delta;
+      file1 << " ";
+      file1 << data[i].delta;
+      file1 << "\n";
 }
+      file1.close();
+
+/////////////////////////////////////////////////////////
+  
+}
+
