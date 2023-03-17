@@ -75,14 +75,15 @@ if [ -f AverageTime1 ]; then
    # echo "AverageTime1 is removed"
 fi
 
-for((image_ids=1;image_ids<=5;image_ids++))
+for((image_ids=1;image_ids<=1;image_ids++))
  do
  echo 
  echo "image_ids X"$image_ids >> MemoryDetails0
  echo "image_ids X"$image_ids >> MemoryDetails1 
  echo "NN Inference for Image ID: $image_ids"
  #number of splits
- splits=2
+ splits=8
+ echo "Number of splits for layer 1 matrix multiplication - $splits"
  x=$((256/splits))
  
  for  (( m = 1; m <= $splits; m++ )) 
@@ -105,7 +106,7 @@ for((image_ids=1;image_ids<=5;image_ids++))
    $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path  > $build_path/server1/debug_files/tensor_gt_mul1_layer1_split.txt &
    pid2=$!
    wait $pid1 $pid2 
-   echo "Layer 1 - multiplication is done"
+   echo "Layer 1, split $m - multiplication is done"
    
    if [ $m -eq 1 ];then
       touch finaloutput_0
@@ -205,6 +206,8 @@ wait
  > AverageMemoryDetails1 #clearing the contents of the file
 
 done 
+
+echo -e "\nInferencing Finished"
 
 awk '{ sum += $1 } END { print sum}' AverageTime0 >> AverageTime0
 awk '{ sum += $1 } END { print sum}' AverageTime1 >> AverageTime1
