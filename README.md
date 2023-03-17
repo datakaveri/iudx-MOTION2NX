@@ -155,27 +155,30 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   
 - cd into the repository folder, and run the following ONCE\
   ```source setup.sh ```\
-  This sets the required environment variables in ~/.bashrc, ~/.profile, and /etc/environment files.\
+  This sets the required environment variables in ~/.bashrc, ~/.profile.\
   Execute this command only once.
-  
   
   ## Steps for running the Modular Neural Network Inference code
   
-- To classify the given sample MNIST images, do the following.
+    There are sample MNIST images in "[path to repository folder]/iudx-MOTION2NX/Dataprovider/image_provider/images". We use the   following convention $Xi, i\in \{0,1,2,...\}$. We provide images $X0$ to $X98$ in the images folder. Each image is a column     matrix of size $785 \times 1$. The first number of every column matrix is the actual label of the image. All the remaining     numbers are normalised pixel values ranging from 0 to 1.
+    
+  The sharegenerator.sh script creates secret shares of the image and sends it to the compute servers. Set image_ids in the       script to create shares of the specified images. For example, to create shares of image X23 , put ```image_ids=(23)``` 
+  
+- To create shares for a given sample MNIST image, do the following.
 	- cd into the "[ path to repository folder ]/scripts" folder.
 	- Open a new terminal and run the script.
     	
 	  ```
 	  bash sharegenerator.sh
 	  ```
- 	- This script opens multiple gnome tabs and generates MNIST image shares and neural network model shares (weights and bias shares). The image and neural 	network shares are saved inside "[ path to repository folder ]/build_debwithrelinfo_gcc/server0" in  Server-0, and "[ path to repository folder ]/build_debwithrelinfo_gcc/server1" in Server-1. Once the program finishes execution, close  all the opened tabs.
+ 	- This script generates MNIST image shares and neural network model shares (weights and bias shares). The image and neural 	network shares are saved inside "[ path to repository folder ]/build_debwithrelinfo_gcc/server0" in  Server-0, and "[ path to repository folder ]/build_debwithrelinfo_gcc/server1" in Server-1.
   
   <p align="center">	(or)	</p>
  
- - To classify a new MNIST image, follow the steps given below.
-	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column).
-	- Save it in "[ path to repository folder ]/image_provider/images" folder with the filename of the format ‘X[image_number].csv.
-	- Open "[ path to repository folder ]/scripts/sharegenerator.sh" and assign the image number to the list.
+ - To create a new MNIST image matrix , follow the steps given below.
+	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column). Use the "flatten_image.py"               python code given in "[path to repository folder ]/image_provider" to flatten the image matrix. 
+	- Save it in "[ path to repository folder ]/image_provider/images" folder with the filename of the format       ‘X[image_number].csv.
+	- Open "[ path to repository folder ]/scripts/sharegenerator.sh" and assign the image number to the image_ids list.               For example, to create shares of image X23 , put ```image_ids=(23)```
  
      	```
       	image_ids=([your_image_number])
@@ -187,9 +190,21 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
       ```
 
 - Open a new terminal, and run the following script.
+  
   ```
   bash inference.sh
   ```
-  This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer and saves the intermediate results. \
+  
+  This runs the neural network inference using the generated image and neural network shares. It runs it layer by layer and       saves the intermediate results. \
   The final MNIST classification result is displayed on the terminal.  
+  
+  <p align="center">	(or)	</p>
+  
+  To run the neural network inference with reduced memory requirement, run the following script.
+   
+  ```
+  bash inference_split.sh
+  ```
+ 
+  This reduces the average memory requirement by the number of splits specified in the inference_split script. To change the     number of splits, update the split variable in the script. For example, ```split=2```. User can change this number to be         1, 2, 4, 8, 16.  
 
