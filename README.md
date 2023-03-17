@@ -155,9 +155,8 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   
 - cd into the repository folder, and run the following ONCE\
   ```source setup.sh ```\
-  This sets the required environment variables in ~/.bashrc, ~/.profile, and /etc/environment files.\
+  This sets the required environment variables in ~/.bashrc, ~/.profile.\
   Execute this command only once.
-  $Xi, i 
   
   ## Steps for running the Modular Neural Network Inference code
   
