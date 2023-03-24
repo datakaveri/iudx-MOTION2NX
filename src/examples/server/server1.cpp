@@ -1,5 +1,4 @@
-//./bin/server1 --fn1 W1 --fn2 9
-
+//./bin/server1 --fn1 file_config_model1
 #include <unistd.h>
 #include <filesystem>
 #include <fstream>
@@ -22,10 +21,7 @@
 #include "utility/new_fixed_point.h"
 
 std::vector<std::uint64_t> Z;  //
-std::vector<std::uint64_t> wpublic;
-std::vector<std::uint64_t> xpublic;
-std::vector<std::uint64_t> wsecret;
-std::vector<std::uint64_t> xsecret;
+std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum;
 int flag = 0;
 namespace po = boost::program_options;
@@ -33,6 +29,7 @@ namespace po = boost::program_options;
 struct Options {
   std::string file1;
   std::size_t file2;
+  std::string path;
 };
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -43,6 +40,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("fn1", po::value<std::string>()->required(), "my party id")  
     ("fn2", po::value<std::size_t>()->required(), "receiver party id") 
+    ("current-path", po::value<std::string>()->required(), "currentpath") 
   ;
  
  po::variables_map vm;
@@ -63,6 +61,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
 
   options.file1 = vm["fn1"].as<std::string>();
   options.file2 = vm["fn2"].as<std::size_t>();
+  options.path = vm["current-path"].as<std::string>();
 
 // clang-format on;
 return options;
@@ -263,30 +262,50 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
       // std::cout << temp << " ";
       Final_public.push_back(temp);
     }
-  //     auto finalpublic_begin = Final_public.begin();
-  //     auto finalpublic_end = Final_public.end();
-  //     advance(finalpublic_begin,2);
+      auto finalpublic_begin = Final_public.begin();
+      auto finalpublic_end = Final_public.end();
+      advance(finalpublic_begin,2);
 
-  //     auto z_begin=Z.begin();
-  //     std::cout<<*z_begin<<"\n";
-  //     advance(z_begin,2);
-  //     std::cout<<*z_begin<<"\n";
+      auto z_begin=Z.begin();
+      advance(z_begin,2);
       
-  // __gnu_parallel::transform(finalpublic_begin, finalpublic_end, z_begin, finalpublic_begin , std::plus{});   
+      auto bpublic_begin=bpublic.begin();
+      advance(bpublic_begin,2);
+
+      auto randomnum_begin = randomnum.begin();
+      auto randomnum_end = randomnum.end();
+      advance(randomnum_begin,2);
+
+		  auto bsecret_begin=bsecret.begin();
+      advance(bsecret_begin,2);
+
+
+		  //final public share=Final_public
+      __gnu_parallel::transform(finalpublic_begin, finalpublic_end, z_begin, finalpublic_begin , std::plus{});   
+      __gnu_parallel::transform(finalpublic_begin, finalpublic_end, bpublic_begin, finalpublic_begin , std::plus{});  
+
+
+      //final secret share=randomnum
+      __gnu_parallel::transform(randomnum_begin, randomnum_end, bsecret_begin, randomnum_begin , std::plus{});
+
+
+     std::string basedir = getenv("BASE_DIR");
+     std::string filename = basedir + "/build_debwithrelinfo_gcc";
+     std::string totalpath = filename + "/server1/" + "outputshare_1";
+  
    
-  //  std::string path = std::filesystem::current_path();
-  //   std::cout<<path<<"\n";
-  //  std::string totalpath = path + "/" + "Outputshares1";
+	 if (std::filesystem::remove(totalpath));
 
-  //  std::ofstream indata;
-  //  indata.open(totalpath,std::ios_base::app);
-  //  assert(indata);
+   std::ofstream indata;
+   indata.open(totalpath,std::ios_base::app);
+   assert(indata);
 
-  //  indata<<Final_public[0]<<" "<<Final_public[1]<<"\n";
-  //  for(int i=2;i<Final_public.size();i++)
-  //  {
-  //   indata<<Final_public[i]<<" "<<randomnum[i+2]<<"\n";
-  //   }
+   indata<<Final_public[0]<<" "<<Final_public[1]<<"\n";
+   for(int i=2;i<Final_public.size();i++)
+   {
+    indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
+   }
+   
     }    
   } 
 };
@@ -297,10 +316,21 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
 
   if(p==1)
   {
-    // name = std::to_string(options.file1);
-    std::string fullname = std::filesystem::current_path();
-    fullname += "/server" + std::to_string(my_id) + "/" + name;
-    std::ifstream file(fullname);
+    std::ifstream content;
+    
+    //~/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/file_config_model1
+    std::string fullpath = options.path;
+    fullpath += "/"+name;
+    
+    // std::cout<<"fullpath: "<<fullpath;
+    content.open(fullpath);
+    std::string w1path,b1path;
+    content>>w1path;
+    content>>b1path;
+    
+    std::cout<<w1path<<" "<<b1path<<"\n";
+
+    std::ifstream file(w1path);
     if (!file) {
       std::cerr << " Error in opening file\n";
     }
@@ -335,6 +365,7 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
         adduint64(secret_share, message);
         k++;
       }
+      std::cout<<"k:"<<k<<"\n";
       if (k == rows * col) {
         std::uint64_t num;
         file >> num;
@@ -345,11 +376,52 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
       }
       file.close();
 
+      file.open(b1path);
+      if (!file) {
+      std::cerr << " Error in opening file\n";
+    }
+    file >> rows >> col;
+    std::cout<<rows<<" "<<col<<"\n";
+
+    if (file.eof()) {
+      std::cerr << "File doesn't contain rows and columns" << std::endl;
+      exit(1);
+    }
+       
+       auto j=0;
+       bpublic.push_back(rows);
+       bpublic.push_back(col);
+       bsecret.push_back(rows);
+       bsecret.push_back(col);
+      while (j < rows * col) {
+        std::uint64_t public_share, secret_share;
+        file >> public_share;
+        bpublic.push_back(public_share);
+        file >> secret_share;
+        bsecret.push_back(secret_share);
+        std::cout<<public_share<<" "<<secret_share<<"\n";
+        if (file.eof()) {
+          std::cerr << "File contains less number of elements" << std::endl;
+          exit(1);
+        }
+        j++;
+      }
+      if (j == rows * col) {
+        std::uint64_t num;
+        file >> num;
+        if (!file.eof()) {
+          std::cerr << "File contains more number of elements" << std::endl;
+          exit(1);
+        }
+      }
+
+      file.close();
+
   }
   else if(p==2)
   {
     name = std::to_string(options.file2);
-    std::string fullname = std::filesystem::current_path();
+    std::string fullname = options.path;
     fullname += "/server" + std::to_string(my_id) + "/Image_shares/ip" + name;
     std::ifstream file(fullname);
     if (!file) {
@@ -446,13 +518,13 @@ int main(int argc, char* argv[]) {
   { 
      //to push zth members first and if condtion there to not push rows and columns twice
      auto temp=Z[i];
-     std::cout<<"Temp "<<temp<<" ";
+    //  std::cout<<"Temp "<<temp<<" ";
      adduint64(temp,mes1);
       if(i>1)
     { 
       //to send secret shares
       auto temp2=randomnum[i]; 
-      std::cout<<"Temp2 "<<temp2<<" ";
+      // std::cout<<"Temp2 "<<temp2<<" ";
       adduint64(temp2,mes1);
     }
   }

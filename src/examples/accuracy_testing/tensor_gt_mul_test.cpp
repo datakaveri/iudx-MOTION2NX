@@ -553,10 +553,10 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
       long double temp =
           MOTION::new_fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
       //     mod_x.push_back(temp);
-      //     std::cout << temp << ",";
-      if (options.layer_id == 2) {
-        std::cout << temp << ",";
-      }
+      std::cout << temp << ",";
+      // if (options.layer_id == 2) {
+      //   std::cout << temp << ",";
+      // }
     }
   }
 }
