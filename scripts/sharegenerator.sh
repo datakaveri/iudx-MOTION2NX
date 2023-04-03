@@ -31,7 +31,7 @@ wait $pid3
 wait $pid1 $pid2 
 
 
-image_ids=(1 2 4 5 6 7)
+image_ids=(1 2 7 8 9 )
 for i in "${image_ids[@]}"
 # for((i=1;i<=5;i++))
 do
