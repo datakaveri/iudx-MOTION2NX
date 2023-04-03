@@ -82,7 +82,7 @@ struct Options {
   MOTION::Communication::tcp_parties_config tcp_config;
   std::string filepath;
   std::string inputfilename;
-  int x;
+ // int x;
   bool no_run = false;
   Matrix input;
 };
@@ -125,6 +125,7 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
 }
 
 std::uint64_t read_file(std::ifstream& indata) {
+  std::cout << "Inside read file uint\n";
   std::string str;
   char num;
   while (indata >> std::noskipws >> num) {
@@ -140,17 +141,21 @@ std::uint64_t read_file(std::ifstream& indata) {
 }
 
 std::string read_filepath(std::ifstream& indata) {
+  std::cout << "Inside read file path\n";
   std::string str;
 
   char num;
   while (indata) {
+    std::cout << "inside while \n";
     std::getline(indata, str);
+    std::cout << str << std::endl;
   }
-  // std::cout << str << std::endl;
+   std::cout << "string read filepath:"<< str <<" \n";
   return str;
 }
 
 void input_shares(Options* options, std::string p) {
+  std::cout << "Inside input shares \n";
   std::ifstream indata;
   indata.open(p);
   std::cout << "p:" << p << std::endl;
@@ -180,12 +185,12 @@ void file_read(Options* options) {
   // std::string path = std::filesystem::current_path();
   std::string t1 = path + "/" + options->filepath;
 
-  // std::cout << t1 << std::endl;
+   std::cout << t1 << std::endl;
 
   std::string t2 = path + "/" + "server" + std::to_string(options->my_id) + "/Actual_label/" +
-                   options->inputfilename;
+                   "remote_share_actual_answer";
 
-  // std::cout << t2 << std::endl;
+   std::cout << t2 << std::endl;
 
   std::ifstream file1;
   file1.open(t1);
@@ -203,14 +208,14 @@ void file_read(Options* options) {
 
   // reading input number for test case
 
-  file1.open(t2);
-  if (file1) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
-  }
-  options->x = read_file(file1);
-  file1.close();
+  // file1.open(t2);
+  // if (file1) {
+  //   std::cout << "File found\n";
+  // } else {
+  //   std::cout << "File not found\n";
+  // }
+  // options->x = read_file(file1);
+  // file1.close();
 }
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {

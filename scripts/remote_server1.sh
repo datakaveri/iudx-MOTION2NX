@@ -1,0 +1,131 @@
+#! /bin/bash
+image_config=${BASE_DIR}/config_files/file_config_input_remote
+model_config=${BASE_DIR}/config_files/file_config_model
+build_path=${BASE_DIR}/build_debwithrelinfo_gcc
+build_path_model=${BASE_DIR}/Dataprovider/weights_provider
+image_provider_path=${BASE_DIR}/Dataprovider/image_provider/Final_Output_Shares
+image_path=${BASE_DIR}/Dataprovider/image_provider
+debug_0=$build_path/server0/debug_files
+debug_1=$build_path/server1/debug_files
+
+# #####################Inputs##########################################################################################################
+
+# cs0_ip is the ip of server0, cs1_ip is the ip of server1
+cs0_ip=127.0.0.1
+cs1_ip=127.0.0.1
+
+# Ports on which weights recceiver talk
+cs0_port=4005
+cs1_port=4006
+
+# Ports on which image provider talks
+cs0_port_image=2023
+cs1_port_image=2020
+
+
+# Ports on which server0 and server1 of the inferencing tasks talk to each other
+port0_inference=3390
+port1_inference=4567
+
+fractional_bits=13
+
+##########################################################################################################################################
+
+if [ ! -d "$debug_1" ];
+then
+	mkdir -p $debug_1
+fi
+
+#########################Weights Share Receiver ############################################################################################
+echo "Weight Shares Receiver starts"
+$build_path/bin/Weights_Share_Receiver --my-id 1 --port $cs1_port --file-names $model_config --current-path $build_path >> $debug_1/Weights_Share_Receiver1.txt &
+pid2=$!
+
+
+#########################Weights Provider ############################################################################################
+echo "Weight Provider starts"
+$build_path/bin/weights_provider --compute-server0-ip $cs0_ip --compute-server0-port $cs0_port --compute-server1-ip $cs1_ip --compute-server1-port $cs1_port --dp-id 0 --fractional-bits $fractional_bits --filepath $build_path_model >> $debug_1/weights_provider.txt &
+pid3=$!
+
+wait $pid3
+wait $pid2 
+echo "Weight Shares received"
+
+#########################Image Share Receiver ############################################################################################
+echo "Image Shares Receiver starts"
+
+$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_1/Image_Share_Receiver1.txt &
+pid2=$!
+
+wait $pid2
+
+
+echo "Image shares received"
+#########################Share generators end ############################################################################################
+
+
+
+########################Inferencing task starts ###############################################################################################
+ 
+echo "Inferencing task of the image shared starts"
+
+
+############################Inputs for inferencing tasks #######################################################################################
+layer_id=1
+input_config=" "
+image_share="remote_image_shares"
+if [ $layer_id -eq 1 ];
+then
+    input_config="remote_image_shares"
+fi
+#######################################Matrix multiplication layer 1 ###########################################################################
+
+
+$build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_ip,$port0_inference  --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $build_path/server1/debug_files/tensor_gt_mul1_layer1.txt &
+pid1=$!
+ 
+wait $pid1
+echo "layer 1 - matrix multiplication and addition is done"
+
+#######################################ReLu layer 1 ####################################################################################
+$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $build_path/server1/debug_files/tensor_gt_relu1_layer1.txt &
+pid1=$!
+
+wait $pid1 
+echo "layer 1 - ReLu is done"
+
+#######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
+((layer_id++))
+
+# #Updating the config file for layers 2 and above. 
+if [ $layer_id -gt 1 ];
+then
+    input_config="outputshare"
+fi
+
+#######################################Matrix multiplication layer 2 ###########################################################################
+$build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $build_path/server1/debug_files/tensor_gt_mul1_layer2.txt &
+pid1=$!
+
+wait $pid1 
+echo "layer 2 - matrix multiplication and addition  is done"
+
+####################################### Argmax  ###########################################################################
+
+$build_path/bin/argmax --my-id 1 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $build_path/server1/debug_files/argmax1_layer2.txt &
+pid1=$!
+
+
+wait $pid1 
+echo "layer 2 - argmax is done"
+
+###################################### Final output provider  ###########################################################################
+
+$build_path/bin/final_output_provider --my-id 1 --connection-port 2233 --connection-ip $cs0_ip --config-input $image_share --current-path $build_path > $build_path/server1/debug_files/final_output_provider1.txt &
+pid4=$!
+
+wait $pid4 
+echo "Output shares of server 1 sent to the Image provider"
+
+wait 
+#kill $pid5 $pid6

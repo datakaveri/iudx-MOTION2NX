@@ -22,9 +22,12 @@ using std::endl;
 using std::string;
 
 struct Options {
+  std::string cs0_ip;
   int cs0_port;
+  std::string cs1_ip;
   int cs1_port;
   std::size_t fractional_bits;
+  int index;
   std::string NameofImageFile;
   std::string fullfilepath;
 };
@@ -35,9 +38,12 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
+    ("compute-server0-ip", po::value<std::string>()->default_value("127.0.0.1"), "IP address of compute server 0")
     ("compute-server0-port", po::value<int>()->required(), "Port number of compute server 0")
+    ("compute-server1-ip", po::value<std::string>()->default_value("127.0.0.1"), "IP address of compute server 1")
     ("compute-server1-port", po::value<int>()->required(), "Port number of compute server 1")
-    ("NameofImageFile", po::value<string>()->required(), "Name of the image file for which shares should be created")
+    //("NameofImageFile", po::value<string>()->required(), "Name of the image file for which shares should be created")
+    ("index", po::value<int>()->required(), "Index of image file")
     ("fractional-bits", po::value<size_t>()->required(), "Number of fractional bits")
     ("dp-id", po::value<int>()->default_value(0), "Id of the data provider, not needed in this version")
     ("filepath", po::value<string>()->required(), "Name of the image file for which shares should be created")
@@ -53,9 +59,15 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
+  options.cs0_ip = vm["compute-server0-ip"].as<std::string>();
   options.cs0_port = vm["compute-server0-port"].as<int>();
+
+  options.cs1_ip = vm["compute-server1-ip"].as<std::string>();
   options.cs1_port = vm["compute-server1-port"].as<int>();
-  options.NameofImageFile = vm["NameofImageFile"].as<std::string>();
+
+  options.index = vm["index"].as<int>();
+  options.NameofImageFile = "X"+ std::to_string(options.index);
+  //vm["NameofImageFile"].as<std::string>();
   options.fullfilepath = vm["filepath"].as<std::string>();
 
   options.fractional_bits = vm["fractional-bits"].as<size_t>();
@@ -198,6 +210,9 @@ int share_generation_csv(std::ifstream& indata, int num_elements, Shares* cs0_da
   return actual_ans;
 }
 
+
+
+
 // void write_struct(tcp::socket &socket, Shares *data, int num_elements)
 // {
 //      for (int i = 0; i < num_elements; i++)
@@ -278,11 +293,13 @@ int main(int argc, char* argv[]) {
     // socket creation
     tcp::socket socket(io_service);
 
+    auto ip = options->cs0_ip;
     auto port = options->cs0_port;
     // if(i) {
     //      port = options->cs1_port;
     // }
     if (i) {
+      ip = options->cs1_ip;
       port = options->cs1_port;
       // socket.connect( tcp::endpoint( boost::asio::ip::address::from_string("192.168.1.118"), port
       // )); socket.connect(tcp::endpoint(boost::asio::ip::address::from_string("192.168.1.137"),
@@ -295,28 +312,55 @@ int main(int argc, char* argv[]) {
     // }
 
     // connection
-    socket.connect(tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port));
+    socket.connect(tcp::endpoint(boost::asio::ip::address::from_string(ip), port));
+    // /////////////////////Send name of the image file ///////////////////
+    // boost::system::error_code error_index;
+    // auto str = options->NameofImageFile;
+    // int index = options->index;
+    // boost::asio::write(socket, boost::asio::buffer(&index, sizeof(index)), error_index);
 
-    //////////Send actual answer first///////////////////////
-    boost::system::error_code error;
-    boost::asio::write(socket, boost::asio::buffer(&actual_answer, sizeof(actual_answer)), error);
+    // if (!error_index) {
+    //   cout << "Sent index of image file " << endl;
+     
+    // } else {
+    //   cout << "send of index of image file failed failed: " << error_index.message() << endl;
+    // }
 
-    if (!error) {
-      cout << "sent actual answer: " << endl;
-      cout << "Actual answer3:" << actual_answer << "\n";
-    } else {
-      cout << "send of actual answer failed: " << error.message() << endl;
-    }
+    // // getting a response from the server
+    // boost::asio::streambuf receive_buffer_index;
+    // boost::asio::read_until(socket, receive_buffer_index, "\n");
+    // if (error_index && error_index != boost::asio::error::eof) {
+    //   cout << "receive failed: " << error_index.message() << endl;
+    // } else {
+    //   const char* data = boost::asio::buffer_cast<const char*>(receive_buffer_index.data());
+    //   cout << data << endl;
+    // }
 
-    // getting a response from the server
-    boost::asio::streambuf receive_buffer_actualanswer;
-    boost::asio::read_until(socket, receive_buffer_actualanswer, "\n");
-    if (error && error != boost::asio::error::eof) {
-      cout << "receive failed: " << error.message() << endl;
-    } else {
-      const char* data = boost::asio::buffer_cast<const char*>(receive_buffer_actualanswer.data());
-      cout << data << endl;
-    }
+
+
+
+    //////////Send actual answer ///////////////////////
+
+    //////////Don't send actual answer //////////////////////
+    // boost::system::error_code error;
+    // boost::asio::write(socket, boost::asio::buffer(&actual_answer, sizeof(actual_answer)), error);
+
+    // if (!error) {
+    //   cout << "sent actual answer: " << endl;
+    //   cout << "Actual answer3:" << actual_answer << "\n";
+    // } else {
+    //   cout << "send of actual answer failed: " << error.message() << endl;
+    // }
+
+    // // getting a response from the server
+    // boost::asio::streambuf receive_buffer_actualanswer;
+    // boost::asio::read_until(socket, receive_buffer_actualanswer, "\n");
+    // if (error && error != boost::asio::error::eof) {
+    //   cout << "receive failed: " << error.message() << endl;
+    // } else {
+    //   const char* data = boost::asio::buffer_cast<const char*>(receive_buffer_actualanswer.data());
+    //   cout << data << endl;
+    // }
 
     // First send the number of fractional bits to the server
     boost::system::error_code error_init;
@@ -342,7 +386,7 @@ int main(int argc, char* argv[]) {
     // Send rows and columns to compute server
     std::cout << "in image provider Rows:" << rows << " Columns:" << columns;
     int arr[2] = {rows, columns};
-    // boost::system::error_code error;
+     boost::system::error_code error;
     boost::asio::write(socket, boost::asio::buffer(&arr, sizeof(arr)), error);
     if (!error) {
       cout << "Not an error" << endl;
@@ -367,7 +411,7 @@ int main(int argc, char* argv[]) {
     }
     cout << "Actual answer2:" << actual_answer << "\n";
     write_struct(socket, data1, num_elements);
-
+    int validation_bit = 1;
     socket.close();
   }
   return 0;

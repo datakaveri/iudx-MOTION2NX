@@ -1,3 +1,5 @@
+//  ./bin/weights_provider --compute-server0-ip 127.0.0.1 --compute-server0-port 1234 --compute-server1-ip 127.0.0.1 --compute-server1-port 1235 --dp-id 0 --fractional-bits 13 --filepath ${BASE_DIR}/Dataprovider/weights_provider
+
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -21,7 +23,9 @@ using std::endl;
 using std::string;
 
 struct Options {
+  std::string cs0_ip;
   int cs0_port;
+  std::string cs1_ip;
   int cs1_port;
   std::size_t fractional_bits;
   std::filesystem::path filename;
@@ -34,7 +38,9 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
+    ("compute-server0-ip", po::value<std::string>()->default_value("127.0.0.1"), "IP address of compute server 0")
     ("compute-server0-port", po::value<int>()->required(), "Port number of compute server 0")
+    ("compute-server1-ip", po::value<std::string>()->default_value("127.0.0.1"), "IP address of compute server 1")
     ("compute-server1-port", po::value<int>()->required(), "Port number of compute server 1")
     ("fractional-bits", po::value<size_t>()->required(), "Number of fractional bits")
     ("dp-id", po::value<int>()->required(), "Id of the data provider")
@@ -50,7 +56,10 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
+  options.cs0_ip = vm["compute-server0-ip"].as<std::string>();
   options.cs0_port = vm["compute-server0-port"].as<int>();
+
+  options.cs1_ip = vm["compute-server1-ip"].as<std::string>();
   options.cs1_port = vm["compute-server1-port"].as<int>();
 
   options.fractional_bits = vm["fractional-bits"].as<size_t>();
@@ -161,7 +170,7 @@ class Matrix {
   struct Shares *cs0_data, *cs1_data;
 
  public:
-  Matrix(int row, int col, std::string fileName, std::size_t fraction_bits) {
+  Matrix(int row, int col, std::string fileName, std::size_t fraction_bits, const Options& options) {
     rows = row;
     columns = col;
     num_elements = row * col;
@@ -262,7 +271,7 @@ class Matrix {
     return;
   }
 
-  void sendToServers() {
+  void sendToServers(const Options& options) {
     std::cout << "Sending to servers\n";
 
     for (int i = 0; i < 2; i++) {
@@ -275,13 +284,15 @@ class Matrix {
       // socket creation
       tcp::socket socket(io_service);
 
-      auto port = 1234;
+      auto port = options.cs0_port;
+      auto ip = options.cs0_ip;
       if (i) {
-        port = 1235;
+        port = options.cs1_port;
+        ip = options.cs1_ip;
       }
 
       // connection
-      socket.connect(tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port));
+      socket.connect(tcp::endpoint(boost::asio::ip::address::from_string(ip), port));
 
       // First send the number of fractional bits to the server
       boost::system::error_code error_init;
@@ -335,6 +346,38 @@ class Matrix {
   }
 };
 
+void send_confirmation(const Options& options) {
+
+  int validation_bit = 1;
+
+  // for (int i = 0; i < 2; i++) {
+      
+  // }
+  // std::cin.ignore();
+      sleep(10);
+      cout << "\nStart of send to compute server\n";
+
+      boost::asio::io_service io_service;
+
+      // socket creation
+      tcp::socket socket(io_service);
+
+      auto port = options.cs0_port;
+      auto ip = options.cs0_ip;
+      //if (i) {
+      //  port = options.cs1_port;
+      //  ip = options.cs1_ip;
+      // }
+
+      // connection
+      socket.connect(tcp::endpoint(boost::asio::ip::address::from_string(ip), port));
+      boost::system::error_code error_init;
+      boost::asio::write(socket, boost::asio::buffer(&validation_bit, sizeof(validation_bit)),
+                         error_init);
+
+      socket.close();
+}
+
 int main(int argc, char* argv[]) {
   auto options = parse_program_options(argc, argv);
 
@@ -343,31 +386,33 @@ int main(int argc, char* argv[]) {
   }
   std::string p1 = options->fullfilepath + "/newW1.csv";
   // dimensions should be 512*784
-  Matrix weightL1 = Matrix(256, 784, p1, options->fractional_bits);
+  Matrix weightL1 = Matrix(256, 784, p1, options->fractional_bits, *options);
   weightL1.readMatrixCSV();
   weightL1.generateShares();
-  weightL1.sendToServers();
+  weightL1.sendToServers(*options);
 
   p1 = options->fullfilepath + "/newB1.csv";
   // dimensions should be 512*1
-  Matrix biasL1 = Matrix(256, 1, p1, options->fractional_bits);
+  Matrix biasL1 = Matrix(256, 1, p1, options->fractional_bits, *options);
   biasL1.readMatrixCSV();
   biasL1.generateShares();
-  biasL1.sendToServers();
+  biasL1.sendToServers(*options);
 
   p1 = options->fullfilepath + "/newW2.csv";
   // dimensions should be 256*512
-  Matrix weightL2 = Matrix(10, 256, p1, options->fractional_bits);
+  Matrix weightL2 = Matrix(10, 256, p1, options->fractional_bits, *options);
   weightL2.readMatrixCSV();
   weightL2.generateShares();
-  weightL2.sendToServers();
+  weightL2.sendToServers(*options);
 
   p1 = options->fullfilepath + "/newB2.csv";
   // dimensions should be 256*1
-  Matrix biasL2 = Matrix(10, 1, p1, options->fractional_bits);
+  Matrix biasL2 = Matrix(10, 1, p1, options->fractional_bits, *options);
   biasL2.readMatrixCSV();
   biasL2.generateShares();
-  biasL2.sendToServers();
+  biasL2.sendToServers(*options);
+
+  send_confirmation(*options);
 
   biasL2.printData();
   return 0;

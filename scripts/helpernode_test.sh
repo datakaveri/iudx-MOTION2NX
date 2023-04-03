@@ -21,7 +21,7 @@ fi
 
 # image_ids=(1)
 # for i in "${image_ids[@]}"
-for((i=1;i<=10;i++))
+for((i=1;i<=2;i++))
 do 
 echo 
 echo "Inferencing task of example X$i"
