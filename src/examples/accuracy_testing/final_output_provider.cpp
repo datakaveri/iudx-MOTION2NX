@@ -60,6 +60,7 @@ struct Options {
   int x;
   std::string fullfilepath;
   std::string currentpath;
+  std::string ip;
 };
 
 // struct Shares {
@@ -150,7 +151,9 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("config-input", po::value<std::string>()->required(), "Path of the input from build_debwithrelinfo folder")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
     ("connection-port", po::value<int>()->required(), "Port number on which to send request for connection")
-     ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
+    ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
+    ("connection-ip",po::value<std::string>()->default_value("127.0.0.1"), "current path build_debwithrelinfo")
+
     ;
   // clang-format on
 
@@ -178,6 +181,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.currentpath = vm["current-path"].as<std::string>();
   // options.filepath = vm["config-filename"].as<std::string>();
   options.inputfilename = vm["config-input"].as<std::string>();
+  options.ip = vm["connection-ip"].as<std::string>();
   if (options.my_id > 1) {
     std::cerr << "my-id must be one of 0 and 1\n";
     return std::nullopt;
@@ -280,7 +284,7 @@ int main(int argc, char* argv[]) {
 
   auto port = options->port_number;
 
-  socket.connect(tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port));
+  socket.connect(tcp::endpoint(boost::asio::ip::address::from_string(options->ip), port));
 
   //////////Send data///////////////////////
   boost::system::error_code error;

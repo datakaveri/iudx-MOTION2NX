@@ -7,6 +7,12 @@
 ./bin/weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --dp-id 0
 --fractional-bits $fractional_bits --filepath $build_path_model
 
+./bin/Weights_Share_Receiver --my-id 0 --port 1234 --file-names
+${BASE_DIR}/config_files/file_config_model --current-path ${BASE_DIR}/build_debwithrelinfo_gcc
+
+./bin/Weights_Share_Receiver --my-id 1 --port 1235 --file-names
+${BASE_DIR}/config_files/file_config_model --current-path ${BASE_DIR}/build_debwithrelinfo_gcc
+
 */
 /* This code generates shares files for w1,b1,w2,b2.
 This function needs a config file as input sample file_config_weights_1.txt is as follows
@@ -102,6 +108,7 @@ struct Options {
   int actual_answer;
   std::vector<std::string> filepaths;
   std::string currentpath;
+  int port;
 };
 
 void read_filenames(Options* options) {
@@ -164,14 +171,14 @@ void generate_filepaths(Options* options) {
   }
 }
 
-void retrieve_shares(int port_number, Options* options) {
+void retrieve_shares(Options* options) {
   std::ofstream file;
 
   ////////////////////////////////////////////////////////////
 
   for (auto i = 0; i < 4; i++) {
     std::cout << "Reading shares from weights provider \n";
-    auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(port_number);
+    auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(options->port);
     // auto [q1,q2,q3] = COMPUTE_SERVER::get_provider_mat_mul_data_new(port_number);
     std::vector<COMPUTE_SERVER::Shares> input_values_dp1 = pair2.second.first;
     // std::vector<COMPUTE_SERVER::Shares> input_values_dp1 = q3.first;
@@ -222,6 +229,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("config-file", po::value<std::string>(), "config file containing options")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
+    ("port" , po::value<int>()->required(), "Port number on which to listen")
     ("threads", po::value<std::size_t>()->default_value(0), "number of threads to use for gate evaluation")
     ("json", po::bool_switch()->default_value(false), "output data in JSON format")
     ("num-simd", po::value<std::size_t>()->default_value(1), "number of SIMD values")
@@ -253,6 +261,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   }
 
   options.my_id = vm["my-id"].as<std::size_t>();
+  options.port = vm["port"].as<int>();
   options.threads = vm["threads"].as<std::size_t>();
   options.json = vm["json"].as<bool>();
   options.num_simd = vm["num-simd"].as<std::size_t>();
@@ -273,17 +282,47 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     generate_filepaths(&options);
   }
 
-  if (options.my_id == 0) {
-    retrieve_shares(1234, &options);
-  } else {
-    retrieve_shares(1235, &options);
-  }
+  // if (options.my_id == 0) {
+  //   retrieve_shares(1234, &options);
+  // } else {
+  //   retrieve_shares(1235, &options);
+  // }
+
+  retrieve_shares(&options);
 
   return options;
 }
 
+void get_confirmation(const Options& options) {
+  boost::asio::io_service io_service;
+
+  // listen for new connection
+  tcp::acceptor acceptor_(io_service, tcp::endpoint(tcp::v4(), options.port));
+
+  // socket creation
+  tcp::socket socket_(io_service);
+
+  // waiting for the connection
+  acceptor_.accept(socket_);
+
+  // Read and write the number of fractional bits
+  boost::system::error_code ec;
+  int validation_bit;
+  read(socket_, boost::asio::buffer(&validation_bit, sizeof(validation_bit)), ec);
+  if (ec) {
+    std::cout << ec << "\n";
+  } else {
+    std::cout << "No Error, have received validation bit\n";
+  }
+}
+
 int main(int argc, char* argv[]) {
   auto options = parse_program_options(argc, argv);
+
+  if(options->my_id == 0) {
+  	get_confirmation(*options);
+  }
+
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
