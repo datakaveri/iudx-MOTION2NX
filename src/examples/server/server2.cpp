@@ -27,9 +27,9 @@ int c1 = 1;
 int c2 = 1;
 int c3 = 1;
 int c4 = 1;
-
-std::vector<std::uint8_t> mes_z;
-std::vector<std::uint8_t> mes_r;
+std::uint64_t w_rows=0,w_cols=0,x_rows=0,x_cols=0;
+std::vector<std::uint8_t> msg_Z;
+std::vector<std::uint8_t> msg_R;
 namespace po = boost::program_options;
 
 struct Options {
@@ -44,7 +44,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
   ;
  
- po::variables_map vm;
+  po::variables_map vm;
    po::store(po::parse_command_line(argc, argv, desc), vm);
   bool help = vm["help"].as<bool>();
   if (help) {
@@ -52,7 +52,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
-   try {
+  try {
     po::notify(vm);
   } catch (std::exception& e) {
     std::cerr << "error:" << e.what() << "\n\n";
@@ -60,8 +60,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
-// clang-format on;
-return options;
+  // clang-format on;
+  return options;
 }
 void print_message(std::vector<std::uint8_t>& message) {
   for (auto i = 0; i < message.size(); i++) {
@@ -110,11 +110,11 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&w0,std::vector<uint
 
     std::vector<std::uint64_t>tempw;
     int count=2;
-    for(int i=0;i<256;i++)
+    for(int i=0;i<w0[0];i++)
     { 
       tempw.push_back(w0[0]);
       tempw.push_back(x0[1]);
-      for(int k=2;k<786;k++)
+      for(int k=0;k<w0[1];k++)
       {
         tempw.push_back(w0[count]);
         count++;
@@ -151,8 +151,6 @@ void operations()
     //to skip rows and columns 
     advance(w0_begin, 2);
     advance(w1_begin, 2);
-
-
     auto x0_begin = x0.begin(); //784*!
     auto x1_begin = x1.begin(); //784*1
     auto x0_end = x0.end();
@@ -191,7 +189,7 @@ void operations()
       auto temp=blah(gen);
       r[i]=temp;
     }
-    
+    std::cout<<"r size:"<<r.size()<<std::endl;
     auto r_begin = r.begin();
     advance(r_begin,2);
 
@@ -212,86 +210,85 @@ void operations()
    for(int i=0;i<z.size();i++)
    {
     // std::cout<<i+1<<". "<<z[i]<<" "<<r[i]<<"\n"; //s1 s0
-    adduint64(z[i],mes_z); //z=z-r  server1
-    adduint64(r[i],mes_r); //r  server0
+    adduint64(z[i],msg_Z); //z=z-r  server1
+    adduint64(r[i],msg_R); //r  server0
+    std::cout<<"z[]= "<<z[i]<<" r[]= "<<r[i]<<std::endl;
    }
    
 }
 
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
   void received_message(std::size_t party_id, std::vector<std::uint8_t>&&message) {
-    std::cout << "Message received from party " << party_id << ":\n";
-    
+    // std::cout << "Message received from party " << party_id << ":\n";
     //(w0 -> 256*784, x0 ->784*1 server0) ,(w1 -> 256*784 , x1->784*1 server1)
-    int size_mes=message.size()/8;
-    std::cout<<"Size_mes : "<<size_mes<<"\n";
+    int size_msg=message.size()/8;
+    std::cout<<"Received message of size "<<size_msg<<" from party "<<party_id<<std::endl;
     
     auto i=0;
-    for(i=1;i<message.size()/8;i++)
+    for(i=1;i<size_msg;i++)
     { 
       auto temp=getuint64(message,i);
       if(i==1 && c1==1 && party_id==0)
       {
-          auto rows=getuint64(message,i-1);
-          auto col=getuint64(message,i);
-          w0.push_back(rows);
-          w0.push_back(col);
+          w_rows=getuint64(message,i-1);
+          w_cols=getuint64(message,i);
+          w0.push_back(w_rows);
+          w0.push_back(w_cols);
           c1++;
       }
       else if(i==1 && c2==1 && party_id==1)
       {
-          auto rows=getuint64(message,i-1);
-          auto col=getuint64(message,i);
-          w1.push_back(rows);
-          w1.push_back(col);
+          w_rows=getuint64(message,i-1);
+          w_cols=getuint64(message,i);
+          w1.push_back(w_rows);
+          w1.push_back(w_cols);
           c2++;
       }
       else if(i==1 && c3==1 && party_id==0)
       {
-          auto rows=getuint64(message,i-1);
-          auto col=getuint64(message,i);
-          x0.push_back(rows);
-          x0.push_back(col);
+          x_rows=getuint64(message,i-1);
+          x_cols=getuint64(message,i);
+          x0.push_back(x_rows);
+          x0.push_back(x_cols);
           c3++;
       }
       else if(i==1 && c4==1 && party_id==1)
       {
-          auto rows=getuint64(message,i-1);
-          auto col=getuint64(message,i);
-          x1.push_back(rows);
-          x1.push_back(col);
+          x_rows=getuint64(message,i-1);
+          x_cols=getuint64(message,i);
+          x1.push_back(x_rows);
+          x1.push_back(x_cols);
           c4++;
       }
-      else if(c1>=2 && c1<=(784*256+1) && i>1 && party_id==0)
+      else if(c1>=2 && c1<=(w_cols*w_rows+1) && i>1 && party_id==0)
       {
           w0.push_back(temp);
           c1++;
       }
-      else if(c2>=2 && c2<=(784*256+1) && i>1 && party_id==1)
+      else if(c2>=2 && c2<=(w_cols*w_rows+1) && i>1 && party_id==1)
       {// std::cout<<temp<<"\n";
           w1.push_back(temp);
           c2++;
       }
-      else if(c3>=2 && c3<=785 && i>1 && party_id==0)
+      else if(c3>=2 && c3<=x_rows+1 && i>1 && party_id==0)
       {// std::cout<<temp<<"\n";
           x0.push_back(temp);
           c3++;
       }
-      else if(c4>=2 && c4<=785&& i>1 && party_id==1)
+      else if(c4>=2 && c4<=x_rows+1 && i>1 && party_id==1)
       {// std::cout<<temp<<"\n";
           x1.push_back(temp);
           c4++;
       }
     }
-    
+    std::cout<<"W0 size="<<w0.size()<<" W1 size="<<w1.size()<<" X0 size="<<x0.size()<<" X1 size="<<x1.size()<<std::endl;
     std::cout<<"c1 : "<<c1<<" "<<"c2 : "<<c2<<" "<<"c3 : "<<c3<<" "<<"c4 : "<<c4<<"\n";
-    
-    if(c1==(784*256+2) && c2==(784*256+2) && c3==786 && c4==786)
+    std::cout<<"w_rows="<<w_rows<<" w_cols="<<w_cols<<std::endl;
+    if(c1==(w_cols*w_rows+2) && c2==(w_cols*w_rows+2) && c3==w_cols+2 && c4==w_cols+2)
     { 
-       std::cout<<"operations:-\n";
+      std::cout<<"operations:-\n";
       operations();
     }
-  
   }
 };
 
@@ -302,7 +299,7 @@ int main(int argc, char* argv[]) {
   const auto num_parties = 3;
   int my_id = 2;
   auto options = parse_program_options(argc, argv);
-  std::cout<<"my_id:"<<my_id<<"\n";
+  // std::cout<<"my_id:"<<my_id<<"\n";
 
   MOTION::Communication::tcp_parties_config config;
   config.reserve(num_parties);
@@ -316,24 +313,19 @@ int main(int argc, char* argv[]) {
 
   auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
   comm_layer->set_logger(logger);
-  
-
-
   comm_layer->start();
-
- 
   comm_layer->register_fallback_message_handler(
       [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
   
-  std::cout<<"Mesz:"<<mes_z.size();
-  std::cout<<"Mesr:"<<mes_r.size();
+  std::cout<<"Received Msg Z of size:"<<msg_Z.size()<<std::endl;
+  std::cout<<"Received Msg R of size:"<<msg_R.size()<<std::endl;
 
   sleep(20);
 
-  std::cout<<"Mesz:"<<mes_z.size();
-  std::cout<<"Mesr:"<<mes_r.size();
+  std::cout<<"Received Msg Z of size:"<<msg_Z.size()<<std::endl;
+  std::cout<<"Received Msg R of size:"<<msg_R.size()<<std::endl;
 
-  comm_layer->send_message(1,mes_z);//z
-  comm_layer->send_message(0,mes_r);//z-r
+  comm_layer->send_message(1,msg_Z);//z
+  comm_layer->send_message(0,msg_R);//z-r
   comm_layer->shutdown();
 }

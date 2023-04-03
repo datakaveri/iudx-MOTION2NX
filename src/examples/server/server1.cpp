@@ -24,12 +24,14 @@ std::vector<std::uint64_t> Z;  //
 std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum;
 int flag = 0;
+std::uint64_t fractional_bits;
 namespace po = boost::program_options;
 
 struct Options {
   std::string file1;
   std::size_t file2;
   std::string path;
+  std::size_t fractional_bits;
 };
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -40,6 +42,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("fn1", po::value<std::string>()->required(), "my party id")  
     ("fn2", po::value<std::size_t>()->required(), "receiver party id") 
+    ("fractional-bits", po::value<std::size_t>()->required(), "Number of fractional bits") 
     ("current-path", po::value<std::string>()->required(), "currentpath") 
   ;
  
@@ -62,7 +65,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.file1 = vm["fn1"].as<std::string>();
   options.file2 = vm["fn2"].as<std::size_t>();
   options.path = vm["current-path"].as<std::string>();
-
+  options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
+  fractional_bits = options.fractional_bits;
 // clang-format on;
 return options;
 }
@@ -74,6 +78,7 @@ void print_message(std::vector<std::uint8_t>& message) {
 }
 
 std::uint64_t getuint64(std::vector<std::uint8_t>& message, int index) {
+  //Converts 8->64
   std::uint64_t num = 0;
   for (auto i = 0; i < 8; i++) {
     num = num << 8;
@@ -83,6 +88,7 @@ std::uint64_t getuint64(std::vector<std::uint8_t>& message, int index) {
 }
 
 void adduint64(std::uint64_t num, std::vector<std::uint8_t>& message) {
+  //Converts 64->8
   for (auto i = 0; i < sizeof(num); i++) {
     std::uint8_t byte = num & 0xff;
     message.push_back(byte);
@@ -101,6 +107,12 @@ std::uint64_t blah(E &engine)
 
 std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint64_t>&b)
 {
+    if(a[1]!=b[0])
+      {
+        std::cerr<<"Error during matrix multiplication. Number of columns in W is not equal to Number of rows in X.";
+        exit(1);
+      }
+    std::cout<<"In multiplicate, a[0]="<<a[0]<<" a[1]="<<a[1]<<" b[0]="<<b[0]<<" b[1]="<<b[1]<<std::endl;
     auto b_begin = b.begin();
     advance(b_begin, 2);
     std::vector<std::uint64_t>z;
@@ -109,11 +121,11 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
 
     std::vector<std::uint64_t>tempw;
     int count=2;
-    for(int i=0;i<256;i++)
+    for(int i=0;i<a[0];i++)
     { 
       tempw.push_back(a[0]);
       tempw.push_back(b[1]);
-      for(int k=2;k<786;k++)
+      for(int k=0;k<a[1];k++)
       {
         tempw.push_back(a[count]);
         count++;
@@ -180,13 +192,14 @@ void operations()
 
 //---------------------------------------------------------------------------------------------------------------------------
 
-     auto z_begin = Z.begin();
-     auto z_end = Z.end();
-     advance(z_begin,2 );
-    //   for(int i=0;i<Z.size();i++)
-    //  {
-    //    std::cout<<"Z:"<<Z[i]<<"\n";
-    //  }     
+    auto z_begin = Z.begin();
+    auto z_end = Z.end();
+    advance(z_begin,2 );
+    // for(int i=0;i<Z.size();i++)
+    // {
+    //   std::cout<<"Z:"<<Z[i]<<"\n";
+    // }     
+    std::cout<<"prod1 size:"<<prod1.size()<<"  Z size:"<<Z.size()<<std::endl;
   
    //z=z-Delw*delx
    //z=z-prod1
@@ -201,7 +214,7 @@ void operations()
 
     for(int i=2;i<Z.size();i++)
      {
-       Z[i] = MOTION::new_fixed_point::truncate(Z[i], 13);
+       Z[i] = MOTION::new_fixed_point::truncate(Z[i], fractional_bits);
        std::cout<<"Z:"<<Z[i]<<"\n";
      }  
 
@@ -238,15 +251,19 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
      int k = message.size() / 8;
     if(party_id==2)
     {
-    std::cout << message.size() << "\n";
-    std::cout << "recieved message is :\n";
+    std::cout <<"Message size: "<<message.size() <<std::endl;
+    if(message.size()<=0)
+      {
+        std::cerr<<"Empty message received from party "<<party_id<<std::endl;
+        exit(1);
+      }
+    std::cout << "Received message is :\n";
     for (auto i = 0; i < k; ++i) {
       auto temp = getuint64(message, i);
       // std::cout << temp << ",";
       Z.push_back(temp);
     }
     std::cout<<"\n\n";
-    std::cout << std::endl;
     if (Z.size() == k) {
       operations();
       flag++;
@@ -255,7 +272,7 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
   else if(party_id==0)
   { 
     std::vector<std::uint64_t>Final_public;
-    std::cout << message.size() << "\n";
+    std::cout <<"After receiving from P0 , message size : "<< message.size() << "\n"; 
     for(int i=0;i<k;i++)
     { 
       auto temp = getuint64(message, i);
@@ -332,53 +349,53 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
 
     std::ifstream file(w1path);
     if (!file) {
-      std::cerr << " Error in opening file\n";
+      std::cerr << " Error in opening the weights file\n";
+      exit(1);
     }
     std::uint64_t rows, col;
     file >> rows >> col;
     std::cout<<rows<<" "<<col;
 
     if (file.eof()) {
-      std::cerr << "File doesn't contain rows and columns" << std::endl;
+      std::cerr << "Weights File doesn't contain rows and columns" << std::endl;
       exit(1);
     }
 
     auto k = 0;
-      adduint64(rows, message);
-      adduint64(col, message);
-       wpublic.push_back(rows);
-       wpublic.push_back(col);
-       wsecret.push_back(rows);
-       wsecret.push_back(col);
-      while (k < rows * col) {
-
-        std::uint64_t public_share, secret_share;
-        file >> public_share;
-        wpublic.push_back(public_share);
-        file >> secret_share;
-        wsecret.push_back(secret_share);
-        if (file.eof()) {
-          std::cerr << "File contains less number of elements" << std::endl;
-          exit(1);
-        }
-        // std::cout << num << std::endl;
-        adduint64(secret_share, message);
-        k++;
+    adduint64(rows, message);
+    adduint64(col, message);
+    wpublic.push_back(rows);
+    wpublic.push_back(col);
+    wsecret.push_back(rows);
+    wsecret.push_back(col);
+    while (k < rows * col) {
+      std::uint64_t public_share, secret_share;
+      file >> public_share;
+      wpublic.push_back(public_share);
+      file >> secret_share;
+      wsecret.push_back(secret_share);
+      if (file.eof()) {
+        std::cerr << "File contains less number of elements" << std::endl;
+        exit(1);
       }
-      std::cout<<"k:"<<k<<"\n";
-      if (k == rows * col) {
-        std::uint64_t num;
-        file >> num;
-        if (!file.eof()) {
-          std::cerr << "File contains more number of elements" << std::endl;
-          exit(1);
-        }
+      // std::cout << num << std::endl;
+      adduint64(secret_share, message);
+      k++;
+    }
+    std::cout<<"Number of shares read: "<<k<<"\n"; 
+    if (k == rows * col) {
+      std::uint64_t num;
+      file >> num;
+      if (!file.eof()) {
+        std::cerr << "File contains more number of elements" << std::endl;
+        exit(1);
       }
-      file.close();
+    }
+    file.close();
 
-      file.open(b1path);
-      if (!file) {
-      std::cerr << " Error in opening file\n";
+    file.open(b1path);
+    if (!file) {
+    std::cerr << " Error in opening bias file\n";
     }
     file >> rows >> col;
     std::cout<<rows<<" "<<col<<"\n";
@@ -388,35 +405,33 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
       exit(1);
     }
        
-       auto j=0;
-       bpublic.push_back(rows);
-       bpublic.push_back(col);
-       bsecret.push_back(rows);
-       bsecret.push_back(col);
-      while (j < rows * col) {
-        std::uint64_t public_share, secret_share;
-        file >> public_share;
-        bpublic.push_back(public_share);
-        file >> secret_share;
-        bsecret.push_back(secret_share);
-        std::cout<<public_share<<" "<<secret_share<<"\n";
-        if (file.eof()) {
-          std::cerr << "File contains less number of elements" << std::endl;
-          exit(1);
-        }
-        j++;
+    auto j=0;
+    bpublic.push_back(rows);
+    bpublic.push_back(col);
+    bsecret.push_back(rows);
+    bsecret.push_back(col);
+    while (j < rows * col) {
+      std::uint64_t public_share, secret_share;
+      file >> public_share;
+      bpublic.push_back(public_share);
+      file >> secret_share;
+      bsecret.push_back(secret_share);
+      // std::cout<<public_share<<" "<<secret_share<<"\n";
+      if (file.eof()) {
+        std::cerr << "File contains less number of elements" << std::endl;
+        exit(1);
       }
-      if (j == rows * col) {
-        std::uint64_t num;
-        file >> num;
-        if (!file.eof()) {
-          std::cerr << "File contains more number of elements" << std::endl;
-          exit(1);
-        }
+      j++;
+    }
+    if (j == rows * col) {
+      std::uint64_t num;
+      file >> num;
+      if (!file.eof()) {
+        std::cerr << "File contains more number of elements" << std::endl;
+        exit(1);
       }
-
-      file.close();
-
+    }
+    file.close();
   }
   else if(p==2)
   {
@@ -425,7 +440,8 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
     fullname += "/server" + std::to_string(my_id) + "/Image_shares/ip" + name;
     std::ifstream file(fullname);
     if (!file) {
-      std::cerr << " Error in opening file\n";
+      std::cerr << " Error in opening image file\n";
+      exit(1);
     }
     std::uint64_t rows, col;
     file >> rows >> col;
@@ -434,37 +450,36 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
       std::cerr << "File doesn't contain rows and columns" << std::endl;
       exit(1);
     }
-     auto k = 0;
-      adduint64(rows, message);
-      adduint64(col, message);
-       xpublic.push_back(rows);
-       xpublic.push_back(col);
-       xsecret.push_back(rows);
-       xsecret.push_back(col);
-      while (k < rows * col) {
-
-        std::uint64_t public_share, secret_share;
-        file >> public_share;
-        xpublic.push_back(public_share);
-        file >> secret_share;
-        xsecret.push_back(secret_share);
-        if (file.eof()) {
-          std::cerr << "File contains less number of elements" << std::endl;
-          exit(1);
-        }
+    auto k = 0;
+    adduint64(rows, message);
+    adduint64(col, message);
+    xpublic.push_back(rows);
+    xpublic.push_back(col);
+    xsecret.push_back(rows);
+    xsecret.push_back(col);
+    while (k < rows * col) {
+      std::uint64_t public_share, secret_share;
+      file >> public_share;
+      xpublic.push_back(public_share);
+      file >> secret_share;
+      xsecret.push_back(secret_share);
+      if (file.eof()) {
+        std::cerr << "File contains less number of elements" << std::endl;
+        exit(1);
+      }
         // std::cout << num << std::endl;
-        adduint64(secret_share, message);
-        k++;
+      adduint64(secret_share, message);
+      k++;
       }
-      if (k == rows * col) {
-        std::uint64_t num;
-        file >> num;
-        if (!file.eof()) {
-          std::cerr << "File contains more number of elements" << std::endl;
-          exit(1);
+    if (k == rows * col) {
+      std::uint64_t num;
+      file >> num;
+      if (!file.eof()) {
+        std::cerr << "File contains more number of elements" << std::endl;
+        exit(1);
         }
       }
-      file.close();
+    file.close();
   }
 }
 
@@ -500,8 +515,8 @@ int main(int argc, char* argv[]) {
 
   int r_party_id=2;
   
-  std::cout<<"Message1: "<<message1.size()<<"\n";
-  std::cout<<"Message2: "<<message2.size()<<"\n";
+  std::cout<<"Message1 size: "<<message1.size()<<"\n";
+  std::cout<<"Message2 size: "<<message2.size()<<"\n";
 
   comm_layer->send_message(r_party_id, message1);
   comm_layer->send_message(r_party_id, message2);
@@ -511,7 +526,7 @@ int main(int argc, char* argv[]) {
   sleep(30);
 
    if(flag==2)
-   {std::cout<<"Mesagez :"<<Z.size()<<"\n";
+   {std::cout<<"Message z size:"<<Z.size()<<"\n";
    std::cout<<"Last:\n";
    std::vector<std::uint8_t>mes1;
   for(int i=0;i<Z.size();i++)

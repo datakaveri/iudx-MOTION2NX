@@ -21,7 +21,7 @@ fi
 
 # image_ids=(1)
 # for i in "${image_ids[@]}"
-for((i=1;i<=10;i++))
+for((i=9;i<=9;i++))
 do 
 echo 
 echo "Inferencing task of example X$i"
@@ -32,12 +32,12 @@ then
     input_config="ip$i"
 fi
 
-  $build_path/bin/server2 > $build_path/server0/debug_files/server2.txt &
-  pid1=$!
-  $build_path/bin/server1 --fn1 file_config_model1 --fn2 $i --current-path $build_path > $build_path/server0/debug_files/server1.txt &
-  pid2=$!
-  $build_path/bin/server0 --fn1 file_config_model0 --fn2 $i --current-path $build_path > $build_path/server0/debug_files/server0.txt &
-  pid3=$!
+$build_path/bin/server2 > $build_path/server0/debug_files/server2.txt &
+pid1=$!
+$build_path/bin/server1 --fn1 file_config_model1 --fn2 $i --current-path $build_path --fractional-bits $fractional_bits> $build_path/server0/debug_files/server1.txt &
+pid2=$!
+$build_path/bin/server0 --fn1 file_config_model0 --fn2 $i --current-path $build_path --fractional-bits $fractional_bits> $build_path/server0/debug_files/server0.txt &
+pid3=$!
 
 wait $pid1 $pid2 $pid3
 echo "layer 1 - gt mul is done"
