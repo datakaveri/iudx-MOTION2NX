@@ -1,5 +1,5 @@
 #! /bin/bash
-image_config=${BASE_DIR}/config_files/file_config_input
+image_config=${BASE_DIR}/config_files/file_config_input_remote
 model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 build_path_model=${BASE_DIR}/Dataprovider/weights_provider
@@ -29,8 +29,8 @@ port1_inference=4567
 
 fractional_bits=13
 
-# Index of the image for which inferencing task is run
-image_ids=(22)
+# # Index of the image for which inferencing task is run
+# image_id=23
 
 ##########################################################################################################################################
 if [ ! -d "$debug_0" ];
@@ -88,19 +88,15 @@ pid3=$!
 
 wait $pid3
 wait $pid2 
-echo "Weight Shares received"
+echo "Weight shares received"
 
 #########################Image Share Receiver ############################################################################################
 echo "Image Shares Receiver starts"
-for i in "${image_ids[@]}"
-do
 
 $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_1/Image_Share_Receiver.txt &
 pid2=$!
 
 wait $pid2
-
-done
 
 echo "Image shares received"
 #########################Share generators end ############################################################################################
@@ -109,31 +105,29 @@ echo "Image shares received"
 
 
 ########################Inferencing task starts ###############################################################################################
-for i in "${image_ids[@]}"
-# for((image_ids=1;image_ids<=5;image_ids++))
-do
- echo 
 
- echo "image_ids X"$i >> MemoryDetails1 
- echo "NN Inference for Image ID: $i"
- #number of splits
- splits=4
- echo "Number of splits for layer 1 matrix multiplication - $splits"
- x=$((256/splits))
+#  echo "image_ids X"$image_id >> MemoryDetails1 
+echo "Inferencing task of the image shared starts"
+
+#number of splits
+splits=4
+echo "Number of splits for layer 1 matrix multiplication - $splits"
+x=$((256/splits))
  
 ############################Inputs for inferencing tasks #######################################################################################
  for  (( m = 1; m <= $splits; m++ )) 
   do 
-layer_id=1
-input_config=" "
-if [ $layer_id -eq 1 ];
-then
-    input_config="ip$i"
-fi
-let l=$((m-1)) 
-	let a=$(((m-1)*x+1)) 
-	let b=$((m*x)) 
-	let r=$((l*x)) 
+   layer_id=1
+   input_config=" "
+   image_share="remote_image_shares"
+   if [ $layer_id -eq 1 ];
+   then
+      input_config="remote_image_shares"
+   fi
+   let l=$((m-1)) 
+   let a=$(((m-1)*x+1)) 
+   let b=$((m*x)) 
+   let r=$((l*x)) 
 
 #######################################Matrix multiplication layer 1 ###########################################################################
 
@@ -141,7 +135,7 @@ let l=$((m-1))
    $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path  > $build_path/server1/debug_files/tensor_gt_mul1_layer1_split.txt &
    pid1=$!
    wait $pid1  
-   echo "Layer 1, split $m - multiplication is done"
+   echo "Layer 1, split $m: Matrix multiplication and addition is done"
    
    if [ $m -eq 1 ];then
 
@@ -171,7 +165,7 @@ $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_ip,$port0_inference --pa
 pid1=$!
 
 wait $pid1 
-echo "layer 1 - ReLu is done"
+echo "Layer 1: ReLU is done"
 
 #######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
 ((layer_id++))
@@ -187,20 +181,20 @@ $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_ip,$port0_inference 
 pid1=$!
 
 wait $pid1 
-echo "layer 2 - matrix multiplicationa and addition  is done"
+echo "Layer 2: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
 
-$build_path/bin/argmax --my-id 1 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input X$i --current-path $build_path  > $build_path/server1/debug_files/argmax1_layer2.txt &
+$build_path/bin/argmax --my-id 1 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $build_path/server1/debug_files/argmax1_layer2.txt &
 pid1=$!
 
 
 wait $pid1 
-echo "layer 2 - argmax is done"
+echo "Layer 2: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
 
-$build_path/bin/final_output_provider --my-id 1 --connection-port 2233 --connection-ip $cs0_ip --config-input X$i --current-path $build_path > $build_path/server1/debug_files/final_output_provider1.txt &
+$build_path/bin/final_output_provider --my-id 1 --connection-port 2233 --connection-ip $cs0_ip --config-input $image_share --current-path $build_path > $build_path/server1/debug_files/final_output_provider1.txt &
 pid4=$!
 
 wait $pid4 
@@ -209,5 +203,24 @@ echo "Output shares of server 1 sent to the Image provider"
 wait 
 #kill $pid5 $pid6
 
+ awk '{ sum += $1 } END { print sum }' AverageTimeDetails1 >> AverageTime1
+#  > AverageTimeDetails1 #clearing the contents of the file
 
-done
+  sort -r -g AverageMemoryDetails1 | head  -1 >> AverageMemory1
+#  > AverageMemoryDetails1 #clearing the contents of the file
+
+echo -e "\nInferencing Finished"
+
+Mem=`cat AverageMemory1`
+Time=`cat AverageTime1`
+
+Mem=$(printf "%.2f" $Mem) 
+Convert_KB_to_GB=$(printf "%.14f" 9.5367431640625E-7)
+Mem2=$(echo "$Convert_KB_to_GB * $Mem" | bc -l)
+
+Memory=$(printf "%.3f" $Mem2)
+
+echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
+echo "Time taken by inferencing task:" $Time "ms"
+
+cd $scripts_path
