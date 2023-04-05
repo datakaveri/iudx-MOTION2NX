@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <fstream>
 #include <utility>
+#include <regex>
+#include <stdexcept>
 #include "communication/communication_layer.h"
 #include "communication/message_handler.h"
 #include "communication/tcp_transport.h"
@@ -27,6 +29,7 @@ int c1 = 1;
 int c2 = 1;
 int c3 = 1;
 int c4 = 1;
+int flag_server0=-1,flag_server1=-1;
 std::uint64_t w_rows=0,w_cols=0,x_rows=0,x_cols=0;
 std::vector<std::uint8_t> msg_Z;
 std::vector<std::uint8_t> msg_R;
@@ -34,6 +37,8 @@ namespace po = boost::program_options;
 
 struct Options {
   std::size_t my_id;
+  std::uint16_t my_port;
+  MOTION::Communication::tcp_parties_config tcp_config;
 };
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -42,6 +47,11 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
+    ("my_port",po::value<std::uint16_t>()->default_value(7002),"Helper node port number. Default is 7002")
+    ("party_0", po::value<std::string>()->multitoken(),
+     "(party0's IP, port), e.g., --party_0 127.0.0.1,7777")
+    ("party_1", po::value<std::string>()->multitoken(),
+     "(party1's IP, port), e.g., --party_1 127.0.0.1,7777")
   ;
  
   po::variables_map vm;
@@ -59,7 +69,27 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << desc << "\n";
     return std::nullopt;
   }
+  const auto parse_party_argument =
+      [](const auto& s) -> MOTION::Communication::tcp_connection_config {
+    const static std::regex party_argument_re("([^,]+),(\\d{1,5})");
+    std::smatch match;
+    if (!std::regex_match(s, match, party_argument_re)) {
+      throw std::invalid_argument("Invalid party argument: "+s);
+    }
+    auto host = match[1];
+    auto port = boost::lexical_cast<std::uint16_t>(match[2]);
+    return {host, port};
+  };
 
+  std::uint16_t my_port = vm["my_port"].as<std::uint16_t>();
+  const std::string party_0_info = vm["party_0"].as<std::string>();
+  const std::string party_1_info = vm["party_1"].as<std::string>();
+  options.tcp_config.resize(3);
+  const auto conn_info0 = parse_party_argument(party_0_info);
+  const auto conn_info1 = parse_party_argument(party_1_info);
+  options.tcp_config[0] = conn_info0;
+  options.tcp_config[1] = conn_info1;
+  options.tcp_config[2] = {"127.0.0.1",my_port};
   // clang-format on;
   return options;
 }
@@ -175,7 +205,7 @@ void operations()
     std::vector<std::uint64_t>z=multiplicate(w0,x0);
 
     //-----------------------------------------------------------------------------------------------
-    std::cout<<"z size: "<<z.size()<<"\n";
+    std::cout<<"Computed z=w0.x0 of size "<<z.size()<<"\n";
 
     std::vector<std::uint64_t>r;
     r.resize(x0.size(),0);
@@ -189,10 +219,9 @@ void operations()
       auto temp=blah(gen);
       r[i]=temp;
     }
-    std::cout<<"r size:"<<r.size()<<std::endl;
+    std::cout<<"Generated Random value R of size "<<r.size()<<std::endl;
     auto r_begin = r.begin();
     advance(r_begin,2);
-
 
     //--------------------------------------------------------------------------------------------------
     
@@ -212,7 +241,7 @@ void operations()
     // std::cout<<i+1<<". "<<z[i]<<" "<<r[i]<<"\n"; //s1 s0
     adduint64(z[i],msg_Z); //z=z-r  server1
     adduint64(r[i],msg_R); //r  server0
-    std::cout<<"z[]= "<<z[i]<<" r[]= "<<r[i]<<std::endl;
+    // std::cout<<"z[]= "<<z[i]<<" r[]= "<<r[i]<<std::endl;
    }
    
 }
@@ -223,7 +252,31 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     //(w0 -> 256*784, x0 ->784*1 server0) ,(w1 -> 256*784 , x1->784*1 server1)
     int size_msg=message.size()/8;
     std::cout<<"Received message of size "<<size_msg<<" from party "<<party_id<<std::endl;
-    
+    if(message.size()==1 && message[0]==(std::uint8_t)1)
+      {
+        if(party_id==0)
+          {
+            std::cout<<"Server 0 started\n";
+            flag_server0 = 1;
+            return;
+          }
+        else if(party_id==1)
+          {
+            std::cout<<"Server 1 started\n";
+            flag_server1 = 1;
+            return;
+          }
+        else
+          {
+            std::cerr<<"Received 1 from unknown party "<<party_id<<std::endl;
+            return;
+          }
+      }
+    while((flag_server0==-1) || (flag_server1==-1))
+      {
+        std::cout<<'.';
+        sleep(2);
+      }
     auto i=0;
     for(i=1;i<size_msg;i++)
     { 
@@ -281,12 +334,12 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
           c4++;
       }
     }
-    std::cout<<"W0 size="<<w0.size()<<" W1 size="<<w1.size()<<" X0 size="<<x0.size()<<" X1 size="<<x1.size()<<std::endl;
-    std::cout<<"c1 : "<<c1<<" "<<"c2 : "<<c2<<" "<<"c3 : "<<c3<<" "<<"c4 : "<<c4<<"\n";
-    std::cout<<"w_rows="<<w_rows<<" w_cols="<<w_cols<<std::endl;
+    // std::cout<<"W0 size="<<w0.size()<<" W1 size="<<w1.size()<<" X0 size="<<x0.size()<<" X1 size="<<x1.size()<<std::endl;
+    // std::cout<<"c1 : "<<c1<<" "<<"c2 : "<<c2<<" "<<"c3 : "<<c3<<" "<<"c4 : "<<c4<<"\n";
+    // std::cout<<"w_rows="<<w_rows<<" w_cols="<<w_cols<<std::endl;
     if(c1==(w_cols*w_rows+2) && c2==(w_cols*w_rows+2) && c3==w_cols+2 && c4==w_cols+2)
     { 
-      std::cout<<"operations:-\n";
+      // std::cout<<"operations:-\n";
       operations();
     }
   }
@@ -295,37 +348,48 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
 
 int main(int argc, char* argv[]) {
   
-  const auto localhost = "127.0.0.1";
-  const auto num_parties = 3;
   int my_id = 2;
   auto options = parse_program_options(argc, argv);
   // std::cout<<"my_id:"<<my_id<<"\n";
+  if (!options.has_value()) {
+    return EXIT_FAILURE;
+  }
+  // MOTION::Communication::tcp_parties_config config;
+  // config.reserve(num_parties);
+  // for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
+  //   config.push_back({localhost, 10000 + party_id});
+  // };
+  try{
+    MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
+    auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
+        my_id, helper.setup_connections());
 
-  MOTION::Communication::tcp_parties_config config;
-  config.reserve(num_parties);
-  for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
-    config.push_back({localhost, 10000 + party_id});
-  };
+    auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
+    comm_layer->set_logger(logger);
+    comm_layer->start();
 
-  MOTION::Communication::TCPSetupHelper helper(my_id, config);
-  auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
-      my_id, helper.setup_connections());
+    comm_layer->register_fallback_message_handler(
+        [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
+    while((flag_server0==-1) || (flag_server1==-1))
+      {
+        std::cout<<'.';
+        sleep(2);
+      }
+    std::cout<<std::endl;
+    // std::cout<<"Received Msg Z of size:"<<msg_Z.size()<<std::endl;
+    // std::cout<<"Received Msg R of size:"<<msg_R.size()<<std::endl;
+    sleep(20);
 
-  auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
-  comm_layer->set_logger(logger);
-  comm_layer->start();
-  comm_layer->register_fallback_message_handler(
-      [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
-  
-  std::cout<<"Received Msg Z of size:"<<msg_Z.size()<<std::endl;
-  std::cout<<"Received Msg R of size:"<<msg_R.size()<<std::endl;
+    std::cout<<"Sending (Z-R) of size "<<msg_Z.size()<<" to party 1.\n";
+    std::cout<<"Sending R of size "<<msg_R.size()<<" to party 0.\n";
 
-  sleep(20);
-
-  std::cout<<"Received Msg Z of size:"<<msg_Z.size()<<std::endl;
-  std::cout<<"Received Msg R of size:"<<msg_R.size()<<std::endl;
-
-  comm_layer->send_message(1,msg_Z);//z
-  comm_layer->send_message(0,msg_R);//z-r
-  comm_layer->shutdown();
+    comm_layer->send_message(1,msg_Z);//z-r
+    comm_layer->send_message(0,msg_R);//r
+    comm_layer->shutdown();
+  }
+  catch (std::runtime_error& e) {
+    std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }

@@ -1,8 +1,11 @@
-//./bin/server1 --fn1 file_config_model1
+//./bin/server1 --WB_file file_config_model1
 #include <unistd.h>
 #include <filesystem>
 #include <fstream>
 #include <utility>
+#include <random>
+#include <regex>
+#include <stdexcept>
 #include "communication/communication_layer.h"
 #include "communication/message_handler.h"
 #include "communication/tcp_transport.h"
@@ -20,6 +23,7 @@
 #include <vector>
 #include "utility/new_fixed_point.h"
 
+
 std::vector<std::uint64_t> Z;  //
 std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum;
@@ -28,9 +32,11 @@ std::uint64_t fractional_bits;
 namespace po = boost::program_options;
 
 struct Options {
-  std::string file1;
-  std::size_t file2;
+  std::string WB_file;
+  std::string image_file;
   std::string path;
+  std::uint16_t my_port;
+  MOTION::Communication::tcp_parties_config tcp_config;
   std::size_t fractional_bits;
 };
 
@@ -40,21 +46,27 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
-    ("fn1", po::value<std::string>()->required(), "my party id")  
-    ("fn2", po::value<std::size_t>()->required(), "receiver party id") 
+    ("WB_file", po::value<std::string>()->required(), "Weights and Bias Filename")  
+    ("image_file", po::value<std::string>()->required(), "Image Filename") 
+    ("my_port",po::value<std::uint16_t>()->default_value(7001),"Server 1 port number. Default is 7001")
+    ("party_0", po::value<std::string>()->multitoken(),
+     "(party0's IP, port), e.g., --party_0 127.0.0.1,7777")
+    ("helper_node", po::value<std::string>()->multitoken(),
+     "(helper node IP, port), e.g., --helper_node 127.0.0.1,7777") 
     ("fractional-bits", po::value<std::size_t>()->required(), "Number of fractional bits") 
     ("current-path", po::value<std::string>()->required(), "currentpath") 
+     // Update to get server 0,1,2 IP address from commandline
   ;
  
- po::variables_map vm;
-   po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
   bool help = vm["help"].as<bool>();
   if (help) {
     std::cerr << desc << "\n";
     return std::nullopt;
   }
 
-   try {
+  try {
     po::notify(vm);
   } catch (std::exception& e) {
     std::cerr << "error:" << e.what() << "\n\n";
@@ -62,12 +74,33 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
-  options.file1 = vm["fn1"].as<std::string>();
-  options.file2 = vm["fn2"].as<std::size_t>();
+  options.WB_file = vm["WB_file"].as<std::string>();
+  options.image_file = vm["image_file"].as<std::string>();
   options.path = vm["current-path"].as<std::string>();
   options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   fractional_bits = options.fractional_bits;
-// clang-format on;
+  // clang-format on;
+  const auto parse_party_argument =
+      [](const auto& s) -> MOTION::Communication::tcp_connection_config {
+    const static std::regex party_argument_re("([^,]+),(\\d{1,5})");
+    std::smatch match;
+    if (!std::regex_match(s, match, party_argument_re)) {
+      throw std::invalid_argument("Invalid party argument: "+s);
+    }
+    auto host = match[1];
+    auto port = boost::lexical_cast<std::uint16_t>(match[2]);
+    return {host, port};
+    };
+  std::uint16_t my_port = vm["my_port"].as<std::uint16_t>();
+  const std::string party_0_info = vm["party_0"].as<std::string>();
+  const std::string helper_node_info = vm["helper_node"].as<std::string>();
+  options.tcp_config.resize(3);
+  // const auto conn_info0 = {"127.0.0.1",my_port} ;
+  const auto conn_info0 = parse_party_argument(party_0_info);
+  const auto conn_info_helpernode = parse_party_argument(helper_node_info);
+  options.tcp_config[0] = conn_info0;
+  options.tcp_config[1] = {"127.0.0.1",my_port};
+  options.tcp_config[2] = conn_info_helpernode;
 return options;
 }
 void print_message(std::vector<std::uint8_t>& message) {
@@ -112,7 +145,7 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
         std::cerr<<"Error during matrix multiplication. Number of columns in W is not equal to Number of rows in X.";
         exit(1);
       }
-    std::cout<<"In multiplicate, a[0]="<<a[0]<<" a[1]="<<a[1]<<" b[0]="<<b[0]<<" b[1]="<<b[1]<<std::endl;
+    // std::cout<<"In multiplicate, a[0]="<<a[0]<<" a[1]="<<a[1]<<" b[0]="<<b[0]<<" b[1]="<<b[1]<<std::endl;
     auto b_begin = b.begin();
     advance(b_begin, 2);
     std::vector<std::uint64_t>z;
@@ -215,7 +248,7 @@ void operations()
     for(int i=2;i<Z.size();i++)
      {
        Z[i] = MOTION::new_fixed_point::truncate(Z[i], fractional_bits);
-       std::cout<<"Z:"<<Z[i]<<"\n";
+      //  std::cout<<"Z:"<<Z[i]<<"\n";
      }  
 
    
@@ -239,7 +272,7 @@ void operations()
 
     //z=z+random number(aka secret share)
     __gnu_parallel::transform(z_begin, z_end, random_begin, z_begin , std::plus{});     
-     std::cout<<"Z:"<<*z_begin<<"\n";
+    //  std::cout<<"Z:"<<*z_begin<<"\n";
     flag++;
     //final output=Z
 }
@@ -247,17 +280,17 @@ void operations()
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
   void received_message(std::size_t party_id, std::vector<std::uint8_t>&& message) override {
   
-    std::cout << "Message received from party " << party_id << ":";
-     int k = message.size() / 8;
+    
+    int k = message.size() / 8;
     if(party_id==2)
     {
-    std::cout <<"Message size: "<<message.size() <<std::endl;
+    std::cout << "(Z-R) received from helper node of size "<<message.size() <<std::endl;
     if(message.size()<=0)
       {
         std::cerr<<"Empty message received from party "<<party_id<<std::endl;
         exit(1);
       }
-    std::cout << "Received message is :\n";
+    // std::cout << "Received message is :\n";
     for (auto i = 0; i < k; ++i) {
       auto temp = getuint64(message, i);
       // std::cout << temp << ",";
@@ -271,8 +304,9 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     }
   else if(party_id==0)
   { 
+    std::cout << "DEL_C0 received from party " << party_id << "of size \n";
     std::vector<std::uint64_t>Final_public;
-    std::cout <<"After receiving from P0 , message size : "<< message.size() << "\n"; 
+    std::cout <<"After receiving from Party 0 , message size is "<< message.size() << "\n"; 
     for(int i=0;i<k;i++)
     { 
       auto temp = getuint64(message, i);
@@ -329,12 +363,12 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
 
 void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& options)
 { 
-   std::string name=options.file1;
+   std::string name=options.WB_file;
 
   if(p==1)
   {
     std::ifstream content;
-    
+    std::cout<<"Reading the Weight and Bias shares\n";
     //~/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/file_config_model1
     std::string fullpath = options.path;
     fullpath += "/"+name;
@@ -345,7 +379,7 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
     content>>w1path;
     content>>b1path;
     
-    std::cout<<w1path<<" "<<b1path<<"\n";
+    // std::cout<<w1path<<" "<<b1path<<"\n";
 
     std::ifstream file(w1path);
     if (!file) {
@@ -354,7 +388,7 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
     }
     std::uint64_t rows, col;
     file >> rows >> col;
-    std::cout<<rows<<" "<<col;
+    // std::cout<<rows<<" "<<col;
 
     if (file.eof()) {
       std::cerr << "Weights File doesn't contain rows and columns" << std::endl;
@@ -435,9 +469,10 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
   }
   else if(p==2)
   {
-    name = std::to_string(options.file2);
+    // name = std::to_string(options.image_file);
+    std::cout<<"Reading the Image shares\n";
     std::string fullname = options.path;
-    fullname += "/server" + std::to_string(my_id) + "/Image_shares/ip" + name;
+    fullname += "/server" + std::to_string(my_id) + "/Image_shares/" + options.image_file;
     std::ifstream file(fullname);
     if (!file) {
       std::cerr << " Error in opening image file\n";
@@ -487,64 +522,76 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
 int main(int argc, char* argv[]) {
 
   auto options = parse_program_options(argc, argv);
-  const auto localhost = "127.0.0.1";
-  const auto num_parties = 3;
-  int my_id = 1;
+  if (!options.has_value()) {
+    return EXIT_FAILURE;
+  }
+  // const auto localhost = "127.0.0.1"; // Update to get IP from commandline
+  // const auto num_parties = 3;
+  int my_id = 1, helpernode_id=2;
   std::cout << "my party id: " << my_id << "\n";
 
-  MOTION::Communication::tcp_parties_config config;
-  config.reserve(num_parties);
-  for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
-    config.push_back({localhost, 10000 + party_id});
-  }
-  MOTION::Communication::TCPSetupHelper helper(my_id, config);
-  auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
-      my_id, helper.setup_connections());
+  // MOTION::Communication::tcp_parties_config config;
+  // config.reserve(num_parties);
+  // for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
+  //   config.push_back({localhost, 10000 + party_id});
+  // }
+  try{
+    MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
+    auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
+        my_id, helper.setup_connections());
 
-  auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
-  comm_layer->set_logger(logger);
-  // comm_layer->register_fallback_message_handler(
-  //     [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
-  comm_layer->start();
-  std::vector<std::uint8_t> message1;
-  std::vector<std::uint8_t> message2;
+    auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
+    comm_layer->set_logger(logger);
+    // comm_layer->register_fallback_message_handler(
+    //     [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
+    comm_layer->start();
+    
 
-    // int mes_no ,int my_id ,std::vector<uint8_t>&message,const Options& options
-  read_shares(1,1,message1,*options);
-  read_shares(2,1,message2,*options);
+    std::vector<std::uint8_t> message1, message2;
+    std::vector<std::uint8_t> started{(std::uint8_t)1};
+    comm_layer->send_message(helpernode_id, started);
 
-  int r_party_id=2;
-  
-  std::cout<<"Message1 size: "<<message1.size()<<"\n";
-  std::cout<<"Message2 size: "<<message2.size()<<"\n";
+      // int mes_no ,int my_id ,std::vector<uint8_t>&message,const Options& options
+    read_shares(1,1,message1,*options);
+    read_shares(2,1,message2,*options);
 
-  comm_layer->send_message(r_party_id, message1);
-  comm_layer->send_message(r_party_id, message2);
+    
+    std::cout<<"Weights and Bias shares size: "<<message1.size()<<"\n";
+    std::cout<<"Image shares size: "<<message2.size()<<"\n";
+    std::cout<<"Sending Weights and Bias shares to the helper node\n";
+    comm_layer->send_message(helpernode_id, message1);
+    comm_layer->send_message(helpernode_id, message2);
 
- comm_layer->register_fallback_message_handler(
-      [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
-  sleep(30);
+  comm_layer->register_fallback_message_handler(
+        [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
+    sleep(30);
 
-   if(flag==2)
-   {std::cout<<"Message z size:"<<Z.size()<<"\n";
-   std::cout<<"Last:\n";
-   std::vector<std::uint8_t>mes1;
-  for(int i=0;i<Z.size();i++)
-  { 
-     //to push zth members first and if condtion there to not push rows and columns twice
-     auto temp=Z[i];
-    //  std::cout<<"Temp "<<temp<<" ";
-     adduint64(temp,mes1);
-      if(i>1)
+    if(flag==2)
+    {std::cout<<"Message z size:"<<Z.size()<<"\n";
+    // std::cout<<"Last:\n";
+    std::vector<std::uint8_t>mes1;
+    for(int i=0;i<Z.size();i++)
     { 
-      //to send secret shares
-      auto temp2=randomnum[i]; 
-      // std::cout<<"Temp2 "<<temp2<<" ";
-      adduint64(temp2,mes1);
+      //to push zth members first and if condtion there to not push rows and columns twice
+      auto temp=Z[i];
+      //  std::cout<<"Temp "<<temp<<" ";
+      adduint64(temp,mes1);
+      if(i>1)
+      { 
+        //to send secret shares
+        auto temp2=randomnum[i]; 
+        // std::cout<<"Temp2 "<<temp2<<" ";
+        adduint64(temp2,mes1);
+      }
     }
+    std::cout<<"Sending DEL_C1 to the Party0\n";
+    comm_layer->send_message(0,mes1);
+    }
+    comm_layer->shutdown();
   }
-
-  comm_layer->send_message(0,mes1);
+  catch (std::runtime_error& e) {
+    std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
+    return EXIT_FAILURE;
   }
-  comm_layer->shutdown();
+  return EXIT_SUCCESS;
 }
