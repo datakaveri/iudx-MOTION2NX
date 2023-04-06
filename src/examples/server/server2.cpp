@@ -155,18 +155,14 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&w0,std::vector<uint
       advance(tempw_begin, 2);
       __gnu_parallel::transform(tempw_begin, tempw_end, x0_begin, tempw_begin , std::multiplies{});
       
-      // std::cout<<"tempw size: "<<tempw.size()<<"\n";
-
       std::uint64_t sum=0;
       for(int j=2;j<tempw.size();j++)
       {
         sum+=tempw[j];
       }
-      // std::cout<<i+1<<". "<<sum<<"\n";
       z.push_back(sum);
       tempw.clear();
     }
-    std::cout<<"count:"<<count<<"\n";
     return z;
     
 }
@@ -174,15 +170,15 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&w0,std::vector<uint
 
 void operations()
 {   
-    auto w0_begin = w0.begin(); //256*784 server0
-    auto w1_begin = w1.begin(); //256*784 server1
+    auto w0_begin = w0.begin(); 
+    auto w1_begin = w1.begin(); 
     auto w0_end = w0.end();
     auto w1_end = w1.end();
     //to skip rows and columns 
     advance(w0_begin, 2);
     advance(w1_begin, 2);
-    auto x0_begin = x0.begin(); //784*!
-    auto x1_begin = x1.begin(); //784*1
+    auto x0_begin = x0.begin(); 
+    auto x1_begin = x1.begin(); 
     auto x0_end = x0.end();
     auto x1_end = x1.end();
     //to skip rows and columns 
@@ -205,7 +201,7 @@ void operations()
     std::vector<std::uint64_t>z=multiplicate(w0,x0);
 
     //-----------------------------------------------------------------------------------------------
-    std::cout<<"Computed z=w0.x0 of size "<<z.size()<<"\n";
+    std::cout<<"Computed Z=w0.x0 of size "<<z.size()<<"\n";
 
     std::vector<std::uint64_t>r;
     r.resize(x0.size(),0);
@@ -238,31 +234,28 @@ void operations()
   //  std::cout<<"Final Output -:- \n";
    for(int i=0;i<z.size();i++)
    {
-    // std::cout<<i+1<<". "<<z[i]<<" "<<r[i]<<"\n"; //s1 s0
     adduint64(z[i],msg_Z); //z=z-r  server1
     adduint64(r[i],msg_R); //r  server0
-    // std::cout<<"z[]= "<<z[i]<<" r[]= "<<r[i]<<std::endl;
    }
    
 }
 
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
   void received_message(std::size_t party_id, std::vector<std::uint8_t>&&message) {
-    // std::cout << "Message received from party " << party_id << ":\n";
-    //(w0 -> 256*784, x0 ->784*1 server0) ,(w1 -> 256*784 , x1->784*1 server1)
+    //layer 1 - (w0 -> 256*784, x0 ->784*1 server0),(w1 -> 256*784 , x1->784*1 server1)
+    //layer 2 - (w0 -> 10*256, x0 ->256*1 server0), (w1 -> 10*256 , x1->256*1 server1)
     int size_msg=message.size()/8;
-    std::cout<<"Received message of size "<<size_msg<<" from party "<<party_id<<std::endl;
     if(message.size()==1 && message[0]==(std::uint8_t)1)
       {
         if(party_id==0)
           {
-            std::cout<<"Server 0 started\n";
+            std::cout<<"Server 0 has started.\n";
             flag_server0 = 1;
             return;
           }
         else if(party_id==1)
           {
-            std::cout<<"Server 1 started\n";
+            std::cout<<"Server 1 has started.\n";
             flag_server1 = 1;
             return;
           }
@@ -319,17 +312,17 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
           c1++;
       }
       else if(c2>=2 && c2<=(w_cols*w_rows+1) && i>1 && party_id==1)
-      {// std::cout<<temp<<"\n";
+      {
           w1.push_back(temp);
           c2++;
       }
       else if(c3>=2 && c3<=x_rows+1 && i>1 && party_id==0)
-      {// std::cout<<temp<<"\n";
+      {
           x0.push_back(temp);
           c3++;
       }
       else if(c4>=2 && c4<=x_rows+1 && i>1 && party_id==1)
-      {// std::cout<<temp<<"\n";
+      {
           x1.push_back(temp);
           c4++;
       }
@@ -350,15 +343,10 @@ int main(int argc, char* argv[]) {
   
   int my_id = 2;
   auto options = parse_program_options(argc, argv);
-  // std::cout<<"my_id:"<<my_id<<"\n";
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
-  // MOTION::Communication::tcp_parties_config config;
-  // config.reserve(num_parties);
-  // for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
-  //   config.push_back({localhost, 10000 + party_id});
-  // };
+
   try{
     MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
     auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
@@ -370,14 +358,13 @@ int main(int argc, char* argv[]) {
 
     comm_layer->register_fallback_message_handler(
         [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
+    std::cout<<"\n";
     while((flag_server0==-1) || (flag_server1==-1))
       {
         std::cout<<'.';
         sleep(2);
       }
     std::cout<<std::endl;
-    // std::cout<<"Received Msg Z of size:"<<msg_Z.size()<<std::endl;
-    // std::cout<<"Received Msg R of size:"<<msg_R.size()<<std::endl;
     sleep(20);
 
     std::cout<<"Sending (Z-R) of size "<<msg_Z.size()<<" to party 1.\n";

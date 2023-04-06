@@ -33,8 +33,9 @@ namespace po = boost::program_options;
 
 struct Options {
   std::string WB_file;
-  std::string image_file;
-  std::string path;
+  std::string input_file;
+  std::size_t layer_id;
+  std::string current_path;
   std::uint16_t my_port;
   MOTION::Communication::tcp_parties_config tcp_config;
   std::size_t fractional_bits;
@@ -46,8 +47,9 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
+    ("layer-id", po::value<std::size_t>()->required(), "layer id")
     ("WB_file", po::value<std::string>()->required(), "Weights and Bias Filename")  
-    ("image_file", po::value<std::string>()->required(), "Image Filename") 
+    ("input_file", po::value<std::string>()->required(), "Input File name") 
     ("my_port",po::value<std::uint16_t>()->default_value(7001),"Server 1 port number. Default is 7001")
     ("party_0", po::value<std::string>()->multitoken(),
      "(party0's IP, port), e.g., --party_0 127.0.0.1,7777")
@@ -75,8 +77,9 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   }
 
   options.WB_file = vm["WB_file"].as<std::string>();
-  options.image_file = vm["image_file"].as<std::string>();
-  options.path = vm["current-path"].as<std::string>();
+  options.current_path = vm["current-path"].as<std::string>();
+  options.input_file = vm["input_file"].as<std::string>();
+  options.layer_id = vm["layer-id"].as<std::size_t>();
   options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   fractional_bits = options.fractional_bits;
   // clang-format on;
@@ -361,34 +364,34 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
   } 
 };
 
-void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& options)
+void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options& options)
 { 
    std::string name=options.WB_file;
 
-  if(p==1)
+  if(choice==1)
   {
     std::ifstream content;
     std::cout<<"Reading the Weight and Bias shares\n";
-    //~/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/file_config_model1
-    std::string fullpath = options.path;
+    std::string fullpath = options.current_path;
     fullpath += "/"+name;
-    
-    // std::cout<<"fullpath: "<<fullpath;
     content.open(fullpath);
-    std::string w1path,b1path;
-    content>>w1path;
-    content>>b1path;
+    std::string wpath,bpath;
+    // Increment until it reaches the weights and biases corresponding to the layer_id
+    for(auto i=0;i<options.layer_id;i++)
+      {
+        content>>wpath;    
+        content>>bpath; 
+      }
     
-    // std::cout<<w1path<<" "<<b1path<<"\n";
+    std::cout<<"Weights path: "<<wpath<<"\nBias path: "<<bpath<<"\n";
 
-    std::ifstream file(w1path);
+    std::ifstream file(wpath);
     if (!file) {
       std::cerr << " Error in opening the weights file\n";
       exit(1);
     }
     std::uint64_t rows, col;
     file >> rows >> col;
-    // std::cout<<rows<<" "<<col;
 
     if (file.eof()) {
       std::cerr << "Weights File doesn't contain rows and columns" << std::endl;
@@ -412,7 +415,6 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
         std::cerr << "File contains less number of elements" << std::endl;
         exit(1);
       }
-      // std::cout << num << std::endl;
       adduint64(secret_share, message);
       k++;
     }
@@ -427,12 +429,11 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
     }
     file.close();
 
-    file.open(b1path);
+    file.open(bpath);
     if (!file) {
     std::cerr << " Error in opening bias file\n";
     }
     file >> rows >> col;
-    std::cout<<rows<<" "<<col<<"\n";
 
     if (file.eof()) {
       std::cerr << "File doesn't contain rows and columns" << std::endl;
@@ -450,7 +451,6 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
       bpublic.push_back(public_share);
       file >> secret_share;
       bsecret.push_back(secret_share);
-      // std::cout<<public_share<<" "<<secret_share<<"\n";
       if (file.eof()) {
         std::cerr << "File contains less number of elements" << std::endl;
         exit(1);
@@ -467,15 +467,22 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
     }
     file.close();
   }
-  else if(p==2)
+  else if(choice==2)
   {
-    // name = std::to_string(options.image_file);
-    std::cout<<"Reading the Image shares\n";
-    std::string fullname = options.path;
-    fullname += "/server" + std::to_string(my_id) + "/Image_shares/" + options.image_file;
-    std::ifstream file(fullname);
+    std::string fullpath = options.current_path;
+    if (options.layer_id == 1) {
+      fullpath+= "/server" + std::to_string(my_id) + "/Image_shares/" + options.input_file;
+    } 
+    else if (options.layer_id > 1) {
+      // outputshare_0/1 inside server 0/1
+      fullpath+= "/server" + std::to_string(my_id) + "/" + options.input_file + "_" + std::to_string(my_id);
+    }     
+    std::cout<<"Input share file: "<<fullpath<<std::endl;
+    std::cout<<"Reading the input shares\n";
+
+    std::ifstream file(fullpath);
     if (!file) {
-      std::cerr << " Error in opening image file\n";
+      std::cerr << "Error in opening input file at "<<fullpath<<"\n";
       exit(1);
     }
     std::uint64_t rows, col;
@@ -502,7 +509,6 @@ void read_shares(int p,int my_id,std::vector<uint8_t>&message,const Options& opt
         std::cerr << "File contains less number of elements" << std::endl;
         exit(1);
       }
-        // std::cout << num << std::endl;
       adduint64(secret_share, message);
       k++;
       }
@@ -525,16 +531,10 @@ int main(int argc, char* argv[]) {
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
-  // const auto localhost = "127.0.0.1"; // Update to get IP from commandline
-  // const auto num_parties = 3;
+
   int my_id = 1, helpernode_id=2;
   std::cout << "my party id: " << my_id << "\n";
 
-  // MOTION::Communication::tcp_parties_config config;
-  // config.reserve(num_parties);
-  // for (std::size_t party_id = 0; party_id < num_parties; ++party_id) {
-  //   config.push_back({localhost, 10000 + party_id});
-  // }
   try{
     MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
     auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
@@ -542,22 +542,19 @@ int main(int argc, char* argv[]) {
 
     auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
     comm_layer->set_logger(logger);
-    // comm_layer->register_fallback_message_handler(
-    //     [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
+
     comm_layer->start();
-    
 
     std::vector<std::uint8_t> message1, message2;
     std::vector<std::uint8_t> started{(std::uint8_t)1};
     comm_layer->send_message(helpernode_id, started);
 
-      // int mes_no ,int my_id ,std::vector<uint8_t>&message,const Options& options
     read_shares(1,1,message1,*options);
     read_shares(2,1,message2,*options);
 
     
     std::cout<<"Weights and Bias shares size: "<<message1.size()<<"\n";
-    std::cout<<"Image shares size: "<<message2.size()<<"\n";
+    std::cout<<"Input shares size: "<<message2.size()<<"\n";
     std::cout<<"Sending Weights and Bias shares to the helper node\n";
     comm_layer->send_message(helpernode_id, message1);
     comm_layer->send_message(helpernode_id, message2);
@@ -567,20 +564,17 @@ int main(int argc, char* argv[]) {
     sleep(30);
 
     if(flag==2)
-    {std::cout<<"Message z size:"<<Z.size()<<"\n";
-    // std::cout<<"Last:\n";
+    {
     std::vector<std::uint8_t>mes1;
     for(int i=0;i<Z.size();i++)
     { 
-      //to push zth members first and if condtion there to not push rows and columns twice
+      //to push zth members first and condition checking is done to not push rows and columns twice
       auto temp=Z[i];
-      //  std::cout<<"Temp "<<temp<<" ";
       adduint64(temp,mes1);
       if(i>1)
       { 
         //to send secret shares
         auto temp2=randomnum[i]; 
-        // std::cout<<"Temp2 "<<temp2<<" ";
         adduint64(temp2,mes1);
       }
     }
