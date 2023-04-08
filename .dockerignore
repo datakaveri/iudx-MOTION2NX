@@ -1,0 +1,4 @@
+.dockerignore
+docker/
+build_debwithrelinfo_gcc/
+README.md
