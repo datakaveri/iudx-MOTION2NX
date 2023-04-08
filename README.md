@@ -227,3 +227,70 @@ The script inference.sh performs the inferencing task on the image index given b
  The script inference_split.sh performs the inferencing task with splits on layer 1 matrix multiplication on the image index given by image_ids in the script.
   This script reduces the average memory requirement by the number of splits specified in the inference_split script. To change the     number of splits, update the split variable in the script. For example, ``split=2``. User can change this number to be         1, 2, 4, 8, 16.  
 
+## Docker based deployment
+### Pre-requisite 
+- Install docker-ce, docker-compose through following script:
+```
+curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Docker-Swarm-deployment/single-node/infrastructure/files/packages-docker-install.sh | sudo bash
+```
+- Create Docker Swarm Cluster and overlay net by following instructions at 
+[Swarm and overlay-net creation](https://github.com/datakaveri/iudx-deployment/blob/master/docs/swarm-setup.md).
+
+### Build docker image and deploy 
+- Build docker image locally, this can be used for test/dev deployment
+ ```
+ ./docker/build.sh
+ ```
+- To build and push docker image to docker registry, used to deploy in cloud/remote servers
+```
+./docker/build-push.sh
+```
+- To create a new MNIST image matrix , follow the steps given below.
+	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column). Use the "flatten_image.py"               python code given in "[path to repository folder ]/Dataprovider/image_provider" to flatten the image matrix.
+	-  To run flatten_image.py, run the following command.
+	
+	   ``` 
+	   python3 flatten_image.py --input_image_path [path to image] --output_image_ID [image number] 
+	   ```
+	
+- Deploy all three servers locally using local image
+  1. Dataprovider server - which will generate shares
+  2. SMPC server 0 - SMPC compute server0 
+  3. SMPC server 1 - SMPC compute server1
+
+  ```
+  docker-compose up -d
+  ```
+- To run all three server locally using docker image from container registry, 
+copy example-docker-compose.remote.yaml to docker-compose.remote.yaml file and 
+replace with appropriate docker image tag you want to deploy
+
+  ```
+  cp example-docker-compose.remote.yaml docker-compose.remote.yaml
+  ```
+
+  ```
+  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d
+  ```
+- To run each server on different machine, git clone this repo on each of the machines and run following, : 
+
+  ```
+  # after copy, replace with appropriate image tag
+  cp example-docker-compose.remote.yaml docker-compose.remote.yaml
+  ```
+  ```
+  # On Data provider server
+  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d data-provider
+  ```
+  ```
+  # On compute server 0
+  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d smpc-server0
+  ```
+  ```
+  # On compute server 1
+  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d smpc-server1
+  ```
+- To bring down the servers, use following command
+  ```
+  docker-compose down
+  ```

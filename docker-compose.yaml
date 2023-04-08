@@ -1,0 +1,66 @@
+version: '3.7'
+
+networks:
+  overlay-net:
+    external: true      
+    driver: overlay
+
+services:
+  smpc-server0:
+    image: iudx/motion2nx:latest
+    volumes:
+      - ./config_files:/usr/share/app/config_files
+      - type: volume
+        source: smpc-server0-volume
+        target: /usr/share/app/build_debwithrelinfo_gcc/server0
+    restart: on-failure
+    networks: 
+      - overlay-net
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "100m"
+    command: bash -c "while (true);  do  sleep 10; done"
+
+
+  smpc-server1:
+    image: iudx/motion2nx:latest
+    volumes:
+      - ./config_files:/usr/share/app/config_files
+      - type: volume
+        source: smpc-server1-volume
+        target: /usr/share/app/build_debwithrelinfo_gcc/server1
+    restart: on-failure
+    networks:
+      - overlay-net
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "100m"
+    command: bash -c "while (true);  do  sleep 10; done"
+
+
+  data-provider:
+    image: iudx/motion2nx:latest
+    volumes:
+      - ./Dataprovider:/usr/share/app/Dataprovider
+      - type: volume
+        source: data-provider-volume
+        target: /usr/share/app/build_debwithrelinfo_gcc/server1
+    restart: on-failure
+    networks:
+      - overlay-net
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "100m"
+    command: bash -c "while (true);  do  sleep 10; done"
+
+
+volumes:
+  smpc-server1-volume:
+  smpc-server0-volume:
+  data-provider-volume:
