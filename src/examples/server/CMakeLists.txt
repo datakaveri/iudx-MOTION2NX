@@ -9,6 +9,9 @@ target_compile_features(server1 PRIVATE cxx_std_20)
 target_compile_features(server0 PRIVATE cxx_std_20)
 target_compile_features(server2 PRIVATE cxx_std_20)
 
+
+
+
 target_link_libraries(server0
     MOTION::motion
     Boost::json
@@ -30,3 +33,5 @@ target_link_libraries(server2
     Boost::log
     Boost::program_options
 )
+
+
