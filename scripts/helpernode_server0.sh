@@ -39,27 +39,27 @@ fi
 # #####################Inputs##########################################################################################################
 
 # cs0_ip is the ip of server0, cs1_ip is the ip of server1, helpernode_ip is the ip of the helpernode
-cs0_ip=127.0.0.1 #172.30.9.43 
-cs1_ip=127.0.0.1
-helpernode_ip=127.0.0.1
+cs0_ip=
+cs1_ip=
+helpernode_ip=
 # Ports on which weights receiver talk
-cs0_port=3390
-cs1_port=4567
+cs1_port=3390
+cs0_port=4567
 
 # Ports on which image provider talks
-cs0_port_image=3390
-cs1_port_image=4567
+cs1_port_image=3390
+cs0_port_image=4567
 
 
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
-port0_inference=7003
-port1_inference=7005
+port1_inference=7003
+port0_inference=7005
 helpernode_port=7004
 
 fractional_bits=13
 
 # Index of the image for which inferencing task is run
-image_id=26
+image_id=13
 
 ##########################################################################################################################################
 
@@ -109,10 +109,12 @@ fi
 
 #######################################Matrix multiplication layer 1 ###########################################################################
 
-$build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config  --my_port $port0_inference --party_1 $cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
+
+$build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config  --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
+
 pid1=$!
 
-wait $pid1 #$pid2 #$pid3 
+wait $pid1 
 echo "Layer 1: Matrix multiplication and addition is done"
 
 
@@ -143,7 +145,7 @@ then
 fi
 
 #######################################Matrix multiplication layer 2 ###########################################################################
-$build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config  --my_port $port0_inference --party_1 $cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
+$build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
 pid1=$!
 
 wait $pid1 

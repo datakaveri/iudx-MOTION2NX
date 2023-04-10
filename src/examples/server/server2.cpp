@@ -49,11 +49,11 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
-    ("my_port",po::value<std::uint16_t>()->default_value(7002),"Helper node port number. Default is 7002")
-    ("party_0", po::value<std::string>()->multitoken(),
-     "(party0's IP, port), e.g., --party_0 127.0.0.1,7777")
-    ("party_1", po::value<std::string>()->multitoken(),
-     "(party1's IP, port), e.g., --party_1 127.0.0.1,7777")
+    ("party", po::value<std::vector<std::string>>()->multitoken(),
+     "(party id, IP, port), e.g., --party 1,127.0.0.1,7777")
+    ("helper_node", po::value<std::string>()->multitoken(),
+     "(helpernode IP, port), e.g., --helper_node 127.0.0.1,7777") 
+
   ;
  
   po::variables_map vm;
@@ -71,7 +71,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << desc << "\n";
     return std::nullopt;
   }
-  const auto parse_party_argument =
+
+  const auto parse_helpernode_info =
       [](const auto& s) -> MOTION::Communication::tcp_connection_config {
     const static std::regex party_argument_re("([^,]+),(\\d{1,5})");
     std::smatch match;
@@ -82,16 +83,39 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     auto port = boost::lexical_cast<std::uint16_t>(match[2]);
     return {host, port};
   };
+  
+  const auto parse_party_argument =
+      [](const auto& s) -> std::pair<std::size_t, MOTION::Communication::tcp_connection_config> {
+    const static std::regex party_argument_re("([01]),([^,]+),(\\d{1,5})");
+    std::smatch match;
+    if (!std::regex_match(s, match, party_argument_re)) {
+      throw std::invalid_argument("Invalid party argument");
+    }
+    auto id = boost::lexical_cast<std::size_t>(match[1]);
+    auto host = match[2];
+    auto port = boost::lexical_cast<std::uint16_t>(match[3]);
+    return {id, {host, port}};
+  };
 
-  std::uint16_t my_port = vm["my_port"].as<std::uint16_t>();
-  const std::string party_0_info = vm["party_0"].as<std::string>();
-  const std::string party_1_info = vm["party_1"].as<std::string>();
+  const std::vector<std::string> party_infos = vm["party"].as<std::vector<std::string>>();
+  if (party_infos.size() != 2) {
+    std::cerr << "expecting two --party options\n";
+    return std::nullopt;
+  }
+  const auto [id0, conn_info0] = parse_party_argument(party_infos[0]);
+  const auto [id1, conn_info1] = parse_party_argument(party_infos[1]);
+  if (id0 == id1) {
+    std::cerr << "Need party arguments for both party 0 and party 1\n";
+    return std::nullopt;
+  }
+  const std::string helper_node_info = vm["helper_node"].as<std::string>();
+  const auto conn_info_helpernode = parse_helpernode_info(helper_node_info);
+
   options.tcp_config.resize(3);
-  const auto conn_info0 = parse_party_argument(party_0_info);
-  const auto conn_info1 = parse_party_argument(party_1_info);
-  options.tcp_config[0] = conn_info0;
-  options.tcp_config[1] = conn_info1;
-  options.tcp_config[2] = {"127.0.0.1",my_port};
+  options.tcp_config[id0] = conn_info0;
+  options.tcp_config[id1] = conn_info1;
+  options.tcp_config[2] = conn_info_helpernode;
+
   // clang-format on;
   return options;
 }
@@ -251,27 +275,27 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
       {
         if(party_id==0)
           {
-            std::cout<<"Server 0 has started.\n";
+            std::cout<<"\nServer 0 has started.\n";
             flag_server0 = 1;
             return;
           }
         else if(party_id==1)
           {
-            std::cout<<"Server 1 has started.\n";
+            std::cout<<"\nServer 1 has started.\n";
             flag_server1 = 1;
             return;
           }
         else
           {
-            std::cerr<<"Received 1 from unknown party "<<party_id<<std::endl;
+            std::cerr<<"Received the message \"1\" from unknown party "<<party_id<<std::endl;
             return;
           }
       }
-    while((flag_server0==-1) || (flag_server1==-1))
-      {
-        std::cout<<'.';
-        sleep(2);
-      }
+    // while((flag_server0==-1) || (flag_server1==-1))
+    //   {
+    //     std::cout<<'.';
+    //     sleep(2);
+    //   }
     auto i=0;
     for(i=1;i<size_msg;i++)
     { 
@@ -367,7 +391,6 @@ int main(int argc, char* argv[]) {
         sleep(2);
       }
     std::cout<<std::endl;
-    // sleep(20);
 
     std::cout<<"Sending (Z-R) of size "<<msg_Z.size()<<" to party 1.\n";
     std::cout<<"Sending R of size "<<msg_R.size()<<" to party 0.\n";
