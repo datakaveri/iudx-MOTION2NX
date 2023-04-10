@@ -92,7 +92,6 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
   std::cout << std::endl;
   if (WriteToFiles == 1) {
     /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
-    // std::string path = std::filesystem::current_path();
     std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
     std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
 
@@ -187,7 +186,7 @@ std::string read_filepath(std::ifstream& indata, int count) {
 void image_shares(Options* options, std::string p) {
   std::ifstream temps;
   temps.open(p);
-  std::cout << "p:" << p << "\n";
+  // std::cout << "p:" << p << "\n";
   if (temps) {
     std::cout << "File found\n";
   } else {
@@ -283,11 +282,11 @@ void file_read(Options* options) {
   }
 
   image_shares(options, t1);
-  std::cout << "i:" << t1 << "\n";
+  // std::cout << "i:" << t1 << "\n";
   // model path
 
   std::string t2 = path + "/" + options->modelpath;
-  std::cout << "t2:" << t2 << "\n";
+  // std::cout << "t2:" << t2 << "\n";
 
   std::ifstream file2;
   file2.open(t2);
@@ -305,10 +304,10 @@ void file_read(Options* options) {
   int c = 2 * (options->layer_id - 1);
   std::string w = read_filepath(file2, c);
 
-  std::cout << "w:" << w << "\n";
-  std::cout << "j:" << j << "\n";
+  // std::cout << "w:" << w << "\n";
+  // std::cout << "j:" << j << "\n";
   std::string b = read_filepath(file2, c + 1);
-  std::cout << "b:" << b << "\n";
+  // std::cout << "b:" << b << "\n";
   file2.close();
 
   W_shares(options, w);
@@ -461,15 +460,15 @@ void print_stats(const Options& options,
     obj.emplace("simd", options.num_simd);
     obj.emplace("threads", options.threads);
     obj.emplace("sync_between_setup_and_online", options.sync_between_setup_and_online);
-    std::cout << obj << "\n";
+    // std::cout << obj << "\n";
   } else {
     std::cout << MOTION::Statistics::print_stats("tensor_gt_mul", run_time_stats, comm_stats);
   }
 }
 
 auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
-  std::cout << "Inside create_composite"
-            << "\n";
+  // std::cout << "Inside create_composite"
+  //           << "\n";
   // retrieve the gate factories for the chosen protocols
   auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
@@ -480,8 +479,8 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       .input_A_shape_ = {256, 784}, .input_B_shape_ = {784, 1}, .output_shape_ = {256, 1}};
 */
 
-  std::cout << options.W_file.row << " " << options.W_file.col << "\n";
-  std::cout << options.image_file.row << " " << options.image_file.col << "\n";
+  // std::cout << options.W_file.row << " " << options.W_file.col << "\n";
+  // std::cout << options.image_file.row << " " << options.image_file.col << "\n";
 
   const MOTION::tensor::GemmOp gemm_op1 = {
       .input_A_shape_ = {options.W_file.row, options.W_file.col},
@@ -555,7 +554,7 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
       long double temp =
           MOTION::new_fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
       //     mod_x.push_back(temp);
-      std::cout << temp << ",";
+      // std::cout << temp << ",";
       // if (options.layer_id == 2) {
       //   std::cout << temp << ",";
       // }

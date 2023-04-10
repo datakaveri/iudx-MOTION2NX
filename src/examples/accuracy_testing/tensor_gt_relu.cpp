@@ -84,7 +84,6 @@ void testMemoryOccupied(bool WriteToFiles, int my_id, std::string path) {
   std::cout << std::endl;
   if (WriteToFiles == 1) {
     /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
-    // std::string path = std::filesystem::current_path();
     std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
     std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
 
@@ -188,7 +187,7 @@ void input_shares(Options* options, std::string p) {
 
   options->num_elements = read_file(indata2);
   options->column_size = read_file(indata2);
-  std::cout << options->num_elements << " " << options->column_size << "\n";
+  // std::cout << options->num_elements << " " << options->column_size << "\n";
   for (int i = 0; i < options->num_elements; ++i) {
     std::uint64_t m1 = read_file(indata2);
     options->input.Delta.push_back(m1);
@@ -213,7 +212,7 @@ void file_read(Options* options) {
   }
 
   std::string i = read_filepath(file1);
-  std::cout << "i:" << i << "\n";
+  // std::cout << "i:" << i << "\n";
 
   file1.close();
   input_shares(options, i);
@@ -361,7 +360,7 @@ void print_stats(const Options& options,
     obj.emplace("simd", options.num_simd);
     obj.emplace("threads", options.threads);
     obj.emplace("sync_between_setup_and_online", options.sync_between_setup_and_online);
-    std::cout << obj << "\n";
+    // std::cout << obj << "\n";
   } else {
     std::cout << MOTION::Statistics::print_stats("tensor_gt_relu", run_time_stats, comm_stats);
   }
@@ -476,7 +475,7 @@ int main(int argc, char* argv[]) {
       file2.open(t2, std::ios_base::app);
       std::string time_str =
           MOTION::Statistics::print_stats_short("tensor_gt_relu", run_time_stats, comm_stats);
-      std::cout << "Execution time string:" << time_str << "\n";
+      // std::cout << "Execution time string:" << time_str << "\n";
       double exec_time = std::stod(time_str);
       std::cout << "Execution time:" << exec_time << "\n";
       file2 << "Execution time - " << exec_time << "msec\n";
