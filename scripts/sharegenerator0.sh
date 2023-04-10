@@ -9,10 +9,10 @@ debug_1=$build_path/server1/debug_files
 
 
 
-cs1_ip=192.168.1.127
+cs1_ip=127.0.0.1
 cs1_port=3390
 
-cs0_ip=192.168.1.141
+cs0_ip=127.0.0.1
 cs0_port=4567
 
 if [ ! -d "$debug_0" ];
@@ -33,7 +33,7 @@ wait $pid2
 
 
 
-image_ids=(15)
+image_ids=(9)
 
 for i in "${image_ids[@]}"
 # for((i=1;i<=1;i++))

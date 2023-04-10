@@ -11,10 +11,10 @@ debug_1=$build_path/server1/debug_files
 
 # ip1=192.168.1.141
 
-cs0_ip=192.168.1.125
+cs0_ip=127.0.0.1
 cs0_port=3390
 
-cs1_ip=192.168.1.141
+cs1_ip=127.0.0.1
 cs1_port=4567
 
 if [ ! -d "$debug_0" ];
@@ -43,7 +43,7 @@ wait $pid2
 
 echo "weights send"
 
-image_ids=(21)
+image_ids=(9)
 
 echo "image start"
 for i in "${image_ids[@]}"

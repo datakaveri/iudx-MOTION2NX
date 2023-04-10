@@ -32,7 +32,7 @@ port1_inference=4567
 fractional_bits=13
 
 # Index of the image for which inferencing task is run
-image_id=23
+image_id=1
 
 ##########################################################################################################################################
 
