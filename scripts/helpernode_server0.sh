@@ -9,11 +9,37 @@ image_provider_path=${BASE_DIR}/Dataprovider/image_provider/Final_Output_Shares 
 debug_0=$build_path/server0/debug_files
 debug_1=$build_path/server1/debug_files
 
+# #####################################################################################################################################
+cd $build_path
 
+if [ -f MemoryDetails0 ]; then
+   rm MemoryDetails0
+   # echo "Memory Details0 are removed"
+fi
+
+if [ -f AverageMemoryDetails0 ]; then
+   rm AverageMemoryDetails0
+   # echo "Average Memory Details0 are removed"
+fi
+
+if [ -f AverageMemory0 ]; then
+   rm AverageMemory0
+   # echo "Average Memory Details0 are removed"
+fi
+
+if [ -f AverageTimeDetails0 ]; then
+   rm AverageTimeDetails0
+   # echo "AverageTimeDetails0 is removed"
+fi
+
+if [ -f AverageTime0 ]; then
+   rm AverageTime0
+   # echo "AverageTime0 is removed"
+fi
 # #####################Inputs##########################################################################################################
 
 # cs0_ip is the ip of server0, cs1_ip is the ip of server1, helpernode_ip is the ip of the helpernode
-cs0_ip=127.0.0.1 
+cs0_ip=127.0.0.1 #172.30.9.43 
 cs1_ip=127.0.0.1
 helpernode_ip=127.0.0.1
 # Ports on which weights receiver talk
@@ -33,7 +59,7 @@ helpernode_port=7004
 fractional_bits=13
 
 # Index of the image for which inferencing task is run
-image_id=27
+image_id=26
 
 ##########################################################################################################################################
 
@@ -150,9 +176,28 @@ $build_path/bin/Reconstruct --current-path $image_provider_path
 
 wait 
 
+awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0
+#  > AverageTimeDetails0 #clearing the contents of the file
+
+sort -r -g AverageMemoryDetails0 | head  -1 >> AverageMemory0
+#  > AverageMemoryDetails0 #clearing the contents of the file
+
+echo -e "\nInferencing Finished"
+
+Mem=`cat AverageMemory0`
+Time=`cat AverageTime0`
+
+Mem=$(printf "%.2f" $Mem) 
+Convert_KB_to_GB=$(printf "%.14f" 9.5367431640625E-7)
+Mem2=$(echo "$Convert_KB_to_GB * $Mem" | bc -l)
+
+Memory=$(printf "%.3f" $Mem2)
+
+echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
+echo "Time taken by inferencing task:" $Time "ms"
 
 
-
+cd $scripts_path 
 
 
 

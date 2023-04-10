@@ -19,9 +19,9 @@ if [ ! -d "$debug_1" ]; then
    mkdir $debug_1
 fi
 
-# image_ids=(1)
-# for i in "${image_ids[@]}"
-for((i=9;i<=9;i++))
+image_ids=(9)
+for i in "${image_ids[@]}"
+# for((i=1;i<=;i++))
 do 
 echo 
 echo "Inferencing task of example X$i"
@@ -42,12 +42,12 @@ pid3=$!
 wait $pid1 $pid2 $pid3
 echo "layer 1 - gt mul is done"
 
-$build_path/bin/output_shares_receiver --my-id 0 --listening-port 1234 --current-path $image_provider_path --index $i> $build_path/server0/debug_files/output_shares_receiver0.txt &
+$build_path/bin/output_shares_receiver --my-id 0 --listening-port 1234 --current-path $image_provider_path> $build_path/server0/debug_files/output_shares_receiver0.txt &
 pid5=$!
 #echo "$pid5:output shares receiver0, Party 0"
 
 
-$build_path/bin/output_shares_receiver --my-id 1 --listening-port 1235 --current-path $image_provider_path --index $i> $build_path/server1/debug_files/output_shares_receiver1.txt &
+$build_path/bin/output_shares_receiver --my-id 1 --listening-port 1235 --current-path $image_provider_path> $build_path/server1/debug_files/output_shares_receiver1.txt &
 pid6=$!
 #echo "$pid6:output shares receiver0, Party 1"
 echo "Image Provider listening for the inferencing result"
@@ -88,11 +88,11 @@ echo "layer 2 - gt mul is done"
 
 
 
-$build_path/bin/argmax --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input X$i --current-path $build_path  > $build_path/server0/debug_files/argmax0_layer2.txt &
+$build_path/bin/argmax --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $i --current-path $build_path  > $build_path/server0/debug_files/argmax0_layer2.txt &
 pid1=$!
 #echo "$pid1:Layer 2 argmax, Party 0"
 
-$build_path/bin/argmax --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input X$i --current-path $build_path  > $build_path/server1/debug_files/argmax1_layer2.txt &
+$build_path/bin/argmax --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $i --current-path $build_path  > $build_path/server1/debug_files/argmax1_layer2.txt &
 pid2=$!
 #echo "$pid2:Layer 2 argmax, Party 1"
 
@@ -100,19 +100,19 @@ wait $pid1 $pid2
 echo "layer 2 - argmax is done"
 
 
-$build_path/bin/final_output_provider --my-id 0 --connection-port 1234 --config-input X$i --current-path $build_path > $build_path/server0/debug_files/final_output_provider0.txt &
+$build_path/bin/final_output_provider --my-id 0 --connection-port 1234 --config-input $i --current-path $build_path > $build_path/server0/debug_files/final_output_provider0.txt &
 pid3=$!
 #echo "$pid3:final output provider0, Party 0"
 # wait $pid1 $pid3 
 echo "Output shares of server 0 sent to the Image provider"
 
-$build_path/bin/final_output_provider --my-id 1 --connection-port 1235 --config-input X$i --current-path $build_path > $build_path/server1/debug_files/final_output_provider1.txt &
+$build_path/bin/final_output_provider --my-id 1 --connection-port 1235 --config-input $i --current-path $build_path > $build_path/server1/debug_files/final_output_provider1.txt &
 pid4=$!
 #echo "$pid4:final output provider0, Party 1"
 wait $pid5 $pid3 $pid6 $pid4 
 echo "Output shares of server 1 sent to the Image provider"
 echo "Reconstruction Starts"
-$build_path/bin/Reconstruct --current-path $image_provider_path --index $i
+$build_path/bin/Reconstruct --current-path $image_provider_path 
 
 
 #kill $pid5 $pid6

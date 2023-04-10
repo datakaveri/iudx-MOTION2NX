@@ -215,3 +215,26 @@ echo "Reconstruction Starts"
 $build_path/bin/Reconstruct --current-path $image_provider_path 
 wait 
 
+
+awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0
+#  > AverageTimeDetails0 #clearing the contents of the file
+
+sort -r -g AverageMemoryDetails0 | head  -1 >> AverageMemory0
+#  > AverageMemoryDetails0 #clearing the contents of the file
+
+echo -e "\nInferencing Finished"
+
+Mem=`cat AverageMemory0`
+Time=`cat AverageTime0`
+
+Mem=$(printf "%.2f" $Mem) 
+Convert_KB_to_GB=$(printf "%.14f" 9.5367431640625E-7)
+Mem2=$(echo "$Convert_KB_to_GB * $Mem" | bc -l)
+
+Memory=$(printf "%.3f" $Mem2)
+
+echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
+echo "Time taken by inferencing task:" $Time "ms"
+
+
+cd $scripts_path 

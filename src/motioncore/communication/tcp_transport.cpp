@@ -24,9 +24,10 @@
 
 #include <chrono>
 #include <future>
-#include <thread>
 #include <shared_mutex>
+#include <thread>
 
+#include <fmt/format.h>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
@@ -34,7 +35,6 @@
 #include <boost/asio/read.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/system/error_code.hpp>
-#include <fmt/format.h>
 
 using boost::asio::ip::tcp;
 

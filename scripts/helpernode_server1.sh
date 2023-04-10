@@ -1,5 +1,4 @@
 #! /bin/bash
-#! /bin/bash
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 model_config=${BASE_DIR}/config_files/file_config_model
@@ -10,6 +9,33 @@ image_provider_path=${BASE_DIR}/Dataprovider/image_provider/Final_Output_Shares
 debug_0=$build_path/server0/debug_files
 debug_1=$build_path/server1/debug_files
 
+# #####################################################################################################################################
+cd $build_path
+
+if [ -f MemoryDetails1 ]; then
+   rm MemoryDetails1
+   # echo "Memory Details0 are removed"
+fi
+
+if [ -f AverageMemoryDetails1 ]; then
+   rm AverageMemoryDetails1
+   # echo "Average Memory Details0 are removed"
+fi
+
+if [ -f AverageMemory1 ]; then
+   rm AverageMemory1
+   # echo "Average Memory Details0 are removed"
+fi
+
+if [ -f AverageTimeDetails1 ]; then
+   rm AverageTimeDetails1
+   # echo "AverageTimeDetails0 is removed"
+fi
+
+if [ -f AverageTime1 ]; then
+   rm AverageTime1
+   # echo "AverageTime0 is removed"
+fi
 
 # #####################Inputs##########################################################################################################
 
@@ -132,3 +158,25 @@ wait $pid4
 echo "Output shares of server 1 sent to the Image provider"
 
 wait 
+
+awk '{ sum += $1 } END { print sum }' AverageTimeDetails1 >> AverageTime1
+#  > AverageTimeDetails1 #clearing the contents of the file
+
+sort -r -g AverageMemoryDetails1 | head  -1 >> AverageMemory1
+#  > AverageMemoryDetails1 #clearing the contents of the file
+
+echo -e "\nInferencing Finished"
+
+Mem=`cat AverageMemory1`
+Time=`cat AverageTime1`
+
+Mem=$(printf "%.2f" $Mem) 
+Convert_KB_to_GB=$(printf "%.14f" 9.5367431640625E-7)
+Mem2=$(echo "$Convert_KB_to_GB * $Mem" | bc -l)
+
+Memory=$(printf "%.3f" $Mem2)
+
+echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
+echo "Time taken by inferencing task:" $Time "ms"
+
+cd $scripts_path

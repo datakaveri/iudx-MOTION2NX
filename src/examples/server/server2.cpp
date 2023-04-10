@@ -3,6 +3,8 @@
 #include <bits/stdc++.h>
 #include <filesystem>
 #include <fstream>
+#include <regex>
+#include <stdexcept>
 #include <utility>
 #include <regex>
 #include <stdexcept>
@@ -29,8 +31,8 @@ int c1 = 1;
 int c2 = 1;
 int c3 = 1;
 int c4 = 1;
-int flag_server0=-1,flag_server1=-1;
-std::uint64_t w_rows=0,w_cols=0,x_rows=0,x_cols=0;
+int flag_server0 = -1, flag_server1 = -1;
+std::uint64_t w_rows = 0, w_cols = 0, x_rows = 0, x_cols = 0;
 std::vector<std::uint8_t> msg_Z;
 std::vector<std::uint8_t> msg_R;
 namespace po = boost::program_options;
@@ -365,7 +367,7 @@ int main(int argc, char* argv[]) {
         sleep(2);
       }
     std::cout<<std::endl;
-    sleep(20);
+    // sleep(20);
 
     std::cout<<"Sending (Z-R) of size "<<msg_Z.size()<<" to party 1.\n";
     std::cout<<"Sending R of size "<<msg_R.size()<<" to party 0.\n";

@@ -29,7 +29,7 @@ fractional_bits=13
 # $build_path/bin/Weights_Share_Receiver --my-id 0 --file-names $model_config --current-path $build_path >> $debug_0/Weights_Share_Receiver0.txt &
 # pid1=$!
 $build_path/bin/Weights_Share_Receiver --my-id 1 --port $cs1_port --file-names $model_config --current-path $build_path >> $debug_1/Weights_Share_Receiver1.txt &
-pid2=$i
+pid2=$!
 
 $build_path/bin/weights_provider --compute-server0-ip $cs0_ip --compute-server0-port $cs0_port --compute-server1-ip $cs1_ip --compute-server1-port $cs1_port --dp-id 0 --fractional-bits $fractional_bits --filepath $build_path_model >> $debug_1/weights_provider.txt &
 pid3=$!
@@ -47,8 +47,6 @@ for i in "${image_ids[@]}"
 # for((i=2;i<=6;i+=2))
 do
 
-# $build_path/bin/Image_Share_Receiver --my-id 0 --fractional-bits $fractional_bits --file-names $image_config --index $i --current-path $build_path >> $debug_0/Image_Share_Receiver0.txt &
-# pid1=$!
 $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port --fractional-bits $fractional_bits --file-names $image_config --index $i --current-path $build_path >> $debug_1/Image_Share_Receiver1.txt &
 pid2=$!
 

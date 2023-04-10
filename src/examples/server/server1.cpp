@@ -2,6 +2,9 @@
 #include <unistd.h>
 #include <filesystem>
 #include <fstream>
+#include <random>
+#include <regex>
+#include <stdexcept>
 #include <utility>
 #include <random>
 #include <regex>
@@ -23,6 +26,8 @@
 #include <vector>
 #include "utility/new_fixed_point.h"
 
+#include <chrono>
+using namespace std::chrono;
 
 std::vector<std::uint64_t> Z;  //
 std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
@@ -30,6 +35,42 @@ std::vector<std::uint64_t> randomnum;
 int flag = 0;
 std::uint64_t fractional_bits;
 namespace po = boost::program_options;
+
+void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
+  int tSize = 0, resident = 0, share = 0;
+  std::ifstream buffer("/proc/self/statm");
+  buffer >> tSize >> resident >> share;
+  buffer.close();
+
+  long page_size_kb =
+      sysconf(_SC_PAGE_SIZE) / 1024;  // in case x86-64 is configured to use 2MB pages
+  double rss = resident * page_size_kb;
+  std::cout << "RSS - " << rss << " kB\n";
+  double shared_mem = share * page_size_kb;
+  std::cout << "Shared Memory - " << shared_mem << " kB\n";
+  std::cout << "Private Memory - " << rss - shared_mem << "kB\n";
+  std::cout << std::endl;
+  if (WriteToFiles == 1) {
+    /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
+    std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
+    std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
+
+    ///// Write to the AverageMemoryDetails files
+    std::ofstream file1;
+    file1.open(t1, std::ios_base::app);
+    file1 << rss;
+    file1 << "\n";
+    file1.close();
+
+    std::ofstream file2;
+    file2.open(t2, std::ios_base::app);
+    file2 << "Helper Node Multiplication layer : \n";
+    file2 << "RSS - " << rss << " kB\n";
+    file2 << "Shared Memory - " << shared_mem << " kB\n";
+    file2 << "Private Memory - " << rss - shared_mem << "kB\n";
+    file2.close();
+  }
+}
 
 struct Options {
   std::string WB_file;
@@ -527,12 +568,14 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
 
 int main(int argc, char* argv[]) {
 
+  auto start = high_resolution_clock::now();
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
 
   int my_id = 1, helpernode_id=2;
+  int WriteToFiles = 1;
   std::cout << "my party id: " << my_id << "\n";
 
   try{
@@ -561,8 +604,9 @@ int main(int argc, char* argv[]) {
 
   comm_layer->register_fallback_message_handler(
         [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
-    sleep(30);
-
+    // sleep(30);
+    sleep(5);
+    testMemoryOccupied(WriteToFiles,1, options->current_path);
     if(flag==2)
     {
     std::vector<std::uint8_t>mes1;
@@ -581,7 +625,25 @@ int main(int argc, char* argv[]) {
     std::cout<<"Sending DEL_C1 to the Party0\n";
     comm_layer->send_message(0,mes1);
     }
-    comm_layer->shutdown();
+   comm_layer->shutdown();
+   auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<milliseconds>(stop - start);
+  
+   std::string t1 = options->current_path + "/" + "AverageTimeDetails1";
+  std::string t2 = options->current_path + "/" + "MemoryDetails1";
+
+  std::ofstream file2;
+  file2.open(t2, std::ios_base::app);
+  file2 << "Execution time - " << duration.count() << "msec";
+  file2 << "\n";
+  file2.close();
+
+  std::ofstream file1;
+  file1.open(t1, std::ios_base::app);
+  file1 << duration.count();
+  file1 << "\n";
+  file1.close();
+  
   }
   catch (std::runtime_error& e) {
     std::cerr << "ERROR OCCURRED: " << e.what() << "\n";

@@ -1,7 +1,11 @@
 //./bin/server0 --WB_file file_config_model0 --input_file 9
+//./bin/server0 --WB_file file_config_model0 --input_file 9
 #include <unistd.h>
 #include <filesystem>
 #include <fstream>
+#include <random>
+#include <regex>
+#include <stdexcept>
 #include <utility>
 #include <random>
 #include <regex>
@@ -23,6 +27,8 @@
 #include <vector>
 #include "utility/new_fixed_point.h"
 
+#include <chrono>
+using namespace std::chrono;
 
 std::vector<std::uint64_t> R;
 std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
@@ -30,9 +36,53 @@ std::vector<std::uint64_t> randomnum;
 std::vector<std::uint64_t> prod1;
 int flag = 0;
 std::uint64_t fractional_bits;
+std::uint64_t fractional_bits;
 namespace po = boost::program_options;
 
+void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
+  int tSize = 0, resident = 0, share = 0;
+  std::ifstream buffer("/proc/self/statm");
+  buffer >> tSize >> resident >> share;
+  buffer.close();
+
+  long page_size_kb =
+      sysconf(_SC_PAGE_SIZE) / 1024;  // in case x86-64 is configured to use 2MB pages
+  double rss = resident * page_size_kb;
+  std::cout << "RSS - " << rss << " kB\n";
+  double shared_mem = share * page_size_kb;
+  std::cout << "Shared Memory - " << shared_mem << " kB\n";
+  std::cout << "Private Memory - " << rss - shared_mem << "kB\n";
+  std::cout << std::endl;
+  if (WriteToFiles == 1) {
+    /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
+    std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
+    std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
+
+    ///// Write to the AverageMemoryDetails files
+    std::ofstream file1;
+    file1.open(t1, std::ios_base::app);
+    file1 << rss;
+    file1 << "\n";
+    file1.close();
+
+    std::ofstream file2;
+    file2.open(t2, std::ios_base::app);
+    file2 << "Helper Node Multiplication layer : \n";
+    file2 << "RSS - " << rss << " kB\n";
+    file2 << "Shared Memory - " << shared_mem << " kB\n";
+    file2 << "Private Memory - " << rss - shared_mem << "kB\n";
+    file2.close();
+  }
+}
+
 struct Options {
+  std::string WB_file;
+  std::string input_file;
+  std::size_t layer_id;
+  std::string current_path;
+  std::uint16_t my_port;
+  MOTION::Communication::tcp_parties_config tcp_config;
+  std::size_t fractional_bits;
   std::string WB_file;
   std::string input_file;
   std::size_t layer_id;
@@ -56,7 +106,16 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
      "(party1's IP, port), e.g., --party_1 127.0.0.1,7777")
     ("helper_node", po::value<std::string>()->multitoken(),
      "(helper node IP, port), e.g., --helper_node 127.0.0.1,7777") 
+    ("layer-id", po::value<std::size_t>()->required(), "layer id")
+    ("WB_file", po::value<std::string>()->required(), "Weights and Bias Filename")  
+    ("input_file", po::value<std::string>()->required(), "Input File name") 
+    ("my_port",po::value<std::uint16_t>()->default_value(7000),"Server 0 port number. Default is 7000")
+    ("party_1", po::value<std::string>()->multitoken(),
+     "(party1's IP, port), e.g., --party_1 127.0.0.1,7777")
+    ("helper_node", po::value<std::string>()->multitoken(),
+     "(helper node IP, port), e.g., --helper_node 127.0.0.1,7777") 
     ("current-path", po::value<std::string>()->required(), "currentpath") 
+    ("fractional-bits", po::value<std::size_t>()->required(), "Number of fractional bits") 
     ("fractional-bits", po::value<std::size_t>()->required(), "Number of fractional bits") 
   ;
  
@@ -83,7 +142,35 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   fractional_bits = options.fractional_bits;
   std::cout<<"Fractional bits: "<<fractional_bits<<std::endl;
+  options.WB_file = vm["WB_file"].as<std::string>();
+  options.current_path = vm["current-path"].as<std::string>();
+  options.input_file = vm["input_file"].as<std::string>();
+  options.layer_id = vm["layer-id"].as<std::size_t>();
+  options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
+  fractional_bits = options.fractional_bits;
+  std::cout<<"Fractional bits: "<<fractional_bits<<std::endl;
 // clang-format on;
+  const auto parse_party_argument =
+      [](const auto& s) -> MOTION::Communication::tcp_connection_config {
+    const static std::regex party_argument_re("([^,]+),(\\d{1,5})");
+    std::smatch match;
+    if (!std::regex_match(s, match, party_argument_re)) {
+      throw std::invalid_argument("Invalid party argument: "+s);
+    }
+    auto host = match[1];
+    auto port = boost::lexical_cast<std::uint16_t>(match[2]);
+    return {host, port};
+  };
+  std::uint16_t my_port = vm["my_port"].as<std::uint16_t>();
+  const std::string party_1_info = vm["party_1"].as<std::string>();
+  const std::string helper_node_info = vm["helper_node"].as<std::string>();
+  options.tcp_config.resize(3);
+  // const auto conn_info0 = {"127.0.0.1",my_port} ;
+  const auto conn_info1 = parse_party_argument(party_1_info);
+  const auto conn_info_helpernode = parse_party_argument(helper_node_info);
+  options.tcp_config[0] = {"127.0.0.1",my_port};
+  options.tcp_config[1] = conn_info1;
+  options.tcp_config[2] = conn_info_helpernode;
   const auto parse_party_argument =
       [](const auto& s) -> MOTION::Communication::tcp_connection_config {
     const static std::regex party_argument_re("([^,]+),(\\d{1,5})");
@@ -117,6 +204,7 @@ void print_message(std::vector<std::uint8_t>& message) {
 
 std::uint64_t getuint64(std::vector<std::uint8_t>& message, int index) {
   //Converts 8->64
+  //Converts 8->64
   std::uint64_t num = 0;
   for (auto i = 0; i < 8; i++) {
     num = num << 8;
@@ -126,6 +214,7 @@ std::uint64_t getuint64(std::vector<std::uint8_t>& message, int index) {
 }
 
 void adduint64(std::uint64_t num, std::vector<std::uint8_t>& message) {
+  //Converts 64->8
   //Converts 64->8
   for (auto i = 0; i < sizeof(num); i++) {
     std::uint8_t byte = num & 0xff;
@@ -151,6 +240,11 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
         std::cerr<<"Error during matrix multiplication. Number of columns in W is not equal to Number of rows in X.";
         exit(1);
       }
+    if(a[1]!=b[0])
+      {
+        std::cerr<<"Error during matrix multiplication. Number of columns in W is not equal to Number of rows in X.";
+        exit(1);
+      }
     auto b_begin = b.begin();
     advance(b_begin, 2);
     std::vector<std::uint64_t>z;
@@ -160,9 +254,11 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
     std::vector<std::uint64_t>tempw;
     int count=2;
     for(int i=0;i<a[0];i++)
+    for(int i=0;i<a[0];i++)
     { 
       tempw.push_back(a[0]);
       tempw.push_back(b[1]);
+      for(int k=0;k<a[1];k++)
       for(int k=0;k<a[1];k++)
       {
         tempw.push_back(a[count]);
@@ -172,6 +268,7 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
       auto tempw_end=tempw.end();
       advance(tempw_begin, 2);
       __gnu_parallel::transform(tempw_begin, tempw_end, b_begin, tempw_begin , std::multiplies{});
+      
       
       std::uint64_t sum=0;
       for(int j=2;j<tempw.size();j++)
@@ -205,6 +302,7 @@ void operations()
 
   //------------------------------------------------------------------------------------------------------------------
     
+    
     //prod2=Delw * delx1
     std::vector<std::uint64_t>prod2= multiplicate(w2,xsecret);
     auto prod2_begin=prod2.begin();
@@ -228,11 +326,17 @@ void operations()
     std::vector<std::uint64_t>::iterator r_begin = R.begin();
     advance(r_begin,2);
    
+    std::vector<std::uint64_t>::iterator r_begin = R.begin();
+    advance(r_begin,2);
+   
    //output=Delx*Dely-Delx*dely-Dely*delx+R(from s2)
    //output=prod1+R(from s2)
     __gnu_parallel::transform(prod1_begin, prod1_end, r_begin, prod1_begin , std::plus{});
     for(int i=2;i<prod1.size();i++)
+    __gnu_parallel::transform(prod1_begin, prod1_end, r_begin, prod1_begin , std::plus{});
+    for(int i=2;i<prod1.size();i++)
      {
+       prod1[i] = MOTION::new_fixed_point::truncate(prod1[i], fractional_bits);
        prod1[i] = MOTION::new_fixed_point::truncate(prod1[i], fractional_bits);
      }
 
@@ -252,6 +356,8 @@ void operations()
 
     auto random_begin = randomnum.begin();
     advance(random_begin,2 );
+    auto random_begin = randomnum.begin();
+    advance(random_begin,2 );
     
 
     //output=output+random(local secret share)
@@ -267,6 +373,7 @@ void operations()
 
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
   void received_message(std::size_t party_id, std::vector<std::uint8_t>&& message) override {
+    std::cout << "Message received from party " << party_id << "\n";
     std::cout << "Message received from party " << party_id << "\n";
     int k = message.size() / 8;
     if(party_id==2)
@@ -285,11 +392,29 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
         operations();
         flag++;
         }
+      std::cout <<"R-Message size before converting to 64bit uint: "<<message.size() <<std::endl;
+      if(message.size()<=0)
+        {
+          std::cerr<<"Empty message received from party "<<party_id<<std::endl;
+          exit(1);
+        }
+      for (auto i = 0; i < k; ++i) {
+        auto temp = getuint64(message, i);
+        R.push_back(temp);
+      }
+      if (R.size() == k) {
+        operations();
+        flag++;
+        }
     }
     else if(party_id==1)
     { 
      std::vector<std::uint64_t>Final_public;
+    else if(party_id==1)
+    { 
+     std::vector<std::uint64_t>Final_public;
      std::vector<std::uint64_t>secretshare1;
+     std::cout <<"Received message from Party 1 of size "<< message.size() << "\n"; //should be 258
      std::cout <<"Received message from Party 1 of size "<< message.size() << "\n"; //should be 258
     
     //to push rows and column 
@@ -299,7 +424,20 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
         Final_public.push_back(j);
         secretshare1.push_back(j);
       }
+      for(int i=0;i<2;i++)
+      {
+        auto j=getuint64(message,i);
+        Final_public.push_back(j);
+        secretshare1.push_back(j);
+      }
 
+      for(int i=2;i<k-1;i=i+2)
+      { 
+        auto temp = getuint64(message, i);
+        Final_public.push_back(temp);
+        auto temp2=getuint64(message, i+1);
+        secretshare1.push_back(temp2);
+      }
       for(int i=2;i<k-1;i=i+2)
       { 
         auto temp = getuint64(message, i);
@@ -327,6 +465,7 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
       advance(randomnum_begin,2);
 
       std::cout<<"Random number:"<<*randomnum_begin<<"\n";
+      std::cout<<"Random number:"<<*randomnum_begin<<"\n";
  
       auto bpublic_begin=bpublic.begin();
       advance(bpublic_begin,2);
@@ -338,8 +477,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     __gnu_parallel::transform(finalpublic_begin, finalpublic_end, prod1_begin, finalpublic_begin , std::plus{});   
     
     //public shares for w.x + public shares of bias b
+    //public shares for w.x + public shares of bias b
     __gnu_parallel::transform(finalpublic_begin, finalpublic_end, bpublic_begin, finalpublic_begin , std::plus{});  
 	  
+    //random num = random num+secret share of bias
     //random num = random num+secret share of bias
     //final secret share=randomnum
 	   __gnu_parallel::transform(randomnum_begin, randomnum_end, bsecret_begin, randomnum_begin , std::plus{});
@@ -359,6 +500,8 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
    {
     indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
    }
+  } 
+}
   } 
 }
   
@@ -527,13 +670,16 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
 }
 
 int main(int argc, char* argv[]) {
-
+  
+  auto start = high_resolution_clock::now();
   auto options = parse_program_options(argc, argv);
+  if (!options.has_value()) {
+    return EXIT_FAILURE;
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
   int my_id = 0,helpernode_id=2;
-
+   int WriteToFiles = 1;
   std::cout << "My party id: " << my_id << "\n";
 
   try{
@@ -559,7 +705,9 @@ int main(int argc, char* argv[]) {
     comm_layer->send_message(helpernode_id, message2);
     comm_layer->register_fallback_message_handler(
         [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
-    sleep(30);
+    // sleep(30);
+    sleep(5);
+    testMemoryOccupied(WriteToFiles,0, options->current_path);
 
     if(flag==2)
     {
@@ -574,6 +722,28 @@ int main(int argc, char* argv[]) {
     comm_layer->send_message(1,mes0);
     }
     comm_layer->shutdown();
+
+    auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<milliseconds>(stop - start);
+  
+  std::cout<<"Duration:"<<duration.count()<<"\n";
+
+
+  std::string t1 = options->current_path + "/" + "AverageTimeDetails0";
+  std::string t2 = options->current_path + "/" + "MemoryDetails0";
+
+  std::ofstream file2;
+  file2.open(t2, std::ios_base::app);
+
+  file2 << "Execution time - " << duration.count() << "msec";
+  file2 << "\n";
+  file2.close();
+
+  std::ofstream file1;
+  file1.open(t1, std::ios_base::app);
+  file1 << duration.count();
+  file1 << "\n";
+  file1.close();
   }
   catch (std::runtime_error& e) {
     std::cerr << "ERROR OCCURRED: " << e.what() << "\n";

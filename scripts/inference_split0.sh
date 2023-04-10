@@ -57,9 +57,9 @@ if [ -f AverageTime0 ]; then
    # echo "AverageTime0 is removed"
 fi
 
-# image_no=(15)
-# for image_ids in "${image_no[@]}"
-for((image_ids=21;image_ids<=21;image_ids++))
+image_no=(15)
+for image_ids in "${image_no[@]}"
+# for((image_ids=1;image_ids<=5;image_ids++))
 do
  echo 
  echo "image_ids X"$image_ids >> MemoryDetails0
