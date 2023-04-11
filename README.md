@@ -229,20 +229,23 @@ The script inference.sh performs the inferencing task on the image index given b
 
 ## Docker based deployment
 ### Pre-requisite 
-- Install docker-ce, docker-compose through following script:
+- Install docker-ce, docker-compose through following script for Ubuntu:
 ```
 curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Docker-Swarm-deployment/single-node/infrastructure/files/packages-docker-install.sh | sudo bash
 ```
+or 
+refer official docs https://docs.docker.com/engine/install/ 
+- For convience, you can manage docker as non root user, ref: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
 
 ### Build docker image and deploy 
 - Build docker image locally, this can be used for test/dev deployment
- ```
- ./docker/build.sh
- ```
+  ```
+  ./docker/build.sh
+  ```
 - To build and push docker image to docker registry, used to deploy in cloud/remote servers
-```
-./docker/build-push.sh
-```
+  ```
+  ./docker/build-push.sh
+  ```
 - To create a new MNIST image matrix , follow the steps given below.
 	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column). Use the "flatten_image.py"               python code given in "[path to repository folder ]/Dataprovider/image_provider" to flatten the image matrix.
 	-  To run flatten_image.py, run the following command.
@@ -251,7 +254,7 @@ curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Doc
 	   python3 flatten_image.py --input_image_path [path to image] --output_image_ID [image number] 
 	   ```
 	
--  Deploy all smpc servers in one container using local image
+- Deploy all smpc servers in one container using local image
   ```
   docker-compose -f docker-compose.local.yaml up -d
   ```
@@ -287,4 +290,17 @@ replace with appropriate docker image tag you want to deploy
   ```
   # On SMPC server 1
   docker-compose -f docker-compose.yaml -f docker-compose.registry.yaml up -d smpc-server1
+  ```
+- To get logs of container, use following commands
+  ```
+  # Get container ID
+  docker ps
+  ```
+  ```
+  # using container ID get logs
+  docker logs -f <container-id>
+  ```
+- To bring down container use following command:
+  ```
+  docker-compose down
   ```
