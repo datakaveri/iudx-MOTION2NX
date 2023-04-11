@@ -233,8 +233,6 @@ The script inference.sh performs the inferencing task on the image index given b
 ```
 curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Docker-Swarm-deployment/single-node/infrastructure/files/packages-docker-install.sh | sudo bash
 ```
-- Create Docker Swarm Cluster and overlay net by following instructions at 
-[Swarm and overlay-net creation](https://github.com/datakaveri/iudx-deployment/blob/master/docs/swarm-setup.md).
 
 ### Build docker image and deploy 
 - Build docker image locally, this can be used for test/dev deployment
@@ -253,11 +251,15 @@ curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Doc
 	   python3 flatten_image.py --input_image_path [path to image] --output_image_ID [image number] 
 	   ```
 	
-- Deploy all three servers locally using local image
-  1. Dataprovider server - which will generate shares
-  2. SMPC server 0 - SMPC compute server0 
-  3. SMPC server 1 - SMPC compute server1
+-  Deploy all smpc servers in one container using local image
+  ```
+  docker-compose -f docker-compose.local.yaml up -d
+  ```
 
+- Deploy all three servers locally using local image
+
+  1. SMPC server 0 - SMPC compute server0, image provide
+  2. SMPC server 1 - SMPC compute server1, model provider
   ```
   docker-compose up -d
   ```
@@ -266,31 +268,23 @@ copy example-docker-compose.remote.yaml to docker-compose.remote.yaml file and
 replace with appropriate docker image tag you want to deploy
 
   ```
-  cp example-docker-compose.remote.yaml docker-compose.remote.yaml
+  cp example-docker-compose.registry.yaml docker-compose.registry.yaml
   ```
 
   ```
-  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d
+  docker-compose -f docker-compose.yaml -f docker-compose.registry.yaml up -d
   ```
 - To run each server on different machine, git clone this repo on each of the machines and run following, : 
 
   ```
   # after copy, replace with appropriate image tag
-  cp example-docker-compose.remote.yaml docker-compose.remote.yaml
+  cp example-docker-compose.registry.yaml docker-compose.registry.yaml
   ```
   ```
-  # On Data provider server
-  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d data-provider
+  # On SMPC server 0
+  docker-compose -f docker-compose.yaml -f docker-compose.registry.yaml up -d smpc-server0
   ```
   ```
-  # On compute server 0
-  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d smpc-server0
-  ```
-  ```
-  # On compute server 1
-  docker-compose -f docker-compose.yaml -f docker-compose.remote.yaml up -d smpc-server1
-  ```
-- To bring down the servers, use following command
-  ```
-  docker-compose down
+  # On SMPC server 1
+  docker-compose -f docker-compose.yaml -f docker-compose.registry.yaml up -d smpc-server1
   ```

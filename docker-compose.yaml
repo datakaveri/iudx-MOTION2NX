@@ -1,66 +1,68 @@
 version: '3.7'
 
 networks:
-  overlay-net:
-    external: true      
-    driver: overlay
+  motion2nx-net:
+    driver: bridge
 
 services:
+# SMPC server 0, image provider server
   smpc-server0:
     image: iudx/motion2nx:latest
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
     volumes:
-      - ./config_files:/usr/share/app/config_files
       - type: volume
         source: smpc-server0-volume
         target: /usr/share/app/build_debwithrelinfo_gcc/server0
+      - type: volume
+        source: smpc-server1-volume
+        target: /usr/share/app/build_debwithrelinfo_gcc/server1
+      - ./Dataprovider/image_provider/images/:/usr/share/app/Dataprovider/image_provider/images/
+      - ./config_files:/usr/share/app/config_files
     restart: on-failure
-    networks: 
-      - overlay-net
+    networks:
+      - motion2nx-net
     logging:
       driver: "json-file"
       options:
         max-file: "5"
         max-size: "100m"
+    ports:
+     - "7002:7002"
+     # share generation lisetning ports and final output provider listening port
+     - "1234:1234"
+     - "1235:1235"
     command: bash -c "while (true);  do  sleep 10; done"
 
 
+# SMPC server 1, model provider server
   smpc-server1:
     image: iudx/motion2nx:latest
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
     volumes:
+      - ./Dataprovider/weights_provider/:/usr/share/app/Dataprovider/weights_provider/
       - ./config_files:/usr/share/app/config_files
       - type: volume
         source: smpc-server1-volume
         target: /usr/share/app/build_debwithrelinfo_gcc/server1
     restart: on-failure
     networks:
-      - overlay-net
+      - motion2nx-net
     logging:
       driver: "json-file"
       options:
         max-file: "5"
         max-size: "100m"
+    ports:
+     - "7000:700"
+     # share generation lisetning ports
+     - "1235:1235"
     command: bash -c "while (true);  do  sleep 10; done"
 
 
-  data-provider:
-    image: iudx/motion2nx:latest
-    volumes:
-      - ./Dataprovider:/usr/share/app/Dataprovider
-      - type: volume
-        source: data-provider-volume
-        target: /usr/share/app/build_debwithrelinfo_gcc/server1
-    restart: on-failure
-    networks:
-      - overlay-net
-    logging:
-      driver: "json-file"
-      options:
-        max-file: "5"
-        max-size: "100m"
-    command: bash -c "while (true);  do  sleep 10; done"
 
 
 volumes:
   smpc-server1-volume:
   smpc-server0-volume:
-  data-provider-volume:

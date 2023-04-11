@@ -47,3 +47,4 @@ Dataprovider/image_provider/answer
 
 # Docker 
 docker-compose.remote.yaml
+docker-compose.registry.yaml

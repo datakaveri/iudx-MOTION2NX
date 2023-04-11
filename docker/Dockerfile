@@ -73,7 +73,7 @@ COPY src src
 COPY fbs fbs
 COPY Dataprovider Dataprovider
 COPY flatbuffers-build flatbuffers-build
-
+COPY circuits circuits
 # Build MOTION2NX
 # Delete source, build files and keep binaries
 RUN CC=gcc CXX=g++ cmake \
@@ -83,7 +83,7 @@ RUN CC=gcc CXX=g++ cmake \
     -DMOTION_BUILD_TESTS=On \
     -DMOTION_USE_AVX=AVX2 && \
     cmake --build build_debwithrelinfo_gcc
-
+RUN ldconfig
 # Final Image (stage)
 FROM ubuntu:22.04 as final
 
@@ -120,3 +120,5 @@ VOLUME /usr/share/app/build_debwithrelinfo_gcc/server1
 COPY --from=build /usr/share/app/build_debwithrelinfo_gcc/bin build_debwithrelinfo_gcc/bin
 ENV BASE_DIR=/usr/share/app
 COPY scripts scripts
+COPY circuits circuits
+RUN ldconfig

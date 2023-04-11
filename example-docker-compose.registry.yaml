@@ -12,6 +12,3 @@ services:
 
   smpc-server1:
     image: ghcr.io/datakaveri/motion2nx:<image-tag>
-
-  data-provider:
-    image: ghcr.io/datakaveri/motion2nx:<image-tag>
