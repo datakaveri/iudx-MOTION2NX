@@ -82,7 +82,7 @@ struct Options {
   MOTION::Communication::tcp_parties_config tcp_config;
   std::string filepath;
   std::string inputfilename;
-  int x;
+  // int x;
   bool no_run = false;
   Matrix input;
 };
@@ -103,7 +103,6 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
   std::cout << std::endl;
   if (WriteToFiles == 1) {
     /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
-    // std::string path = std::filesystem::current_path();
     std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
     std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
 
@@ -125,38 +124,46 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
 }
 
 std::uint64_t read_file(std::ifstream& indata) {
+  std::cout << "Inside read file uint\n";
   std::string str;
   char num;
   while (indata >> std::noskipws >> num) {
     if (num != ' ' && num != '\n') {
+      // std::cout<<"Read "<<num<<std::endl;
       str.push_back(num);
     } else {
       break;
     }
   }
+  std::cout<<"Read "<<str<<std::endl;
   std::string::size_type sz = 0;
   std::uint64_t ret = (uint64_t)std::stoull(str, &sz, 0);
   return ret;
 }
 
 std::string read_filepath(std::ifstream& indata) {
+  // std::cout << "Inside read file path\n";
   std::string str;
 
   char num;
   while (indata) {
+    // std::cout << "inside while \n";
     std::getline(indata, str);
+    // std::cout << str << std::endl;
   }
-  // std::cout << str << std::endl;
+  // std::cout << "string read filepath:" << str << " \n";
   return str;
 }
 
 void input_shares(Options* options, std::string p) {
+  // std::cout << "Inside input shares \n";
   std::ifstream indata;
   indata.open(p);
-  std::cout << "p:" << p << std::endl;
+  // std::cout << "p:" << p << std::endl;
   assert(indata);
 
   options->num_elements = read_file(indata);
+  std::cout<<"options.num_elements"<<options->num_elements<<std::endl; 
   // options->row = options->num_elements;
   /// Use the following line only if the shares file also has number of
   ////columns on the top
@@ -180,12 +187,12 @@ void file_read(Options* options) {
   // std::string path = std::filesystem::current_path();
   std::string t1 = path + "/" + options->filepath;
 
-  // std::cout << t1 << std::endl;
+   std::cout << t1 << std::endl;
 
   std::string t2 = path + "/" + "server" + std::to_string(options->my_id) + "/Actual_label/" +
-                   options->inputfilename;
+                   "remote_share_actual_answer";
 
-  // std::cout << t2 << std::endl;
+  //  std::cout << t2 << std::endl;
 
   std::ifstream file1;
   file1.open(t1);
@@ -196,21 +203,21 @@ void file_read(Options* options) {
   }
 
   std::string i = read_filepath(file1);
-  std::cout << "i:" << i << "\n";
+  // std::cout << "i:" << i << "\n";
 
   file1.close();
   input_shares(options, i);
 
   // reading input number for test case
 
-  file1.open(t2);
-  if (file1) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
-  }
-  options->x = read_file(file1);
-  file1.close();
+  // file1.open(t2);
+  // if (file1) {
+  //   std::cout << "File found\n";
+  // } else {
+  //   std::cout << "File not found\n";
+  // }
+  // options->x = read_file(file1);
+  // file1.close();
 }
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -349,7 +356,7 @@ void print_stats(const Options& options,
     obj.emplace("simd", options.num_simd);
     obj.emplace("threads", options.threads);
     obj.emplace("sync_between_setup_and_online", options.sync_between_setup_and_online);
-    std::cout << obj << "\n";
+    // std::cout << obj << "\n";
   } else {
     std::cout << MOTION::Statistics::print_stats("argmax", run_time_stats, comm_stats);
   }
@@ -445,8 +452,6 @@ void consolidate_share_files(const Options& options, size_t num_outputs, size_t 
     op += options.inputfilename;
     op += ".txt";
   }
-
-  std::cout << op << "\n";
 
   outdata.open(op);
   assert(outdata);
@@ -617,7 +622,7 @@ int main(int argc, char* argv[]) {
       file2.open(t2, std::ios_base::app);
       std::string time_str =
           MOTION::Statistics::print_stats_short("argmax", run_time_stats, comm_stats);
-      std::cout << "Execution time string:" << time_str << "\n";
+      // std::cout << "Execution time string:" << time_str << "\n";
       double exec_time = std::stod(time_str);
       // std::cout << "Execution time:" << exec_time << "\n";
       file2 << "Execution time - " << exec_time << "msec\n";

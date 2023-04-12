@@ -24,9 +24,10 @@
 
 #include <chrono>
 #include <future>
-#include <thread>
 #include <shared_mutex>
+#include <thread>
 
+#include <fmt/format.h>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
@@ -34,7 +35,6 @@
 #include <boost/asio/read.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/system/error_code.hpp>
-#include <fmt/format.h>
 
 using boost::asio::ip::tcp;
 
@@ -161,7 +161,7 @@ struct TCPSetupHelper::TCPSetupImpl {
 
   std::size_t my_id_;
   std::size_t num_parties_;
-  int num_connect_retries_ = 10;
+  int num_connect_retries_ = 100; // Updated on 5/4/23
   decltype(1s) retry_delay_ = 3s;
   boost::asio::ip::address bind_address_;
   std::uint16_t bind_port_;

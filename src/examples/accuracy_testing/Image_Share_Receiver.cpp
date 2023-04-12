@@ -1,10 +1,8 @@
-
 /*
-./bin/Image_Share_Receiver --my-id 0 --fractional-bits $fractional_bits --file-names $image_config
---index $i --current-path $build_path
+./bin/Image_Share_Receiver --my-id 0 --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path
 
 ./bin/Image_Share_Receiver --my-id 1 --fractional-bits $fractional_bits --file-names $image_config
---index $i --current-path $build_path
+--current-path $build_path
 
 ./bin/image_provider_iudx --compute-server0-port 1234 --compute-server1-port 1235 --fractional-bits
 $fractional_bits --NameofImageFile X$i --filepath $image_path
@@ -104,10 +102,10 @@ struct Options {
   bool no_run = false;
   std::string filenames;
   std::vector<std::string> data;
-  int actual_answer;
   std::vector<std::string> filepaths;
-  std::string index;
+ //int actual_answer;
   std::string currentpath;
+  int port;
 };
 
 void read_filenames(Options* options) {
@@ -154,31 +152,33 @@ void generate_filepaths(Options* options) {
 
   //../server0/filenameshare_id0 / 1 only for image shares, for actual answer it is only X
   std::cout << "Size of data: " << options->data.size() << "\n";
-  std::string n0 = options->data[0] + options->index;
+  std::string n0 = options->data[0];
   fullfilename = dirname1 + n0;
   options->filepaths.push_back(fullfilename);
   // std::string n1 = options->data[1] + "_" + std::to_string(options->my_id);
-  std::string n1 = options->data[1] + options->index;
+  std::string n1 = options->data[1];
+  
   fullfilename = dirname2 + n1;
   options->filepaths.push_back(fullfilename);
 }
 
-void retrieve_shares(int port_number, Options* options) {
+
+void retrieve_shares(Options* options) {
   std::ofstream file;
   // options->actual_answer=COMPUTE_SERVER::get_actual_answer(port_number);
 
-  auto [p1, p2, p3] = COMPUTE_SERVER::get_provider_mat_mul_data_new(port_number);
-  options->actual_answer = p1;
-  std::cout << "actual answer in main:" << options->actual_answer << "\n";
+  auto [p2, p3] = COMPUTE_SERVER::get_provider_mat_mul_data(options->port);
+  //options->actual_answer = p1;
+  //std::cout << "actual answer in main:" << options->actual_answer << "\n";
   auto temp0 = options->filepaths[0];
-  file.open(temp0, std::ios_base::out);
-  if (file) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
-  }
-  file << options->actual_answer;
-  file.close();
+  //file.open(temp0, std::ios_base::out);
+  //if (file) {
+  //  std::cout << "File found\n";
+  //} else {
+  //  std::cout << "File not found\n";
+  //}
+ // file << options->actual_answer;
+ // file.close();
 
   std::vector<COMPUTE_SERVER::Shares> input_values_dp0 = p3.first;
 
@@ -228,6 +228,7 @@ void retrieve_shares(int port_number, Options* options) {
     std::cout << "Couldn't open the file\n";
 }
 
+
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
   Options options;
   boost::program_options::options_description desc("Allowed options");
@@ -236,13 +237,13 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("config-file", po::value<std::string>(), "config file containing options")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
+    ("port" , po::value<int>()->required(), "Port number on which to listen")
     ("threads", po::value<std::size_t>()->default_value(0), "number of threads to use for gate evaluation")
     ("json", po::bool_switch()->default_value(false), "output data in JSON format")
     ("fractional-bits", po::value<std::size_t>()->default_value(16),
      "number of fractional bits for fixed-point arithmetic")
     ("num-simd", po::value<std::size_t>()->default_value(1), "number of SIMD values")
     ("file-names",po::value<std::string>()->required(), "filename")
-    ("index",po::value<std::string>()->default_value("0"), "index")
     ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
     ("sync-between-setup-and-online", po::bool_switch()->default_value(false),
      "run a synchronization protocol before the online phase starts")
@@ -270,6 +271,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   }
 
   options.my_id = vm["my-id"].as<std::size_t>();
+  options.port = vm["port"].as<int>();
   options.threads = vm["threads"].as<std::size_t>();
   options.json = vm["json"].as<bool>();
   options.num_simd = vm["num-simd"].as<std::size_t>();
@@ -277,9 +279,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.no_run = vm["no-run"].as<bool>();
   options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   options.filenames = vm["file-names"].as<std::string>();
-  options.index = vm["index"].as<std::string>();
   options.currentpath = vm["current-path"].as<std::string>();
-  std::cout << "index" << options.index << "\n";
   if (options.my_id > 1) {
     std::cerr << "my-id must be one of 0 and 1\n";
     return std::nullopt;
@@ -293,13 +293,17 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     generate_filepaths(&options);
   }
 
-  if (options.my_id == 0) {
-    retrieve_shares(1234, &options);
-  } else {
-    retrieve_shares(1235, &options);
-  }
+  // if (options.my_id == 0) {
+  //   retrieve_shares(1234, &options);
+  // } else {
+  //   retrieve_shares(1235, &options);
+  // }
+
+  retrieve_shares(&options);
+
   return options;
 }
+
 
 int main(int argc, char* argv[]) {
   auto options = parse_program_options(argc, argv);

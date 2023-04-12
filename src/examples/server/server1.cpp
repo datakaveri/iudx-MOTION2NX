@@ -1,4 +1,4 @@
-//./bin/server0 --WB_file file_config_model0 --input_file 9
+//./bin/server1 --WB_file file_config_model1
 #include <unistd.h>
 #include <filesystem>
 #include <fstream>
@@ -6,6 +6,9 @@
 #include <regex>
 #include <stdexcept>
 #include <utility>
+#include <random>
+#include <regex>
+#include <stdexcept>
 #include "communication/communication_layer.h"
 #include "communication/message_handler.h"
 #include "communication/tcp_transport.h"
@@ -26,10 +29,9 @@
 #include <chrono>
 using namespace std::chrono;
 
-std::vector<std::uint64_t> R;
+std::vector<std::uint64_t> Z;  //
 std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum;
-std::vector<std::uint64_t> prod1;
 int flag = 0;
 std::uint64_t fractional_bits;
 namespace po = boost::program_options;
@@ -93,12 +95,12 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
      "(party id, IP, port), e.g., --party 1,127.0.0.1,7777")
     ("helper_node", po::value<std::string>()->multitoken(),
      "(helpernode IP, port), e.g., --helper_node 127.0.0.1,7777") 
-    ("current-path", po::value<std::string>()->required(), "currentpath") 
     ("fractional-bits", po::value<std::size_t>()->required(), "Number of fractional bits") 
+    ("current-path", po::value<std::string>()->required(), "currentpath") 
   ;
  
- po::variables_map vm;
-   po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
   bool help = vm["help"].as<bool>();
   if (help) {
     std::cerr << desc << "\n";
@@ -119,9 +121,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.layer_id = vm["layer-id"].as<std::size_t>();
   options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   fractional_bits = options.fractional_bits;
-  std::cout<<"Fractional bits: "<<fractional_bits<<std::endl;
   // clang-format on;
-
   const auto parse_helpernode_info =
       [](const auto& s) -> MOTION::Communication::tcp_connection_config {
     const static std::regex party_argument_re("([^,]+),(\\d{1,5})");
@@ -133,7 +133,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     auto port = boost::lexical_cast<std::uint16_t>(match[2]);
     return {host, port};
   };
-
+  
   const auto parse_party_argument =
       [](const auto& s) -> std::pair<std::size_t, MOTION::Communication::tcp_connection_config> {
     const static std::regex party_argument_re("([01]),([^,]+),(\\d{1,5})");
@@ -166,10 +166,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.tcp_config[id1] = conn_info1;
   options.tcp_config[2] = conn_info_helpernode;
 
-  
 return options;
 }
-
 void print_message(std::vector<std::uint8_t>& message) {
   for (auto i = 0; i < message.size(); i++) {
     std::cout << std::hex << (int)message[i] << " ";
@@ -206,17 +204,18 @@ std::uint64_t blah(E &engine)
 }
 
 std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint64_t>&b)
-{   
+{
     if(a[1]!=b[0])
       {
         std::cerr<<"Error during matrix multiplication. Number of columns in W is not equal to Number of rows in X.";
         exit(1);
       }
+    // std::cout<<"In multiplicate, a[0]="<<a[0]<<" a[1]="<<a[1]<<" b[0]="<<b[0]<<" b[1]="<<b[1]<<std::endl;
     auto b_begin = b.begin();
     advance(b_begin, 2);
     std::vector<std::uint64_t>z;
-    z.push_back(a[0]); //256
-    z.push_back(b[1]); //1
+    z.push_back(a[0]);
+    z.push_back(b[1]);
 
     std::vector<std::uint64_t>tempw;
     int count=2;
@@ -232,13 +231,16 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
       auto tempw_begin=tempw.begin();
       auto tempw_end=tempw.end();
       advance(tempw_begin, 2);
-      __gnu_parallel::transform(tempw_begin, tempw_end, b_begin, tempw_begin , std::multiplies{});     
+      __gnu_parallel::transform(tempw_begin, tempw_end, b_begin, tempw_begin , std::multiplies{});
       
+      // std::cout<<"tempw size: "<<tempw.size()<<"\n";
+
       std::uint64_t sum=0;
       for(int j=2;j<tempw.size();j++)
       {
         sum+=tempw[j];
       }
+      // std::cout<<i+1<<". "<<sum<<"\n";
       z.push_back(sum);
       tempw.clear();
     }
@@ -246,197 +248,180 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
 }
 
 void operations()
-{
- 
-    //w2=wpublic
-    std::vector<std::uint64_t>w2;
-    w2.resize(wpublic.size(),0);
-    for(int i=0;i<wpublic.size();i++)
-    {
-      w2[i]=wpublic[i];
-    }
+{  
 
-    //prod1=wpublic*xpublic
-    prod1=multiplicate(wpublic,xpublic);
+//---------------------------------------------------------------------------------------------------------
+    
+
+    //prod1=Delw * delx1
+    std::vector<std::uint64_t>prod1=multiplicate(wpublic,xsecret);
     auto prod1_begin=prod1.begin();
     auto prod1_end=prod1.end();
     advance(prod1_begin, 2);
-    std::cout<<"prod1 size: "<<prod1.size()<<"\n";
 
 
-  //------------------------------------------------------------------------------------------------------------------
-     
-    //prod2=Delw * delx1
-    std::vector<std::uint64_t>prod2= multiplicate(w2,xsecret);
+  //----------------------------------------------------------------------------------------------------------
+
+
+     //prod2=Dely * delx1
+    std::vector<std::uint64_t>prod2=multiplicate(wsecret,xpublic);
     auto prod2_begin=prod2.begin();
     advance(prod2_begin, 2);
-    std::cout<<"prod2 size: "<<prod2.size()<<"\n";
 
-//--------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------------
 
-    //prod3=delw1 * Delx 
-    std::vector<std::uint64_t>prod3= multiplicate(wsecret,xpublic);
-    std::cout<<"prod3 size: "<<prod3.size()<<"\n";
-    auto prod3_begin=prod3.begin();
-    advance(prod3_begin, 2);
-//--------------------------------------------------------------------------------------------------------------
-    //output(prod1)=prod1-prod2-prod3
-    __gnu_parallel::transform(prod1_begin, prod1_end, prod2_begin, prod1_begin , std::minus{});
-    __gnu_parallel::transform(prod1_begin, prod1_end, prod3_begin, prod1_begin , std::minus{});
-//-------------------------------------------------------------------------------------------------------------
-     
+    auto z_begin = Z.begin();
+    auto z_end = Z.end();
+    advance(z_begin,2 );
+    // for(int i=0;i<Z.size();i++)
+    // {
+    //   std::cout<<"Z:"<<Z[i]<<"\n";
+    // }     
+    std::cout<<"prod1 size:"<<prod1.size()<<"  Z size:"<<Z.size()<<std::endl;
+  
+   //z=z-Delw*delx
+   //z=z-prod1
+    __gnu_parallel::transform(z_begin, z_end, prod1_begin, z_begin , std::minus{});
+    std::cout<<"Z1:"<<*z_begin<<"\n";
 
-    std::vector<std::uint64_t>::iterator r_begin = R.begin();
-    advance(r_begin,2);
+    //z=z-Delx*delw
+    //z=z-prod1-prod2
+     __gnu_parallel::transform(z_begin, z_end, prod2_begin, z_begin , std::minus{});
+    std::cout<<"Z1:"<<*z_begin<<"\n";
    
-   //output=Delx*Dely-Delx*dely-Dely*delx+R (R was received from s2) 
-    __gnu_parallel::transform(prod1_begin, prod1_end, r_begin, prod1_begin , std::plus{});
-    for(int i=2;i<prod1.size();i++)
-     {
-       prod1[i] = MOTION::new_fixed_point::truncate(prod1[i], fractional_bits);
-     }
 
-//---------------------------------------------------------------------------------------------------------------
-    
+    for(int i=2;i<Z.size();i++)
+     {
+       Z[i] = MOTION::new_fixed_point::truncate(Z[i], fractional_bits);
+      //  std::cout<<"Z:"<<Z[i]<<"\n";
+     }  
+
+   
+//--------------------------------------------------------------------------------------------------------------------
+  
     randomnum.resize(prod1.size(),0);
-    randomnum[0]=prod1[0];
-    randomnum[1]=prod1[1];
+    randomnum[0]=prod1[0]; //256
+    randomnum[1]=prod1[1]; //1
     
     for(int i=2;i<prod1.size();i++)
     { 
       std::random_device rd;
       std::mt19937 gen(rd());
       auto temp=blah(gen);
+      // std::cout<<"r:"<<temp<<"\n";
       randomnum[i]=temp;
     }
 
     auto random_begin = randomnum.begin();
-    advance(random_begin,2 );
-    
-    //output=output+random(local secret share)
+    advance(random_begin,2); 
 
-    __gnu_parallel::transform(prod1_begin, prod1_end, random_begin, prod1_begin , std::plus{});   
+    //z=z+random number(aka secret share)
+    __gnu_parallel::transform(z_begin, z_end, random_begin, z_begin , std::plus{});     
     flag++;
-
+    //final output=Z
 }
 
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
   void received_message(std::size_t party_id, std::vector<std::uint8_t>&& message) override {
-    std::cout << "Message received from party " << party_id << "\n";
+  
+    
     int k = message.size() / 8;
     if(party_id==2)
     {
-      std::cout <<"R-Message size before converting to 64bit uint: "<<message.size() <<std::endl;
-      if(message.size()<=0)
-        {
-          std::cerr<<"Empty message received from party "<<party_id<<std::endl;
-          exit(1);
-        }
-      for (auto i = 0; i < k; ++i) {
-        auto temp = getuint64(message, i);
-        R.push_back(temp);
-      }
-      if (R.size() == k) {
-        operations();
-        flag++;
-        }
-      
-    }
-    else if(party_id==1)
-    { 
-     std::vector<std::uint64_t>Final_public;
-     std::vector<std::uint64_t>secretshare1;
-     std::cout <<"Received message from Party 1 of size "<< message.size() << "\n"; //should be 258
-    
-    //to push rows and column 
-      for(int i=0;i<2;i++)
+    std::cout << "(Z-R) received from helper node of size "<<message.size() <<std::endl;
+    if(message.size()<=0)
       {
-        auto j=getuint64(message,i);
-        Final_public.push_back(j);
-        secretshare1.push_back(j);
+        std::cerr<<"Empty message received from party "<<party_id<<std::endl;
+        exit(1);
       }
+    for (auto i = 0; i < k; ++i) {
+      auto temp = getuint64(message, i);
+      Z.push_back(temp);
+    }
+    std::cout<<"\n\n";
+    if (Z.size() == k) {
+      operations();
+      flag++;
+    }
+    }
+  else if(party_id==0)
+  { 
+    std::cout << "DEL_C0 received from party " << party_id << "of size \n";
+    std::vector<std::uint64_t>Final_public;
+    std::cout <<"After receiving from Party 0 , message size is "<< message.size() << "\n"; 
+    for(int i=0;i<k;i++)
+    { 
+      auto temp = getuint64(message, i);
+      Final_public.push_back(temp);
+    }
+    auto finalpublic_begin = Final_public.begin();
+    auto finalpublic_end = Final_public.end();
+    advance(finalpublic_begin,2);
 
-      for(int i=2;i<k-1;i=i+2)
-      { 
-        auto temp = getuint64(message, i);
-        Final_public.push_back(temp);
-        auto temp2=getuint64(message, i+1);
-        secretshare1.push_back(temp2);
-      }
-      auto finalpublic_begin = Final_public.begin();
-      auto finalpublic_end = Final_public.end();
-      advance(finalpublic_begin,2);
-      std::cout<<"Final public:"<<*finalpublic_begin<<"\n";
-
-      auto prod1_begin=prod1.begin();
-      advance(prod1_begin,2);
-      
-      auto secretshare1_begin = secretshare1.begin();
-      advance(secretshare1_begin,2);
-      
-      auto randomnum_begin = randomnum.begin();
-      auto randomnum_end = randomnum.end();
-      advance(randomnum_begin,2);
-
-      std::cout<<"Random number:"<<*randomnum_begin<<"\n";
- 
-      auto bpublic_begin=bpublic.begin();
-      advance(bpublic_begin,2);
-      
-		  auto bsecret_begin=bsecret.begin();
-      advance(bsecret_begin,2);
-      
-    __gnu_parallel::transform(finalpublic_begin, finalpublic_end, prod1_begin, finalpublic_begin , std::plus{});   
+    auto z_begin=Z.begin();
+    advance(z_begin,2);
     
-    //public shares for w.x + public shares of bias b
+    auto bpublic_begin=bpublic.begin();
+    advance(bpublic_begin,2);
+
+    auto randomnum_begin = randomnum.begin();
+    auto randomnum_end = randomnum.end();
+    advance(randomnum_begin,2);
+
+    auto bsecret_begin=bsecret.begin();
+    advance(bsecret_begin,2);
+
+
+    //final public share=Final_public
+    __gnu_parallel::transform(finalpublic_begin, finalpublic_end, z_begin, finalpublic_begin , std::plus{});   
     __gnu_parallel::transform(finalpublic_begin, finalpublic_end, bpublic_begin, finalpublic_begin , std::plus{});  
 
-    //random num = random num+secret share of bias
+
     //final secret share=randomnum
-	  __gnu_parallel::transform(randomnum_begin, randomnum_end, bsecret_begin, randomnum_begin , std::plus{});
+    __gnu_parallel::transform(randomnum_begin, randomnum_end, bsecret_begin, randomnum_begin , std::plus{});
 
-   std::string basedir = getenv("BASE_DIR");
-   std::string filename = basedir + "/build_debwithrelinfo_gcc";
-   std::string totalpath = filename + "/server0/" + "outputshare_0";
 
+    std::string basedir = getenv("BASE_DIR");
+    std::string filename = basedir + "/build_debwithrelinfo_gcc";
+    std::string totalpath = filename + "/server1/" + "outputshare_1";
+  
+   
 	//  if (std::filesystem::remove(totalpath));
 
-   std::ofstream indata;
-   indata.open(totalpath,std::ios_base::out);
-   assert(indata);
+    std::ofstream indata;
+    indata.open(totalpath,std::ios_base::out);
+    assert(indata);
 
-   indata<<Final_public[0]<<" "<<Final_public[1]<<"\n";
-   for(int i=2;i<Final_public.size();i++)
-   {
-    indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
-   }
-   indata.close();
-  } 
-}
-}; 
+    indata<<Final_public[0]<<" "<<Final_public[1]<<"\n";
+    for(int i=2;i<Final_public.size();i++)
+    {
+      indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
+    }
+    indata.close();
+  }    
+} 
+};
 
-
-void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Options& options)
+void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options& options)
 { 
-   std::string name=options.WB_file;
-
+  std::string name=options.WB_file;
   if(choice==1)
-  { 
+  {
     std::ifstream content;
     std::cout<<"Reading the Weight and Bias shares\n";
-    // ~/IUDX/iudx-MOTION2NX/build_debwithrelinfo_gcc/file_config_model0
     std::string fullpath = options.current_path;
     fullpath += "/"+name;
     content.open(fullpath);
     std::string wpath,bpath;
-    // Increment until it reaches the weights and biases corresponding to the layer_id
+    // Increment until it reaches the weights and bias files corresponding to the layer_id
     for(auto i=0;i<options.layer_id;i++)
       {
         content>>wpath;    
         content>>bpath; 
       }
- 
+    
     std::cout<<"Weights path: "<<wpath<<"\nBias path: "<<bpath<<"\n";
+
     std::ifstream file(wpath);
     if (!file) {
       std::cerr << " Error in opening the weights file\n";
@@ -444,7 +429,7 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
     }
     std::uint64_t rows, col;
     file >> rows >> col;
-    
+
     if (file.eof()) {
       std::cerr << "Weights File doesn't contain rows and columns" << std::endl;
       exit(1);
@@ -467,10 +452,9 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
         std::cerr << "File contains less number of elements" << std::endl;
         exit(1);
       }
-
       adduint64(secret_share, message);
       k++;
-      }
+    }
     std::cout<<"Number of shares read: "<<k<<"\n"; 
     if (k == rows * col) {
       std::uint64_t num;
@@ -485,7 +469,6 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
     file.open(bpath);
     if (!file) {
     std::cerr << " Error in opening bias file\n";
-    exit(1);
     }
     file >> rows >> col;
 
@@ -531,7 +514,7 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
       // outputshare_0/1 inside server 0/1
       fullpath+= "/server" + std::to_string(my_id) + "/" + options.input_file + "_" + std::to_string(my_id);
     }     
-    std::cout<<"Input share file path: "<<fullpath<<std::endl;
+    std::cout<<"Input share file: "<<fullpath<<std::endl;
     std::cout<<"Reading the input shares\n";
 
     std::ifstream file(fullpath);
@@ -560,35 +543,36 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
       file >> secret_share;
       xsecret.push_back(secret_share);
       if (file.eof()) {
-      std::cerr << "File contains less number of elements" << std::endl;
-      exit(1);
+        std::cerr << "File contains less number of elements" << std::endl;
+        exit(1);
       }
       adduint64(secret_share, message);
       k++;
-    }
+      }
     if (k == rows * col) {
       std::uint64_t num;
       file >> num;
       if (!file.eof()) {
         std::cerr << "File contains more number of elements" << std::endl;
         exit(1);
+        }
       }
-    }
     file.close();
   }
 }
 
+
 int main(int argc, char* argv[]) {
-  
+
   auto start = high_resolution_clock::now();
   auto options = parse_program_options(argc, argv);
-
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
-  int my_id = 0,helpernode_id=2;
-   int WriteToFiles = 1;
-  std::cout << "My party id: " << my_id << "\n";
+
+  int my_id = 1, helpernode_id=2;
+  int WriteToFiles = 1;
+  std::cout << "my party id: " << my_id << "\n";
 
   try{
     MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
@@ -599,63 +583,62 @@ int main(int argc, char* argv[]) {
     comm_layer->set_logger(logger);
 
     comm_layer->start();
-    std::vector<std::uint8_t> message1,message2;
+
+    std::vector<std::uint8_t> message1, message2;
     std::vector<std::uint8_t> started{(std::uint8_t)1};
     comm_layer->send_message(helpernode_id, started);
-    read_shares(1,0,message1,*options); //Weights and bias shares
-    read_shares(2,0,message2,*options); //Image shares
 
+    read_shares(1,1,message1,*options);
+    read_shares(2,1,message2,*options);
 
-    std::cout<<"Weight shares size: "<<message1.size()<<"\n";
+    
+    std::cout<<"Weights and Bias shares size: "<<message1.size()<<"\n";
     std::cout<<"Input shares size: "<<message2.size()<<"\n";
-    std::cout<<"Sending Weight shares to the helper node\n";
+    std::cout<<"Sending Weights and Bias shares to the helper node\n";
     comm_layer->send_message(helpernode_id, message1);
     comm_layer->send_message(helpernode_id, message2);
-    comm_layer->register_fallback_message_handler(
-        [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
-    // sleep(30);
-    // sleep(5);
-    testMemoryOccupied(WriteToFiles,0, options->current_path);
-    std::cout<<std::endl;
+
+  comm_layer->register_fallback_message_handler(
+        [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
+
+    testMemoryOccupied(WriteToFiles,1, options->current_path);
     while(flag!=2)
       {
         std::cout<<".";
         sleep(1);
       }
-    // if(flag==2)
-    // {
-    // std::cout<<"Message Z size: "<<prod1.size()<<"\n";
-    std::vector<std::uint8_t>mes0;
-    for(int i=0;i<prod1.size();i++)
-    {  
-      auto temp=prod1[i];
-      adduint64(temp, mes0);
+    std::vector<std::uint8_t>mes1;
+    for(int i=0;i<Z.size();i++)
+    { 
+      //to push zth members first and condition checking is done to not push rows and columns twice
+      auto temp=Z[i];
+      adduint64(temp,mes1);
+      if(i>1)
+      { 
+        //to send secret shares
+        auto temp2=randomnum[i]; 
+        adduint64(temp2,mes1);
+      }
     }
-    std::cout<<"Sending DEL_C0 to the Party 1\n";
-    comm_layer->send_message(1,mes0);
-    // }
+    std::cout<<"Sending DEL_C1 to the Party0\n";
+    comm_layer->send_message(0,mes1);
     comm_layer->shutdown();
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    std::string t1 = options->current_path + "/" + "AverageTimeDetails1";
+    std::string t2 = options->current_path + "/" + "MemoryDetails1";
 
-  auto stop = high_resolution_clock::now();
-  auto duration = duration_cast<milliseconds>(stop - start);
-  
-  std::cout<<"Duration:"<<duration.count()<<"\n";
+    std::ofstream file2;
+    file2.open(t2, std::ios_base::app);
+    file2 << "Execution time - " << duration.count() << "msec";
+    file2 << "\n";
+    file2.close();
 
-  std::string t1 = options->current_path + "/" + "AverageTimeDetails0";
-  std::string t2 = options->current_path + "/" + "MemoryDetails0";
-
-  std::ofstream file2;
-  file2.open(t2, std::ios_base::app);
-
-  file2 << "Execution time - " << duration.count() << "msec";
-  file2 << "\n";
-  file2.close();
-
-  std::ofstream file1;
-  file1.open(t1, std::ios_base::app);
-  file1 << duration.count();
-  file1 << "\n";
-  file1.close();
+    std::ofstream file1;
+    file1.open(t1, std::ios_base::app);
+    file1 << duration.count();
+    file1 << "\n";
+    file1.close();
   }
   catch (std::runtime_error& e) {
     std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
