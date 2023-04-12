@@ -6,9 +6,6 @@
 #include <regex>
 #include <stdexcept>
 #include <utility>
-#include <random>
-#include <regex>
-#include <stdexcept>
 #include "communication/communication_layer.h"
 #include "communication/message_handler.h"
 #include "communication/tcp_transport.h"
@@ -25,14 +22,16 @@
 #include <parallel/algorithm>
 #include <vector>
 #include "utility/new_fixed_point.h"
-
+#include <boost/chrono.hpp>
+#include <boost/thread/thread.hpp> 
 #include <chrono>
 using namespace std::chrono;
 
 std::vector<std::uint64_t> Z;  //
 std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum;
-int flag = 0;
+int operations_done_flag = 0;
+bool helpernode_ready_flag = false;
 std::uint64_t fractional_bits;
 namespace po = boost::program_options;
 
@@ -51,11 +50,11 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
   std::cout << "Private Memory - " << rss - shared_mem << "kB\n";
   std::cout << std::endl;
   if (WriteToFiles == 1) {
-    /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
+    // Generate path for the AverageMemoryDetails file and MemoryDetails file
     std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
     std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
 
-    ///// Write to the AverageMemoryDetails files
+    // Write to the AverageMemoryDetails files
     std::ofstream file1;
     file1.open(t1, std::ios_base::app);
     file1 << rss;
@@ -77,7 +76,6 @@ struct Options {
   std::string input_file;
   std::size_t layer_id;
   std::string current_path;
-  // std::uint16_t my_port;
   MOTION::Communication::tcp_parties_config tcp_config;
   std::size_t fractional_bits;
 };
@@ -232,9 +230,6 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
       auto tempw_end=tempw.end();
       advance(tempw_begin, 2);
       __gnu_parallel::transform(tempw_begin, tempw_end, b_begin, tempw_begin , std::multiplies{});
-      
-      // std::cout<<"tempw size: "<<tempw.size()<<"\n";
-
       std::uint64_t sum=0;
       for(int j=2;j<tempw.size();j++)
       {
@@ -250,8 +245,7 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&a,std::vector<uint6
 void operations()
 {  
 
-//---------------------------------------------------------------------------------------------------------
-    
+//---------------------------------------------------------------------------------------------------------  
 
     //prod1=Delw * delx1
     std::vector<std::uint64_t>prod1=multiplicate(wpublic,xsecret);
@@ -259,9 +253,7 @@ void operations()
     auto prod1_end=prod1.end();
     advance(prod1_begin, 2);
 
-
   //----------------------------------------------------------------------------------------------------------
-
 
      //prod2=Dely * delx1
     std::vector<std::uint64_t>prod2=multiplicate(wsecret,xpublic);
@@ -272,11 +264,7 @@ void operations()
 
     auto z_begin = Z.begin();
     auto z_end = Z.end();
-    advance(z_begin,2 );
-    // for(int i=0;i<Z.size();i++)
-    // {
-    //   std::cout<<"Z:"<<Z[i]<<"\n";
-    // }     
+    advance(z_begin,2 );   
     std::cout<<"prod1 size:"<<prod1.size()<<"  Z size:"<<Z.size()<<std::endl;
   
    //z=z-Delw*delx
@@ -293,7 +281,6 @@ void operations()
     for(int i=2;i<Z.size();i++)
      {
        Z[i] = MOTION::new_fixed_point::truncate(Z[i], fractional_bits);
-      //  std::cout<<"Z:"<<Z[i]<<"\n";
      }  
 
    
@@ -308,7 +295,6 @@ void operations()
       std::random_device rd;
       std::mt19937 gen(rd());
       auto temp=blah(gen);
-      // std::cout<<"r:"<<temp<<"\n";
       randomnum[i]=temp;
     }
 
@@ -317,14 +303,35 @@ void operations()
 
     //z=z+random number(aka secret share)
     __gnu_parallel::transform(z_begin, z_end, random_begin, z_begin , std::plus{});     
-    flag++;
+    operations_done_flag++;
     //final output=Z
 }
 
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
   void received_message(std::size_t party_id, std::vector<std::uint8_t>&& message) override {
   
-    
+    if(message.size()==1 && message[0]==(std::uint8_t)1)
+      {
+        std::cout<<"Inside the ack message block\n";
+        if(party_id==2)
+          {
+            std::cout<<"\nHelper node has acknowledged receiving the start connection message.\n";
+            helpernode_ready_flag = true;
+            return;
+          }
+        else
+          {
+            std::cerr<<"Received the message \"1\" from unknown party "<<party_id<<std::endl;
+            return;
+          }
+      }
+    // std::cout<<"\n";
+    while(!helpernode_ready_flag)
+      {
+        std::cout<<"h1";
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+        // sleep(1);
+      }
     int k = message.size() / 8;
     if(party_id==2)
     {
@@ -338,15 +345,22 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
       auto temp = getuint64(message, i);
       Z.push_back(temp);
     }
-    std::cout<<"\n\n";
+    // std::cout<<"\n\n";
     if (Z.size() == k) {
       operations();
-      flag++;
+      operations_done_flag++;
     }
     }
   else if(party_id==0)
   { 
-    std::cout << "DEL_C0 received from party " << party_id << "of size \n";
+    // std::cout<<std::endl;
+    while(operations_done_flag!=2)
+      {
+        std::cout<<"o1";
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+        // sleep(1);
+      }
+    std::cout << "\nDEL_C0 received from party " << party_id << "of size \n";
     std::vector<std::uint64_t>Final_public;
     std::cout <<"After receiving from Party 0 , message size is "<< message.size() << "\n"; 
     for(int i=0;i<k;i++)
@@ -385,8 +399,6 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     std::string filename = basedir + "/build_debwithrelinfo_gcc";
     std::string totalpath = filename + "/server1/" + "outputshare_1";
   
-   
-	//  if (std::filesystem::remove(totalpath));
 
     std::ofstream indata;
     indata.open(totalpath,std::ios_base::out);
@@ -412,14 +424,24 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
     std::string fullpath = options.current_path;
     fullpath += "/"+name;
     content.open(fullpath);
+    if (!content.is_open()) {
+      std::cerr << " Error in opening the weights config file\n";
+      exit(1);
+    }
     std::string wpath,bpath;
     // Increment until it reaches the weights and bias files corresponding to the layer_id
+    try{
     for(auto i=0;i<options.layer_id;i++)
       {
         content>>wpath;    
         content>>bpath; 
       }
-    
+    }
+    catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the weights and bias path from config file\n";
+      exit(1);
+    }
+
     std::cout<<"Weights path: "<<wpath<<"\nBias path: "<<bpath<<"\n";
 
     std::ifstream file(wpath);
@@ -428,10 +450,16 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
       exit(1);
     }
     std::uint64_t rows, col;
+    try{
     file >> rows >> col;
+    }
+    catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading rows and columns from weight shares file.\n";
+      exit(1);
+    }
 
     if (file.eof()) {
-      std::cerr << "Weights File doesn't contain rows and columns" << std::endl;
+      std::cerr << "Weights File doesn't contain the shares" << std::endl;
       exit(1);
     }
 
@@ -444,23 +472,29 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
     wsecret.push_back(col);
     while (k < rows * col) {
       std::uint64_t public_share, secret_share;
+      try{
       file >> public_share;
       wpublic.push_back(public_share);
       file >> secret_share;
       wsecret.push_back(secret_share);
+      }
+      catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the weight shares.\n";
+      exit(1);
+      }
       if (file.eof()) {
-        std::cerr << "File contains less number of elements" << std::endl;
+        std::cerr << "Weight shares file contains less number of elements" << std::endl;
         exit(1);
       }
       adduint64(secret_share, message);
       k++;
     }
-    std::cout<<"Number of shares read: "<<k<<"\n"; 
+    std::cout<<"Number of weight shares read: "<<k<<"\n"; 
     if (k == rows * col) {
       std::uint64_t num;
       file >> num;
       if (!file.eof()) {
-        std::cerr << "File contains more number of elements" << std::endl;
+        std::cerr << "Weight shares file contains more number of elements" << std::endl;
         exit(1);
       }
     }
@@ -469,11 +503,17 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
     file.open(bpath);
     if (!file) {
     std::cerr << " Error in opening bias file\n";
+    exit(1);
     }
+    try{
     file >> rows >> col;
-
+    }
+    catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading rows and columns from bias shares file.\n";
+      exit(1);
+    }
     if (file.eof()) {
-      std::cerr << "File doesn't contain rows and columns" << std::endl;
+      std::cerr << "Bias shares file doesn't contain rows and columns" << std::endl;
       exit(1);
     }
        
@@ -484,12 +524,18 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
     bsecret.push_back(col);
     while (j < rows * col) {
       std::uint64_t public_share, secret_share;
+      try{
       file >> public_share;
       bpublic.push_back(public_share);
       file >> secret_share;
       bsecret.push_back(secret_share);
+      }
+      catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading bias shares.\n";
+      exit(1);
+      }
       if (file.eof()) {
-        std::cerr << "File contains less number of elements" << std::endl;
+        std::cerr << "Bias shares file contains less number of elements" << std::endl;
         exit(1);
       }
       j++;
@@ -511,20 +557,26 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
       fullpath+= "/server" + std::to_string(my_id) + "/Image_shares/" + options.input_file;
     } 
     else if (options.layer_id > 1) {
-      // outputshare_0/1 inside server 0/1
+      // Path to outputshare_1 inside server 1
       fullpath+= "/server" + std::to_string(my_id) + "/" + options.input_file + "_" + std::to_string(my_id);
     }     
     std::cout<<"Input share file: "<<fullpath<<std::endl;
     std::cout<<"Reading the input shares\n";
 
     std::ifstream file(fullpath);
+
     if (!file) {
       std::cerr << "Error in opening input file at "<<fullpath<<"\n";
       exit(1);
     }
     std::uint64_t rows, col;
+    try{
     file >> rows >> col;
-
+    }
+    catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading rows and columns from input shares file.\n";
+      exit(1);
+    }
     if (file.eof()) {
       std::cerr << "File doesn't contain rows and columns" << std::endl;
       exit(1);
@@ -538,10 +590,16 @@ void read_shares(int choice,int my_id,std::vector<uint8_t>&message,const Options
     xsecret.push_back(col);
     while (k < rows * col) {
       std::uint64_t public_share, secret_share;
+      try{
       file >> public_share;
       xpublic.push_back(public_share);
       file >> secret_share;
       xsecret.push_back(secret_share);
+      }
+      catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the input shares.\n";
+      exit(1);
+      }
       if (file.eof()) {
         std::cerr << "File contains less number of elements" << std::endl;
         exit(1);
@@ -567,78 +625,141 @@ int main(int argc, char* argv[]) {
   auto start = high_resolution_clock::now();
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
+    std::cerr<<"No options given.\n";
     return EXIT_FAILURE;
   }
 
   int my_id = 1, helpernode_id=2;
   int WriteToFiles = 1;
-  std::cout << "my party id: " << my_id << "\n";
-
+  std::cout << "My party id: " << my_id << "\n";
+  std::unique_ptr<MOTION::Communication::CommunicationLayer> comm_layer;
+  std::shared_ptr<MOTION::Logger> logger;
   try{
-    MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
-    auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
-        my_id, helper.setup_connections());
-
-    auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
-    comm_layer->set_logger(logger);
-
-    comm_layer->start();
-
+    try{
+      MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
+      comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
+          my_id, helper.setup_connections());
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << "Error occurred during connection setup: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+    try{
+      logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
+      comm_layer->set_logger(logger);
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << "Error occurred during logger setup: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+    try{
+        comm_layer->start();
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << "Error occurred while starting the communication: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
     std::vector<std::uint8_t> message1, message2;
     std::vector<std::uint8_t> started{(std::uint8_t)1};
+    std::cout<<"Sending the start connection message to the helper node.\n";
+    try{
     comm_layer->send_message(helpernode_id, started);
-
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << "Error occurred while sending the start message to helper node: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
     read_shares(1,1,message1,*options);
     read_shares(2,1,message2,*options);
 
-    
-    std::cout<<"Weights and Bias shares size: "<<message1.size()<<"\n";
+    std::cout<<"Weights shares size: "<<message1.size()<<"\n";
     std::cout<<"Input shares size: "<<message2.size()<<"\n";
-    std::cout<<"Sending Weights and Bias shares to the helper node\n";
-    comm_layer->send_message(helpernode_id, message1);
-    comm_layer->send_message(helpernode_id, message2);
 
-  comm_layer->register_fallback_message_handler(
-        [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
-
-    testMemoryOccupied(WriteToFiles,1, options->current_path);
-    while(flag!=2)
+    //Waiting to receive the acknowledgement from helpernode
+    while(!helpernode_ready_flag)
       {
-        std::cout<<".";
-        sleep(1);
+        std::cout<<"h2";
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+        // sleep(1);
       }
-    std::vector<std::uint8_t>mes1;
-    for(int i=0;i<Z.size();i++)
-    { 
-      //to push zth members first and condition checking is done to not push rows and columns twice
-      auto temp=Z[i];
-      adduint64(temp,mes1);
-      if(i>1)
-      { 
-        //to send secret shares
-        auto temp2=randomnum[i]; 
-        adduint64(temp2,mes1);
-      }
+
+    std::cout<<"Sending Weights shares to the helper node\n";
+    try{
+      comm_layer->send_message(helpernode_id, message1);
     }
-    std::cout<<"Sending DEL_C1 to the Party0\n";
-    comm_layer->send_message(0,mes1);
-    comm_layer->shutdown();
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    std::string t1 = options->current_path + "/" + "AverageTimeDetails1";
-    std::string t2 = options->current_path + "/" + "MemoryDetails1";
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending the weight shares to helper node: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
 
-    std::ofstream file2;
-    file2.open(t2, std::ios_base::app);
-    file2 << "Execution time - " << duration.count() << "msec";
-    file2 << "\n";
-    file2.close();
+    try{  
+      comm_layer->send_message(helpernode_id, message2);
+    }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending the input shares to helper node: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
 
-    std::ofstream file1;
-    file1.open(t1, std::ios_base::app);
-    file1 << duration.count();
-    file1 << "\n";
-    file1.close();
+    comm_layer->register_fallback_message_handler(
+          [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
+
+      testMemoryOccupied(WriteToFiles,1, options->current_path);
+      //Waiting for the operations to complete. 
+      while(operations_done_flag!=2)
+        {
+          std::cout<<"o2";
+          boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+        }
+      std::vector<std::uint8_t>mes1;
+      for(int i=0;i<Z.size();i++)
+      { 
+        //to push zth members first and condition checking is done to not push rows and columns twice
+        auto temp=Z[i];
+        adduint64(temp,mes1);
+        if(i>1)
+        { 
+          //to send secret shares
+          auto temp2=randomnum[i]; 
+          adduint64(temp2,mes1);
+        }
+      }
+      std::cout<<"Sending DEL_C1 to the Party0\n";
+      try{
+      comm_layer->send_message(0,mes1);
+      }
+      catch (std::runtime_error& e) {
+        std::cerr << "Error occurred while sending the output public share to Server-1: " << e.what() << "\n";
+        return EXIT_FAILURE;
+      }
+      comm_layer->shutdown();
+      auto stop = high_resolution_clock::now();
+      auto duration = duration_cast<milliseconds>(stop - start);
+      std::string t1 = options->current_path + "/" + "AverageTimeDetails1";
+      std::string t2 = options->current_path + "/" + "MemoryDetails1";
+
+      std::ofstream file2;
+      file2.open(t2, std::ios_base::app);
+      if(!file2.is_open())
+      {
+        std::cerr<<"Unable to open the MemoryDetails file.\n";
+      }
+    else{
+      file2 << "Execution time - " << duration.count() << "msec";
+      file2 << "\n";
+      }
+      file2.close();
+      std::ofstream file1;
+      file1.open(t1, std::ios_base::app);
+      if(!file1.is_open())
+      {
+        std::cerr<<"Unable to open the AverageTimeDetails file.\n";
+      }
+    else
+      {
+      file1 << duration.count();
+      file1 << "\n";
+      }
+      file1.close();
   }
   catch (std::runtime_error& e) {
     std::cerr << "ERROR OCCURRED: " << e.what() << "\n";

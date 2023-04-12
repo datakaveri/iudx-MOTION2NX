@@ -39,22 +39,24 @@ fi
 
 # #####################Inputs##########################################################################################################
 # cs0_ip is the ip of server0, cs1_ip is the ip of server1, helpernode_ip is the ip of the helpernode
-cs0_ip=
-cs1_ip=
-helpernode_ip=
-# Ports on which weights receiver talk
-cs1_port=3390
-cs0_port=4567
-
-# Ports on which image provider talks
-cs1_port_image=3390
-cs0_port_image=4567
-
+cs0_ip=127.0.0.1 #172.30.9.43
+# cs1_ip=192.168.1.141
+# helpernode_ip=192.168.1.117
+cs1_ip=127.0.0.1 #172.30.9.43
+helpernode_ip=127.0.0.1 #172.30.9.43
 
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
-port1_inference=7003
-port0_inference=7005
-helpernode_port=7004
+port0_inference=7003
+port1_inference=7004
+helpernode_port=7005
+# Ports on which weights receiver talk
+cs0_port=3390
+cs1_port=4567
+
+# Ports on which image provider talks
+cs0_port_image=3390
+cs1_port_image=4567
+
 
 fractional_bits=13
 
@@ -67,29 +69,29 @@ then
 fi
 
 ######################### Weights Share Receiver ############################################################################################
-echo "Weight Shares Receiver starts"
-$build_path/bin/Weights_Share_Receiver --my-id 1 --port $cs1_port --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver1.txt &
-pid2=$!
+# echo "Weight Shares Receiver starts"
+# $build_path/bin/Weights_Share_Receiver --my-id 1 --port $cs1_port --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver1.txt &
+# pid2=$!
 
-#########################Weights Provider ############################################################################################
-echo "Weight Provider starts"
-$build_path/bin/weights_provider --compute-server0-ip $cs0_ip --compute-server0-port $cs0_port --compute-server1-ip $cs1_ip --compute-server1-port $cs1_port --dp-id 0 --fractional-bits $fractional_bits --filepath $build_path_model > $debug_1/weights_provider.txt &
-pid3=$!
+# #########################Weights Provider ############################################################################################
+# echo "Weight Provider starts"
+# $build_path/bin/weights_provider --compute-server0-ip $cs0_ip --compute-server0-port $cs0_port --compute-server1-ip $cs1_ip --compute-server1-port $cs1_port --dp-id 0 --fractional-bits $fractional_bits --filepath $build_path_model > $debug_1/weights_provider.txt &
+# pid3=$!
 
-wait $pid3
-wait $pid2 
-echo "Weight Shares received"
+# wait $pid3
+# wait $pid2 
+# echo "Weight Shares received"
 
-# #########################Image Share Receiver ############################################################################################
-echo "Image Shares Receiver starts"
+# # #########################Image Share Receiver ############################################################################################
+# echo "Image Shares Receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
-pid2=$!
+# $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
+# pid2=$!
 
-wait $pid2
+# wait $pid2
 
 
-echo "Image shares received"
+# echo "Image shares received"
 ########################Share generators end ############################################################################################
 
 
@@ -109,7 +111,7 @@ fi
 
 #######################################Matrix multiplication layer 1 ###########################################################################
 
-$build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
+$build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits #> $debug_1/server1_layer${layer_id}.txt &
 
 pid1=$!
 
@@ -134,7 +136,7 @@ fi
 
 #######################################Matrix multiplication layer 2 ###########################################################################
 
-$build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
+$build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --helper_node $helpernode_ip,$helpernode_port --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits #> $debug_1/server1_layer${layer_id}.txt &
 pid1=$!
 
 wait $pid1 #$pid2 #$pid3 

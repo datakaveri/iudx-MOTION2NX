@@ -6,8 +6,6 @@
 #include <regex>
 #include <stdexcept>
 #include <utility>
-#include <regex>
-#include <stdexcept>
 #include "communication/communication_layer.h"
 #include "communication/message_handler.h"
 #include "communication/tcp_transport.h"
@@ -18,6 +16,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
+#include <boost/chrono.hpp>
+#include <boost/thread/thread.hpp> 
 
 #include <iostream>
 #include <iterator>
@@ -25,16 +25,13 @@
 #include <vector>
 #include "utility/new_fixed_point.h"
 
+
 std::vector<std::uint64_t> x0, w0;
 std::vector<std::uint64_t> x1, w1;
-int c1 = 1;
-int c2 = 1;
-int c3 = 1;
-int c4 = 1;
-int flag_server0 = -1, flag_server1 = -1;
+int c1 = 1, c2 = 1, c3 = 1, c4 = 1;
+bool operations_done_flag=false, server0_ready_flag = false, server1_ready_flag = false;
 std::uint64_t w_rows = 0, w_cols = 0, x_rows = 0, x_cols = 0;
-std::vector<std::uint8_t> msg_Z;
-std::vector<std::uint8_t> msg_R;
+std::vector<std::uint8_t> msg_Z, msg_R;
 namespace po = boost::program_options;
 
 struct Options {
@@ -53,11 +50,10 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
      "(party id, IP, port), e.g., --party 1,127.0.0.1,7777")
     ("helper_node", po::value<std::string>()->multitoken(),
      "(helpernode IP, port), e.g., --helper_node 127.0.0.1,7777") 
-
   ;
  
   po::variables_map vm;
-   po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::store(po::parse_command_line(argc, argv, desc), vm);
   bool help = vm["help"].as<bool>();
   if (help) {
     std::cerr << desc << "\n";
@@ -67,7 +63,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   try {
     po::notify(vm);
   } catch (std::exception& e) {
-    std::cerr << "error:" << e.what() << "\n\n";
+    std::cerr << "Error while parsing the options:" << e.what() << "\n\n";
     std::cerr << desc << "\n";
     return std::nullopt;
   }
@@ -99,7 +95,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
 
   const std::vector<std::string> party_infos = vm["party"].as<std::vector<std::string>>();
   if (party_infos.size() != 2) {
-    std::cerr << "expecting two --party options\n";
+    std::cerr << "Expecting two --party options (for party 0 and party 1)\n";
     return std::nullopt;
   }
   const auto [id0, conn_info0] = parse_party_argument(party_infos[0]);
@@ -155,14 +151,19 @@ std::uint64_t blah(E &engine)
 
 std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&w0,std::vector<uint64_t>&x0)
 {
-      //z=(256*784 * 784*1)= 256*1
+    //z=(256*784 * 784*1)= 256*1
+    if(w0.size()<=2 || x0.size()<=2)
+      {
+        std::cerr<<"Shares unavailable to perform computations. Weight shares size is "<<w0.size()<<"  and input shares size is "<<x0.size()<<std::endl;
+        exit(1);
+      }
     
     auto x0_begin = x0.begin();
     advance(x0_begin, 2);
 
-    std::vector<std::uint64_t>z;
-    z.push_back(w0[0]); //256
-    z.push_back(x0[1]); //1
+    std::vector<std::uint64_t>z;// Output shares.
+    z.push_back(w0[0]); // Output row size = Weights row size
+    z.push_back(x0[1]); // Output column size =  Input column size
 
     std::vector<std::uint64_t>tempw;
     int count=2;
@@ -196,74 +197,79 @@ std::vector<std::uint64_t>multiplicate(std::vector<uint64_t>&w0,std::vector<uint
 
 void operations()
 {   
-    auto w0_begin = w0.begin(); 
-    auto w1_begin = w1.begin(); 
-    auto w0_end = w0.end();
-    auto w1_end = w1.end();
-    //to skip rows and columns 
-    advance(w0_begin, 2);
-    advance(w1_begin, 2);
-    auto x0_begin = x0.begin(); 
-    auto x1_begin = x1.begin(); 
-    auto x0_end = x0.end();
-    auto x1_end = x1.end();
-    //to skip rows and columns 
-    advance(x0_begin, 2);
-    advance(x1_begin, 2);
-    
+  if(w0.size()<=2 || x0.size()<=2 || w1.size()<=2 || x1.size()<=2)
+    {
+      std::cerr<<"Shares unavailable to perform computations.\n";
+      exit(1);
+    }
+  auto w0_begin = w0.begin(); 
+  auto w1_begin = w1.begin(); 
+  auto w0_end = w0.end();
+  auto w1_end = w1.end();
+  //to skip rows and columns 
+  advance(w0_begin, 2);
+  advance(w1_begin, 2);
+  auto x0_begin = x0.begin(); 
+  auto x1_begin = x1.begin(); 
+  auto x0_end = x0.end();
+  auto x1_end = x1.end();
+  //to skip rows and columns 
+  advance(x0_begin, 2);
+  advance(x1_begin, 2);
+  
+//--------------------------------------------------------------------------------------------------
+
+  //delx0=delx0+delx1
+  __gnu_parallel::transform(x0_begin, x0_end, x1_begin, x0_begin , std::plus{});
+  std::cout<<"x0:"<<*x0_begin<<"\n";
+
+  
+  //delw0=delw0+delw1
+  __gnu_parallel::transform(w0_begin, w0_end, w1_begin, w0_begin , std::plus{});
+  std::cout<<"w0:"<<*w0_begin<<"\n";
+  
+
+  //z=(256*784 * 784*1)= 256*1
+  std::vector<std::uint64_t>z=multiplicate(w0,x0);
+
+  //-----------------------------------------------------------------------------------------------
+  std::cout<<"Computed Z=w0.x0 of size "<<z.size()<<"\n";
+
+  std::vector<std::uint64_t>r;
+  r.resize(x0.size(),0);
+  r[0]=w0[0];
+  r[1]=x0[1];
+  
+  for(int i=2;i<z.size();i++)
+  { 
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    auto temp=blah(gen);
+    r[i]=temp;
+  }
+  std::cout<<"Generated Random value R of size "<<r.size()<<std::endl;
+  auto r_begin = r.begin();
+  advance(r_begin,2);
+
   //--------------------------------------------------------------------------------------------------
   
-    //delx0=delx0+delx1
-    __gnu_parallel::transform(x0_begin, x0_end, x1_begin, x0_begin , std::plus{});
-    std::cout<<"x0:"<<*x0_begin<<"\n";
+  auto z_begin = z.begin();
+  auto z_end = z.end();
+  advance(z_begin,2);
 
-    
-    //delw0=delw0+delw1
-    __gnu_parallel::transform(w0_begin, w0_end, w1_begin, w0_begin , std::plus{});
-    std::cout<<"w0:"<<*w0_begin<<"\n";
-    
+  //z=z-r
 
-    //z=(256*784 * 784*1)= 256*1
-    std::vector<std::uint64_t>z=multiplicate(w0,x0);
+  __gnu_parallel::transform(z_begin, z_end, r_begin, z_begin , std::minus{});
 
-    //-----------------------------------------------------------------------------------------------
-    std::cout<<"Computed Z=w0.x0 of size "<<z.size()<<"\n";
 
-    std::vector<std::uint64_t>r;
-    r.resize(x0.size(),0);
-    r[0]=w0[0];
-    r[1]=x0[1];
-    
-    for(int i=2;i<z.size();i++)
-    { 
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      auto temp=blah(gen);
-      r[i]=temp;
-    }
-    std::cout<<"Generated Random value R of size "<<r.size()<<std::endl;
-    auto r_begin = r.begin();
-    advance(r_begin,2);
-
-    //--------------------------------------------------------------------------------------------------
-    
-    auto z_begin = z.begin();
-    auto z_end = z.end();
-    advance(z_begin,2);
-
-    //z=z-r
-
-    __gnu_parallel::transform(z_begin, z_end, r_begin, z_begin , std::minus{});
-
-  
-   //Final output:-
+  //Final output:-
   //  std::cout<<"Final Output -:- \n";
-   for(int i=0;i<z.size();i++)
-   {
-    adduint64(z[i],msg_Z); //z=z-r  server1
-    adduint64(r[i],msg_R); //r  server0
-   }
-   
+  for(int i=0;i<z.size();i++)
+  {
+  adduint64(z[i],msg_Z); //z=z-r  server1
+  adduint64(r[i],msg_R); //r  server0
+  }
+  operations_done_flag = true; 
 }
 
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
@@ -271,18 +277,19 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     //layer 1 - (w0 -> 256*784, x0 ->784*1 server0),(w1 -> 256*784 , x1->784*1 server1)
     //layer 2 - (w0 -> 10*256, x0 ->256*1 server0), (w1 -> 10*256 , x1->256*1 server1)
     int size_msg=message.size()/8;
+    // To set the flags after the helper node receives start message from server 0 and server 1.
     if(message.size()==1 && message[0]==(std::uint8_t)1)
       {
         if(party_id==0)
           {
-            std::cout<<"\nServer 0 has started.\n";
-            flag_server0 = 1;
+            std::cout<<"Server 0 has started.\n";
+            server0_ready_flag = true;
             return;
           }
         else if(party_id==1)
           {
-            std::cout<<"\nServer 1 has started.\n";
-            flag_server1 = 1;
+            std::cout<<"Server 1 has started.\n";
+            server1_ready_flag = true;
             return;
           }
         else
@@ -291,11 +298,13 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
             return;
           }
       }
-    // while((flag_server0==-1) || (flag_server1==-1))
-    //   {
-    //     std::cout<<'.';
-    //     sleep(2);
-    //   }
+    // std::cout<<"\n";
+    while((!server0_ready_flag) || (!server1_ready_flag))
+      {
+        std::cout<<"s1";
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(400));
+        // sleep(1);
+      }
     auto i=0;
     for(i=1;i<size_msg;i++)
     { 
@@ -358,7 +367,6 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     // std::cout<<"w_rows="<<w_rows<<" w_cols="<<w_cols<<std::endl;
     if(c1==(w_cols*w_rows+2) && c2==(w_cols*w_rows+2) && c3==w_cols+2 && c4==w_cols+2)
     { 
-      // std::cout<<"operations:-\n";
       operations();
     }
   }
@@ -366,37 +374,98 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
 
 
 int main(int argc, char* argv[]) {
-  
+  std::cout<<"Started the helper node.\n";
+
   int my_id = 2;
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
+    std::cerr<<"No options given.\n";
     return EXIT_FAILURE;
   }
-
+  std::unique_ptr<MOTION::Communication::CommunicationLayer> comm_layer;
+  std::shared_ptr<MOTION::Logger> logger;
   try{
-    MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
-    auto comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
-        my_id, helper.setup_connections());
-
-    auto logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
+      try{
+        std::cout<<"Setting up the connections.";
+        MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
+        comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
+            my_id, helper.setup_connections());
+      }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred during connection setup: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+    try{
+    logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
     comm_layer->set_logger(logger);
-    comm_layer->start();
-
+    }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred during logger setup: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+    std::cout<<"Starting the communication layer\n";
+    try{
+      comm_layer->start();
+    }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while starting the communication: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+    std::cout<<"Start Receiving messages in parallel\n";
     comm_layer->register_fallback_message_handler(
         [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
-    std::cout<<"\n";
-    while((flag_server0==-1) || (flag_server1==-1))
+    
+    //Waiting for server 0 and 1 to send their start messages. 
+    while((!server0_ready_flag) || (!server1_ready_flag))
       {
-        std::cout<<'.';
-        sleep(2);
+        std::cout<<"s2";
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(400));
       }
     std::cout<<std::endl;
 
-    std::cout<<"Sending (Z-R) of size "<<msg_Z.size()<<" to party 1.\n";
-    std::cout<<"Sending R of size "<<msg_R.size()<<" to party 0.\n";
+    // Sending acknowledgement message to server 0 and 1, after receiving the start message.
+    std::cout<<"Sending acknowledgement message to server 0 and 1\n";
+    std::vector<std::uint8_t> ack{(std::uint8_t)1};
+    try{
+    comm_layer->send_message(1,ack); 
+    }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending the ack message to server 1: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+    try{
+      comm_layer->send_message(0,ack);
+    }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending the ack message to server 0: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+    std::cout<<"Sent acknowledgement message to server 0 and 1\n";
 
-    comm_layer->send_message(1,msg_Z);//z-r
+    //Waiting for the operations to complete before sending the results to the servers.
+    while(!operations_done_flag)
+      {
+        std::cout<<"o1";
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+        // sleep(1);
+      }
+    
+    std::cout<<"Sending (Z-R) of size "<<msg_Z.size()<<" to party 1.\n";
+    try{  
+      comm_layer->send_message(1,msg_Z);//z-r
+    }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending (Z-R) to server 1: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+    std::cout<<"Sending R of size "<<msg_R.size()<<" to party 0.\n";
+    try{
     comm_layer->send_message(0,msg_R);//r
+    }
+    catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending (R) to server 0: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
     comm_layer->shutdown();
   }
   catch (std::runtime_error& e) {
