@@ -67,3 +67,9 @@ Dataprovider/image_provider/answer
 # Docker
 *.yaml
 
+# data
+data/
+example-data/data
+
+# config files
+config_files/

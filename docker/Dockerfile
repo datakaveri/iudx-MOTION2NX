@@ -74,6 +74,10 @@ COPY fbs fbs
 COPY Dataprovider Dataprovider
 COPY flatbuffers-build flatbuffers-build
 COPY circuits circuits
+
+# AVX instruction to compile with
+# Possible values : OFF, AVX, AVX2,AVX512
+ARG AVX=AVX2
 # Build MOTION2NX
 # Delete source, build files and keep binaries
 RUN CC=gcc CXX=g++ cmake \
@@ -81,7 +85,7 @@ RUN CC=gcc CXX=g++ cmake \
     -DCMAKE_BUILD_TYPE=DebWithRelInfo \
     -DMOTION_BUILD_EXE=On \
     -DMOTION_BUILD_TESTS=On \
-    -DMOTION_USE_AVX=AVX2 && \
+    -DMOTION_USE_AVX=${AVX} && \
     cmake --build build_debwithrelinfo_gcc
 RUN ldconfig
 # Final Image (stage)
@@ -93,6 +97,10 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         g++ \
+        jq \
+        bc \
+        net-tools \
+        dnsutils \
         libicu-dev \
         openssl \
         libssl-dev \

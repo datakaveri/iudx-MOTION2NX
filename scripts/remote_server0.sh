@@ -3,13 +3,12 @@
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
-build_path_model=${BASE_DIR}/Dataprovider/weights_provider
-image_path=${BASE_DIR}/Dataprovider/image_provider
-image_provider_path=${BASE_DIR}/Dataprovider/image_provider/Final_Output_Shares
+image_path=${BASE_DIR}/data/ImageProvider
+image_provider_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
 debug_0=$build_path/server0/debug_files
-debug_1=$build_path/server1/debug_files
 scripts_path=${BASE_DIR}/scripts
-
+smpc_config_path=${BASE_DIR}/config_files/smpc-config.json
+smpc_config=`cat $smpc_config_path`
 # #####################################################################################################################################
 cd $build_path
 
@@ -38,29 +37,35 @@ if [ -f AverageTime0 ]; then
    # echo "AverageTime0 is removed"
 fi
 # #####################Inputs##########################################################################################################
-
-# cs0_ip is the ip of server0, cs1_ip is the ip of server1
-cs0_ip=127.0.0.1
-cs1_ip=127.0.0.1
-
-# Ports on which weights recceiver talk
-cs0_port=4005
-cs1_port=4006
-
-# Ports on which image provider talks
-cs0_port_image=2023
-cs1_port_image=2020
-
+# cs0_host is the ip/domain of server0, cs1_host is the ip/domain of server1
+dns_resolve=`echo $smpc_config | jq -r .dns_resolve`
+cs0_host=`echo $smpc_config | jq -r .cs0_host`
+cs1_host=`echo $smpc_config | jq -r .cs1_host`
+if [[ $dns_resolve ]];
+then 
+cs0_host=`dig +short $cs0_host | grep '^[.0-9]*$' | head -n 1`
+cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
+fi
+# Ports on which weights,image and output provider  receiver listens/talks
+cs0_port_receiver=`echo $smpc_config | jq -r .cs0_port_receiver`
+cs1_port_receiver=`echo $smpc_config | jq -r .cs1_port_receiver`
 
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
-port0_inference=3390
-port1_inference=4567
+cs0_port_inference=`echo $smpc_config | jq -r .cs0_port_inference`
+cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
 
-fractional_bits=13
+fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
-image_id=9
+image_id=`echo $smpc_config | jq -r .image_id`
 
+# echo all input variables
+echo "cs0_host $cs0_host"
+echo "cs1_host $cs1_host"
+echo "cs0_port_receiver $cs0_port_receiver"
+echo "cs1_port_receiver $cs1_port_receiver"
+echo "cs0_port_inference $cs0_port_inference"
+echo "cs1_port_inference $cs1_port_inference"
 ##########################################################################################################################################
 
 
@@ -72,7 +77,7 @@ fi
 
 #########################Weights Share Receiver ############################################################################################
 echo "Weight Shares Receiver starts"
-$build_path/bin/Weights_Share_Receiver --my-id 0 --port $cs0_port --file-names $model_config --current-path $build_path >> $debug_0/Weights_Share_Receiver0.txt &
+$build_path/bin/Weights_Share_Receiver --my-id 0 --port $cs0_port_receiver --file-names $model_config --current-path $build_path >> $debug_0/Weights_Share_Receiver0.txt &
 pid2=$!
 wait $pid2
 echo "Weight Shares received"
@@ -80,12 +85,12 @@ echo "Weight Shares received"
 #########################Image Share Receiver ############################################################################################
 echo "Image Shares Receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_0/Image_Share_Receiver0.txt &
+$build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_0/Image_Share_Receiver0.txt &
 pid1=$!
 
 #########################Image Share Provider ############################################################################################
 echo "Image provider start"
-$build_path/bin/image_provider_iudx --compute-server0-ip $cs0_ip --compute-server0-port $cs0_port_image --compute-server1-ip $cs1_ip --compute-server1-port $cs1_port_image --fractional-bits $fractional_bits --index $image_id --filepath $image_path >> $debug_1/image_provider.txt &
+$build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path >> $debug_0/image_provider.txt &
 pid3=$!
 
 wait $pid3 $pid1
@@ -108,7 +113,7 @@ then
 fi
 
 #######################################Matrix multiplication layer 1 ###########################################################################
-$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_ip,$port0_inference  --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $build_path/server0/debug_files/tensor_gt_mul0_layer1.txt &
+$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference  --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $build_path/server0/debug_files/tensor_gt_mul0_layer1.txt &
 pid1=$!
 
 wait $pid1
@@ -116,16 +121,16 @@ echo "layer 1 - matrix multiplication and addition is done"
 
 
 #######################################Output share receivers ###########################################################################
-$build_path/bin/output_shares_receiver --my-id 0 --listening-port 8899 --current-path $image_provider_path > $build_path/server0/debug_files/output_shares_receiver0.txt &
+$build_path/bin/output_shares_receiver --my-id 0 --listening-port $cs0_port_receiver --current-path $image_provider_path > $build_path/server0/debug_files/output_shares_receiver0.txt &
 pid5=$!
 
-$build_path/bin/output_shares_receiver --my-id 1 --listening-port 2233 --current-path $image_provider_path > $build_path/server1/debug_files/output_shares_receiver1.txt &
+$build_path/bin/output_shares_receiver --my-id 1 --listening-port $cs1_port_receiver --current-path $image_provider_path > $build_path/server1/debug_files/output_shares_receiver1.txt &
 pid6=$!
 
 echo "Image Provider listening for the inferencing result"
 
 #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $build_path/server0/debug_files/tensor_gt_relu1_layer0.txt &
+$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $build_path/server0/debug_files/tensor_gt_relu1_layer0.txt &
 pid1=$!
 
 wait $pid1 
@@ -142,7 +147,7 @@ then
 fi
 
 #######################################Matrix multiplication layer 2 ###########################################################################
-$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $build_path/server0/debug_files/tensor_gt_mul0_layer2.txt &
+$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $build_path/server0/debug_files/tensor_gt_mul0_layer2.txt &
 pid1=$!
 
 wait $pid1 
@@ -150,7 +155,7 @@ wait $pid1
 echo "layer 2 - matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
-$build_path/bin/argmax --my-id 0 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $build_path/server0/debug_files/argmax0_layer2.txt &
+$build_path/bin/argmax --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $build_path/server0/debug_files/argmax0_layer2.txt &
 pid1=$!
 
 wait $pid1 
@@ -158,7 +163,7 @@ wait $pid1
 echo "layer 2 - argmax is done"
 
 ####################################### Final output provider  ###########################################################################
-$build_path/bin/final_output_provider --my-id 0 --connection-port 8899 --config-input $image_share --current-path $build_path > $build_path/server0/debug_files/final_output_provider0.txt &
+$build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_receiver --config-input $image_share --current-path $build_path > $build_path/server0/debug_files/final_output_provider0.txt &
 pid3=$!
 
 echo "Output shares of server 0 sent to the Image provider"

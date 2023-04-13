@@ -34,7 +34,6 @@ CTestTestfile.cmake
 *Config.cmake
 *Targets.cmake
 *.cbp
-
 # VS Code Directory
 .vscode/
 
@@ -48,3 +47,10 @@ Dataprovider/image_provider/answer
 # Docker 
 docker-compose.remote.yaml
 docker-compose.registry.yaml
+
+# data
+/data/
+
+# config file
+config_files/smpc-config.json 
+
