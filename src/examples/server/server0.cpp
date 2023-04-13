@@ -23,9 +23,9 @@
 #include <vector>
 #include "utility/new_fixed_point.h"
 
-#include <chrono>
 #include <boost/chrono.hpp>
-#include <boost/thread/thread.hpp> 
+#include <boost/thread/thread.hpp>
+#include <chrono>
 
 using namespace std::chrono;
 
@@ -33,7 +33,7 @@ std::vector<std::uint64_t> R;
 std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum, prod1;
 bool helpernode_ready_flag = false;
-int operations_done_flag =0;
+int operations_done_flag = 0;
 std::uint64_t fractional_bits;
 namespace po = boost::program_options;
 
@@ -702,6 +702,10 @@ int main(int argc, char* argv[]) {
 
     comm_layer->register_fallback_message_handler([](auto party_id) { return std::make_shared<TestMessageHandler>(); });
 
+
+    read_shares(1,0,message1,*options); //Weight shares
+    read_shares(2,0,message2,*options); //Input shares
+
     //Waiting to receive the acknowledgement from helpernode
     while(!helpernode_ready_flag)
       {
@@ -709,8 +713,6 @@ int main(int argc, char* argv[]) {
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
       }
 
-    read_shares(1,0,message1,*options); //Weight shares
-    read_shares(2,0,message2,*options); //Input shares
 
     std::cout<<"Weight shares size: "<<message1.size()<<"\n";
     std::cout<<"Input shares size: "<<message2.size()<<"\n";

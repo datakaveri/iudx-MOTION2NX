@@ -17,14 +17,14 @@
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
 
+#include <boost/chrono.hpp>
+#include <boost/thread/thread.hpp>
+#include <chrono>
 #include <iostream>
 #include <iterator>
 #include <parallel/algorithm>
 #include <vector>
 #include "utility/new_fixed_point.h"
-#include <boost/chrono.hpp>
-#include <boost/thread/thread.hpp> 
-#include <chrono>
 using namespace std::chrono;
 
 std::vector<std::uint64_t> Z;  //
@@ -665,14 +665,13 @@ int main(int argc, char* argv[]) {
         std::cerr << "Error occurred while sending the start message to helper node: " << e.what() << "\n";
         return EXIT_FAILURE;
     }
-    read_shares(1,1,message1,*options);
-    read_shares(2,1,message2,*options);
 
-    std::cout<<"Weights shares size: "<<message1.size()<<"\n";
-    std::cout<<"Input shares size: "<<message2.size()<<"\n";
-    
     comm_layer->register_fallback_message_handler(
           [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
+
+    
+    read_shares(1,1,message1,*options);
+    read_shares(2,1,message2,*options);
 
     //Waiting to receive the acknowledgement from helpernode
     while(!helpernode_ready_flag)
@@ -681,6 +680,9 @@ int main(int argc, char* argv[]) {
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
       }
 
+    std::cout<<"Weights shares size: "<<message1.size()<<"\n";
+    std::cout<<"Input shares size: "<<message2.size()<<"\n";
+    
     std::cout<<"Sending Weights shares to the helper node\n";
     try{
       comm_layer->send_message(helpernode_id, message1);
