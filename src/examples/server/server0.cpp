@@ -340,9 +340,8 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     std::cout<<"\n";
     while(!helpernode_ready_flag)
       {
-        std::cout<<"h1";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
-        // sleep(1);
       }
     
     int k = message.size() / 8;
@@ -369,12 +368,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     }
     else if(party_id==1)
     { 
-      // std::cout<<std::endl;
       while(operations_done_flag!=2)
         {
-          std::cout<<"o2";
+          std::cout<<".";
           boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-          // sleep(1);
         }
       std::vector<std::uint64_t>Final_public;
       std::vector<std::uint64_t>secretshare1;
@@ -703,12 +700,13 @@ int main(int argc, char* argv[]) {
     }
     std::cout<<"Sending the start connection message to the helper node.\n";
 
+    comm_layer->register_fallback_message_handler([](auto party_id) { return std::make_shared<TestMessageHandler>(); });
+
     //Waiting to receive the acknowledgement from helpernode
     while(!helpernode_ready_flag)
       {
-        std::cout<<"h2";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
-        // sleep(1);
       }
 
     read_shares(1,0,message1,*options); //Weight shares
@@ -716,9 +714,6 @@ int main(int argc, char* argv[]) {
 
     std::cout<<"Weight shares size: "<<message1.size()<<"\n";
     std::cout<<"Input shares size: "<<message2.size()<<"\n";
-
-
-
     std::cout<<"Sending Weight shares to the helper node\n";
 
     try{
@@ -736,19 +731,14 @@ int main(int argc, char* argv[]) {
       std::cerr << "Error occurred while sending the input shares to helper node: " << e.what() << "\n";
       return EXIT_FAILURE;
     }
-    
-    comm_layer->register_fallback_message_handler(
-        [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
-    // sleep(30);
-    
+        
     testMemoryOccupied(WriteToFiles,0, options->current_path);
     //Waiting for the operations to complete. 
     std::cout<<std::endl;
     while(operations_done_flag!=2)
       {
-        std::cout<<"o1";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-        // sleep(1);
       }
     
     std::vector<std::uint8_t>mes0;

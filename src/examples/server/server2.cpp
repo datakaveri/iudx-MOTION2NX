@@ -298,12 +298,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
             return;
           }
       }
-    // std::cout<<"\n";
     while((!server0_ready_flag) || (!server1_ready_flag))
       {
-        std::cout<<"s1";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(400));
-        // sleep(1);
       }
     auto i=0;
     for(i=1;i<size_msg;i++)
@@ -418,10 +416,9 @@ int main(int argc, char* argv[]) {
     //Waiting for server 0 and 1 to send their start messages. 
     while((!server0_ready_flag) || (!server1_ready_flag))
       {
-        std::cout<<"s2";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(400));
       }
-    std::cout<<std::endl;
 
     // Sending acknowledgement message to server 0 and 1, after receiving the start message.
     std::cout<<"Sending acknowledgement message to server 0 and 1\n";
@@ -445,9 +442,8 @@ int main(int argc, char* argv[]) {
     //Waiting for the operations to complete before sending the results to the servers.
     while(!operations_done_flag)
       {
-        std::cout<<"o1";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-        // sleep(1);
       }
     
     std::cout<<"Sending (Z-R) of size "<<msg_Z.size()<<" to party 1.\n";

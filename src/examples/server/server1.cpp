@@ -325,12 +325,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
             return;
           }
       }
-    // std::cout<<"\n";
     while(!helpernode_ready_flag)
       {
-        std::cout<<"h1";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
-        // sleep(1);
       }
     int k = message.size() / 8;
     if(party_id==2)
@@ -353,12 +351,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     }
   else if(party_id==0)
   { 
-    // std::cout<<std::endl;
     while(operations_done_flag!=2)
       {
-        std::cout<<"o1";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-        // sleep(1);
       }
     std::cout << "\nDEL_C0 received from party " << party_id << "of size \n";
     std::vector<std::uint64_t>Final_public;
@@ -674,13 +670,15 @@ int main(int argc, char* argv[]) {
 
     std::cout<<"Weights shares size: "<<message1.size()<<"\n";
     std::cout<<"Input shares size: "<<message2.size()<<"\n";
+    
+    comm_layer->register_fallback_message_handler(
+          [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
 
     //Waiting to receive the acknowledgement from helpernode
     while(!helpernode_ready_flag)
       {
-        std::cout<<"h2";
+        std::cout<<".";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
-        // sleep(1);
       }
 
     std::cout<<"Sending Weights shares to the helper node\n";
@@ -700,14 +698,12 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
 
-    comm_layer->register_fallback_message_handler(
-          [](auto party_id) { return std::make_shared<TestMessageHandler>(); }); 
 
       testMemoryOccupied(WriteToFiles,1, options->current_path);
       //Waiting for the operations to complete. 
       while(operations_done_flag!=2)
         {
-          std::cout<<"o2";
+          std::cout<<".";
           boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
         }
       std::vector<std::uint8_t>mes1;
