@@ -45,12 +45,13 @@ Dataprovider/image_provider/Final_Output_Shares/
 Dataprovider/image_provider/answer
 
 # Docker 
-docker-compose.remote.yaml
 docker-compose.registry.yaml
 
 # data
 /data/
 
 # config file
-config_files/smpc-config.json 
+config_files/smpc-remote-config.json
 
+# log files
+logs/

@@ -73,3 +73,6 @@ example-data/data
 
 # config files
 config_files/
+
+# logs 
+logs/
