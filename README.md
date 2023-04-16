@@ -229,78 +229,105 @@ The script inference.sh performs the inferencing task on the image index given b
 
 ## Docker based deployment
 ### Pre-requisite 
-- Install docker-ce, docker-compose through following script for Ubuntu:
-```
-curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Docker-Swarm-deployment/single-node/infrastructure/files/packages-docker-install.sh | sudo bash
-```
-or 
-refer official docs https://docs.docker.com/engine/install/ 
-- For convience, you can manage docker as non root user, ref: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
+- Install docker-ce, docker compose through following script for Ubuntu:
+  ```
+  curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Docker-Swarm-deployment/single-node/infrastructure/files/packages-docker-install.sh | sudo bash
+  ```
+  <p align="center">	(or)	</p>
+  
+  refer official docs https://docs.docker.com/engine/install/  
 
-### Build docker image and deploy 
+- For convenience, you can manage docker as non root user, ref: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
+  
+  * Note : Please do not manage docker as non-root user in production envrionment
+
+- To create a new MNIST image matrix for inferencing through SMPC , follow the steps mentioned above
+### Build docker image
 - Build docker image locally, this can be used for test/dev deployment
   ```
   ./docker/build.sh
   ```
-- To build and push docker image to docker registry, used to deploy in cloud/remote servers
+- To build and push docker image to docker registry
   ```
   ./docker/build-push.sh
   ```
-- To create a new MNIST image matrix , follow the steps given below.
-	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column). Use the "flatten_image.py"               python code given in "[path to repository folder ]/Dataprovider/image_provider" to flatten the image matrix.
-	-  To run flatten_image.py, run the following command.
-	
-	   ``` 
-	   python3 flatten_image.py --input_image_path [path to image] --output_image_ID [image number] 
-	   ```
-	
+- To update Build cache in registry, 
+  ```
+  ./docker/build-cache.sh
+  ```
+### Local SMPC Deployment
 - Deploy all smpc servers in one container using local image
   ```
-  docker-compose -f docker-compose.local.yaml up -d
+  docker compose -f docker-compose.local.yaml up -d
   ```
 
-- Deploy all three servers locally using local image
+### 2 Party SMPC deployment
+- Deploy the two servers locally using local image
 
   1. SMPC server 0 - SMPC compute server0, image provide
   2. SMPC server 1 - SMPC compute server1, model provider
-  ```
-  docker-compose up -d
-  ```
-- To run all three server locally using docker image from container registry, 
+
+  - without splits
+    ```
+    docker compose -f docker-compose.remote.yaml up -d
+    ```
+  - with splits
+    ```
+    docker compose -f docker-compose.remote_split.yaml up -d
+    ```
+- To run the two server locally using docker image from container registry, 
 copy example-docker-compose.remote.yaml to docker-compose.remote.yaml file and 
 replace with appropriate docker image tag you want to deploy
 
   ```
-  cp example-docker-compose.registry.yaml docker-compose.registry.yaml
+  cp example-docker-compose.remote-registry.yaml docker-compose.remote-registry.yaml
   ```
+  - without splits
 
-  ```
-  docker-compose -f docker-compose.yaml -f docker-compose.registry.yaml up -d
-  ```
+    ```
+    docker compose -f docker-compose.remote.yaml -f docker-compose.remote-registry.yaml up -d
+    ```
+  - with splits 
+    ```
+    docker compose -f docker-compose.remote_split.yaml -f docker-compose.remote-registry.yaml up -d
+    ```
 - To run each server on different machine, git clone this repo on each of the machines and run following, : 
-
   ```
   # after copy, replace with appropriate image tag
-  cp example-docker-compose.registry.yaml docker-compose.registry.yaml
+  cp example-docker-compose.remote-registry.yaml docker-compose.remote-registry.yaml
   ```
-  ```
-  # On SMPC server 0
-  docker-compose -f docker-compose.yaml -f docker-compose.registry.yaml up -d smpc-server0
-  ```
-  ```
-  # On SMPC server 1
-  docker-compose -f docker-compose.yaml -f docker-compose.registry.yaml up -d smpc-server1
-  ```
+  - without splits
+
+    ```
+    # On SMPC server 0
+    docker compose -f docker-compose.remote.yaml -f docker-compose.remote-registry.yaml up -d smpc-server0
+    ```
+    ```
+    # On SMPC server 1
+    docker compose -f docker-compose.remote.yaml -f docker-compose.remote-registry.yaml up -d smpc-server1
+    ```
+  - with splits
+    ```
+    # On SMPC server 0
+    docker compose -f docker-compose.remote_split.yaml -f docker-compose.remote-registry.yaml up -d smpc-server0
+    ```
+    ```
+    # On SMPC server 1
+    docker compose -f docker-compose.remote_split.yaml -f docker-compose.remote-registry.yaml up -d smpc-server1
+    ```
+### Miscellaneous Docker commands
 - To get logs of container, use following commands
   ```
-  # Get container ID
-  docker ps
+  # Get compose name
+  docker compose ls
   ```
   ```
-  # using container ID get logs
-  docker logs -f <container-id>
+  # using compose name get logs
+  docker compose --project-name <compose-name> logs -f
   ```
 - To bring down container use following command:
+
   ```
-  docker-compose down
+  # using compose name bring down
+  docker compose --project-name <compose-name> down
   ```
