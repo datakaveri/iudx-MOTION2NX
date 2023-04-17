@@ -51,7 +51,7 @@ cs0_host=`dig +short $cs0_host | grep '^[.0-9]*$' | head -n 1`
 fi
 if [[ $cs1_dns_resolve == "true" ]];
 then 
-cs0_host=`dig +short $cs0_host | grep '^[.0-9]*$' | head -n 1`
+cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 # Ports on which weights,image provider  receiver listens/talks
