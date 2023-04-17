@@ -241,6 +241,14 @@ The script inference.sh performs the inferencing task on the image index given b
   
   * Note : Please do not manage docker as non-root user in production envrionment
 
+- Copy the config files 
+  ```
+  cp -r config_files/example-smpc-remote-config.json config_files/smpc-remote-config.json
+  ```
+- Copy the example data to use for inferencing
+  ```
+  cp -r example-data/data .
+  ```
 - To create a new MNIST image matrix for inferencing through SMPC , follow the steps mentioned above
 ### Build docker image
 - Build docker image locally, this can be used for test/dev deployment
