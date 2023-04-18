@@ -42,16 +42,16 @@ cs0_ip=
 cs1_ip=
 helpernode_ip=
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
-port0_inference=7003
-port1_inference=7004
+port0_inference=7004
+port1_inference=7003
 helpernode_port=7005
 # Ports on which weights receiver talk
-cs0_port=3390
-cs1_port=4567
+cs1_port=3390
+cs0_port=4567
 
 # Ports on which image provider talks
-cs0_port_image=3390
-cs1_port_image=4567
+cs1_port_image=3390
+cs0_port_image=4567
 
 fractional_bits=13
 
@@ -150,7 +150,7 @@ wait $pid1
 echo "Layer 2: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
-$build_path/bin/argmax --my-id 0 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
+$build_path/bin/argmax --threads 1 --my-id 0 --party 0,$cs0_ip,$port0_inference --party 1,$cs1_ip,$port1_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
 pid1=$!
 
 wait $pid1 

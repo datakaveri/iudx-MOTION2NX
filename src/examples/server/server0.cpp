@@ -698,7 +698,7 @@ int main(int argc, char* argv[]) {
       std::cerr << "Error occurred while sending the start message to helper node: " << e.what() << "\n";
       return EXIT_FAILURE;
     }
-    std::cout<<"Sending the start connection message to the helper node.\n";
+
 
     comm_layer->register_fallback_message_handler([](auto party_id) { return std::make_shared<TestMessageHandler>(); });
 

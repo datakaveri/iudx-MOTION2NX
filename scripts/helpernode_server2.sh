@@ -12,8 +12,8 @@ cs0_ip=
 cs1_ip=
 helpernode_ip=
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
-port0_inference=7003
-port1_inference=7004
+port0_inference=7004
+port1_inference=7003
 helpernode_port=7005
 
 fractional_bits=13
