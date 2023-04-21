@@ -6,8 +6,6 @@
 #include <regex>
 #include <stdexcept>
 #include <utility>
-#include <regex>
-#include <stdexcept>
 #include "communication/communication_layer.h"
 #include "communication/message_handler.h"
 #include "communication/tcp_transport.h"

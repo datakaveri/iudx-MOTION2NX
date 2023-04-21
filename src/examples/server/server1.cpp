@@ -6,9 +6,6 @@
 #include <regex>
 #include <stdexcept>
 #include <utility>
-#include <random>
-#include <regex>
-#include <stdexcept>
 #include "communication/communication_layer.h"
 #include "communication/message_handler.h"
 #include "communication/tcp_transport.h"
@@ -398,6 +395,17 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
       indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
     }
     indata.close();
+
+       //Adding the path to the config file for using in the next layer
+    std::string file_config_input = filename + "/file_config_input1";
+    std::ofstream config_file;
+    config_file.open(file_config_input,std::ios_base::out);
+    if (!config_file.is_open()) {
+        std::cerr << " Error in writing the file_config_input1 file\n";
+        exit(1);
+      }
+    config_file<<totalpath<<"\n";
+    config_file.close();
   }    
 } 
 };

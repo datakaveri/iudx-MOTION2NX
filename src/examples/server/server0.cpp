@@ -317,7 +317,7 @@ void operations()
 
     __gnu_parallel::transform(prod1_begin, prod1_end, random_begin, prod1_begin , std::plus{});   
     flag++;
-
+    
 }
 
 class TestMessageHandler : public MOTION::Communication::MessageHandler {
@@ -411,6 +411,17 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
     indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
    }
    indata.close();
+
+   //Adding the path to the config file for using in the next layer
+    std::string file_config_input = filename + "/file_config_input0";
+    std::ofstream config_file;
+    config_file.open(file_config_input,std::ios_base::out);
+    if (!config_file.is_open()) {
+        std::cerr << " Error in writing the file_config_input0 file\n";
+        exit(1);
+      }
+    config_file<<totalpath<<"\n";
+    config_file.close();
   } 
 }
 }; 
