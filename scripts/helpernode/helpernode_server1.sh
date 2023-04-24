@@ -79,14 +79,14 @@ helpernode_port_inference=`echo $smpc_config | jq -r .helpernode_port_inference`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # echo all input variables
-echo "cs0_host $cs0_host"
-echo "cs1_host $cs1_host"
-echo "cs0_port_data_receiver $cs0_port_data_receiver"
-echo "cs1_port_data_receiver $cs1_port_data_receiver"
-echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-echo "cs0_port_inference $cs0_port_inference"
-echo "cs1_port_inference $cs1_port_inference"
-echo "fractional bits: $fractional_bits"
+# echo "cs0_host $cs0_host"
+# echo "cs1_host $cs1_host"
+# echo "cs0_port_data_receiver $cs0_port_data_receiver"
+# echo "cs1_port_data_receiver $cs1_port_data_receiver"
+# echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+# echo "cs0_port_inference $cs0_port_inference"
+# echo "cs1_port_inference $cs1_port_inference"
+# echo "fractional bits: $fractional_bits"
 
 ##########################################################################################################################################
 
@@ -147,7 +147,7 @@ wait $pid1
 echo "Layer 1: Matrix multiplication and addition is done"
 
 # #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path
+$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
 pid1=$!
 
 wait $pid1
@@ -195,7 +195,7 @@ awk '{ sum += $1 } END { print sum }' AverageTimeDetails1 >> AverageTime1
 sort -r -g AverageMemoryDetails1 | head  -1 >> AverageMemory1
 #  > AverageMemoryDetails1 #clearing the contents of the file
 
-echo -e "\nInferencing Finished"
+echo -e "Inferencing Finished"
 
 Mem=`cat AverageMemory1`
 Time=`cat AverageTime1`

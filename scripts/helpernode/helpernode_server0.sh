@@ -104,7 +104,7 @@ $build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_data_receiver --
 pid1=$!
 
 #########################Image Share Provider ############################################################################################
-echo "Image provider start"
+echo "Image provider starts"
 $build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_data_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_data_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path > $debug_0/image_provider.txt &
 pid3=$!
 
@@ -148,8 +148,7 @@ pid6=$!
 echo "Image Provider is listening for the inferencing result"
 
 # #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path
-# > $debug_0/tensor_gt_relu1_layer0.txt &
+$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu1_layer0.txt &
 pid1=$!
 
 wait $pid1
@@ -176,8 +175,7 @@ wait $pid1
 echo "Layer 2: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
-$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path 
-# > $debug_0/argmax0_layer2.txt &
+$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path > $debug_0/argmax0_layer2.txt &
 pid1=$!
 
 wait $pid1
@@ -208,7 +206,7 @@ awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0
 sort -r -g AverageMemoryDetails0 | head  -1 >> AverageMemory0
 #  > AverageMemoryDetails0 #clearing the contents of the file
 
-echo -e "\nInferencing Finished"
+echo -e "Inferencing Finished"
 
 Mem=`cat AverageMemory0`
 Time=`cat AverageTime0`
