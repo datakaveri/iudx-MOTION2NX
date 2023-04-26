@@ -75,12 +75,24 @@ cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_rec
 cs0_port_inference=`echo $smpc_config | jq -r .cs0_port_inference`
 cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
 helpernode_port_inference=`echo $smpc_config | jq -r .helpernode_port_inference`
+relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
+relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
+
 
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
 image_id=`echo $smpc_config | jq -r .image_id`
 
+# echo all input variables
+#echo "cs0_host $cs0_host"
+#echo "cs1_host $cs1_host"
+#echo "cs0_port_data_receiver $cs0_port_data_receiver"
+#echo "cs1_port_data_receiver $cs1_port_data_receiver"
+#echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+#echo "cs0_port_inference $cs0_port_inference"
+#echo "cs1_port_inference $cs1_port_inference"
+#echo "fractional bits: $fractional_bits"
 ##########################################################################################################################################
 
 
@@ -148,7 +160,7 @@ pid6=$!
 echo "Image Provider is listening for the inferencing result"
 
 # #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu1_layer0.txt &
+$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu1_layer0.txt &
 pid1=$!
 
 wait $pid1
@@ -206,7 +218,7 @@ awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0
 sort -r -g AverageMemoryDetails0 | head  -1 >> AverageMemory0
 #  > AverageMemoryDetails0 #clearing the contents of the file
 
-echo -e "Inferencing Finished"
+echo -e "\nInferencing Finished"
 
 Mem=`cat AverageMemory0`
 Time=`cat AverageTime0`

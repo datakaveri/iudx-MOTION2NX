@@ -49,16 +49,16 @@ image_id=`echo $smpc_config | jq -r .image_id`
 splits=`echo "$smpc_config" | jq -r .splits`
 
 # echo all input variables
-echo "cs0_host $cs0_host"
-echo "cs1_host $cs1_host"
-echo "cs0_port_data_receiver $cs0_port_data_receiver"
-echo "cs1_port_data_receiver $cs1_port_data_receiver"
-echo "cs0_port_cs0_output_receiver $cs0_port_cs0_output_receiver"
-echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-echo "cs0_port_inference $cs0_port_inference"
-echo "cs1_port_inference $cs1_port_inference"
-echo "fractional bits: $fractional_bits"
-echo "no. of splits: $splits"
+#echo "cs0_host $cs0_host"
+#echo "cs1_host $cs1_host"
+#echo "cs0_port_data_receiver $cs0_port_data_receiver"
+#echo "cs1_port_data_receiver $cs1_port_data_receiver"
+#echo "cs0_port_cs0_output_receiver $cs0_port_cs0_output_receiver"
+#echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+#echo "cs0_port_inference $cs0_port_inference"
+#echo "cs1_port_inference $cs1_port_inference"
+#echo "fractional bits: $fractional_bits"
+#echo "no. of splits: $splits"
 ##########################################################################################################################################
 
 
@@ -102,7 +102,7 @@ if [ -f AverageTime0 ]; then
 fi
 
 #########################Weights Share Receiver ############################################################################################
-echo "Weight Shares Receiver starts"
+echo "Weight shares Receiver starts"
 $build_path/bin/Weights_Share_Receiver --my-id 0 --port $cs0_port_data_receiver --file-names $model_config --current-path $build_path >> $debug_0/Weights_Share_Receiver0.txt &
 pid2=$!
 wait $pid2
@@ -153,7 +153,7 @@ for  (( m = 1; m <= $splits; m++ ))
     pid1=$!
    
     wait $pid1 
-    echo "Layer 1, split $m - multiplication is done."
+    echo "Layer 1, split $m: Matrix multiplication and addition is done."
     if [ $m -eq 1 ];then
       touch finaloutput_0
       printf "$x 1\n" >> finaloutput_0
@@ -210,7 +210,7 @@ wait $pid1
 echo "Layer 2: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
-$build_path/bin/argmax --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
+$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
 pid1=$!
 
 wait $pid1 
@@ -226,8 +226,8 @@ echo "Output shares of server 0 sent to the image provider"
 
 wait $pid5 $pid6 
 
-echo "Output shares of server 0 received to the Image provider"
-echo "Output shares of server 1 received to the Image provider"
+echo "Output shares of server 0 received by the Image provider"
+echo "Output shares of server 1 received by the Image provider"
 
 ############################            Reconstruction       ##################################################################################
 echo "Reconstruction Starts"

@@ -42,15 +42,15 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 splits=`echo "$smpc_config" | jq -r .splits`
 
 # echo all input variables
-echo "cs0_host $cs0_host"
-echo "cs1_host $cs1_host"
-echo "cs0_port_data_receiver $cs0_port_data_receiver"
-echo "cs1_port_data_receiver $cs1_port_data_receiver"
-echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-echo "cs0_port_inference $cs0_port_inference"
-echo "cs1_port_inference $cs1_port_inference"
-echo "fractional bits: $fractional_bits"
-echo "no. of splits: $splits"
+#echo "cs0_host $cs0_host"
+#echo "cs1_host $cs1_host"
+#echo "cs0_port_data_receiver $cs0_port_data_receiver"
+#echo "cs1_port_data_receiver $cs1_port_data_receiver"
+#echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+#echo "cs0_port_inference $cs0_port_inference"
+#echo "cs1_port_inference $cs1_port_inference"
+#echo "fractional bits: $fractional_bits"
+#echo "no. of splits: $splits"
 ##########################################################################################################################################
 
 if [ ! -d "$debug_1" ];
@@ -198,7 +198,7 @@ echo "Layer 2: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
 
-$build_path/bin/argmax --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $debug_1/argmax1_layer2.txt &
+$build_path/bin/argmax --my-id 1 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $debug_1/argmax1_layer2.txt &
 pid1=$!
 
 

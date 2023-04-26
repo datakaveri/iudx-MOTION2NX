@@ -75,18 +75,20 @@ cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_rec
 cs0_port_inference=`echo $smpc_config | jq -r .cs0_port_inference`
 cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
 helpernode_port_inference=`echo $smpc_config | jq -r .helpernode_port_inference`
+relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
+relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # echo all input variables
-# echo "cs0_host $cs0_host"
-# echo "cs1_host $cs1_host"
-# echo "cs0_port_data_receiver $cs0_port_data_receiver"
-# echo "cs1_port_data_receiver $cs1_port_data_receiver"
-# echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-# echo "cs0_port_inference $cs0_port_inference"
-# echo "cs1_port_inference $cs1_port_inference"
-# echo "fractional bits: $fractional_bits"
+#echo "cs0_host $cs0_host"
+#echo "cs1_host $cs1_host"
+#echo "cs0_port_data_receiver $cs0_port_data_receiver"
+#echo "cs1_port_data_receiver $cs1_port_data_receiver"
+#echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+#echo "cs0_port_inference $cs0_port_inference"
+#echo "cs1_port_inference $cs1_port_inference"
+#echo "fractional bits: $fractional_bits"
 
 ##########################################################################################################################################
 
@@ -147,7 +149,7 @@ wait $pid1
 echo "Layer 1: Matrix multiplication and addition is done"
 
 # #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
+$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
 pid1=$!
 
 wait $pid1
