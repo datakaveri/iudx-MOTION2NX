@@ -1,11 +1,11 @@
-version: '2.4'
+version: "2.4"
 
-#networks:
-#  motion2nx-net:
-#    driver: bridge
+networks:
+  motion2nx-net:
+    driver: bridge
 
 services:
-# SMPC server 0, image provider server
+  # SMPC server 0, image provider server
   smpc-server0:
     image: iudx/motion2nx:latest
     volumes:
@@ -18,22 +18,18 @@ services:
       - ./scripts:/usr/share/app/scripts:rw
 
     restart: on-failure
-      #    networks:
-      #- motion2nx-net
-    network_mode: "host"
+    network_mode: host
+    # networks:
+    #   - motion2nx-net
     ports:
       # cs0_port_data_receiver
       - "4005:4005"
       # cs0_port_cs0_output_receiver
       - "4007:4007"
-      # cs0_port_cs1_output_receiver   
+      # cs0_port_cs1_output_receiver
       - "4008:4008"
       # cs0_port_inference
       - "4009:4009"
-      # cs1_port_data_receiver
-      - "4006:4006"
-      # cs1_port_inference
-      - "4010:4010"
     mem_limit: 600m
     cpus: 0.750
     logging:
@@ -41,10 +37,9 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/remote_server_split/ && ./remote_server0_split.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/helpernode/ && ./helpernode_server0.sh && while (true);  do  sleep 10; done"
 
-
-# SMPC server 1, model provider server
+  # SMPC server 1, model provider server
   smpc-server1:
     image: iudx/motion2nx:latest
     volumes:
@@ -55,25 +50,49 @@ services:
         source: smpc-server1-volume
         target: /usr/share/app/logs
     restart: on-failure
-    network_mode: "host"
-     # - motion2nx-net
+    network_mode: host
+    # networks:
+    #   - motion2nx-net
     ports:
       # cs1_port_data_receiver
       - "4006:4006"
       # cs1_port_inference
       - "4010:4010"
-    mem_limit: 600m
-    cpus: 0.750
+    mem_limit: 500m
+    cpus: 0.4
     logging:
       driver: "json-file"
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/remote_server_split/ && ./remote_server1_split.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/helpernode/ && ./helpernode_server1.sh && while (true);  do  sleep 10; done"
 
-
-
+  # SMPC server 2, helpernode server
+  smpc-server2:
+    image: iudx/motion2nx:latest
+    volumes:
+      - ./config_files:/usr/share/app/config_files:ro
+      - ./scripts:/usr/share/app/scripts:rw
+      - type: volume
+        source: smpc-server2-volume
+        target: /usr/share/app/logs
+    restart: on-failure
+    network_mode: host
+    # networks:
+    #   - motion2nx-net
+    ports:
+      # helpernode_port_inference
+      - "4011:4011"
+    mem_limit: 300m
+    cpus: 0.4
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    command: bash -c "cd scripts/helpernode/ && ./helpernode_server2.sh && while (true);  do  sleep 10; done"
 
 volumes:
   smpc-server1-volume:
   smpc-server0-volume:
+  smpc-server2-volume:

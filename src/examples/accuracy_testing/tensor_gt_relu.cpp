@@ -212,7 +212,7 @@ void file_read(Options* options) {
   }
 
   std::string i = read_filepath(file1);
-  // std::cout << "i:" << i << "\n";
+  std::cout << "i:" << i << "\n";
 
   file1.close();
   input_shares(options, i);

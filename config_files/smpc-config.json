@@ -1,0 +1,12 @@
+{
+      "cs0_host": "smpc-server0",
+      "cs1_host": "smpc-server1",
+      "dns_resolve": true,
+      "cs0_port_receiver": 4005,
+      "cs1_port_receiver": 4006,
+      "cs0_port_inference": 3390,
+      "cs1_port_inference":4567,
+      "fractional_bits": 13,
+      "image_id": 9,
+      "splits": 8
+}

@@ -123,7 +123,7 @@ std::pair<std::vector<Shares>, int> get_provider_dot_product_data(int port_numbe
   // write operation
   const string msg = "Server has received the number of elements \n";
   boost::asio::write(socket_, boost::asio::buffer(msg));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
 
   // Read the data in the reuired format
   std::vector<Shares> data = read_struct(socket_, num_elements);
@@ -167,7 +167,7 @@ int get_actual_answer(int port_number) {
   // write operation
   const string msg = "Server has received the actual answer \n";
   boost::asio::write(socket_, boost::asio::buffer(msg));
-  cout << "Servent sent actual answer to Client!" << endl;
+  cout << "server sent actual answer to Client!" << endl;
 
   socket_.close();
   std::cout << "Finished reading input \n\n";
@@ -202,7 +202,7 @@ std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>> get_pro
 
   const string msg_init = "Server has received the number of fractional bits \n";
   boost::asio::write(socket_, boost::asio::buffer(msg_init));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
 
   // read operation
   int arr[2];
@@ -222,7 +222,7 @@ std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>> get_pro
   // write operation
   const string msg = "Server has received the number of elements \n";
   boost::asio::write(socket_, boost::asio::buffer(msg));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
 
   // Read the data in the reuired format
   std::vector<Shares> data = read_struct(socket_, num_elements);
@@ -259,7 +259,7 @@ std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>> get_pro
 //   // write operation
 //   const string msg1 = "Server has received the actual answer \n";
 //   boost::asio::write(socket_, boost::asio::buffer(msg1));
-//   cout << "Servent sent actual answer to Client!" << endl;
+//   cout << "server sent actual answer to Client!" << endl;
 
 //   // Read and write the number of fractional bits
 //   // boost::system::error_code ec;
@@ -273,7 +273,7 @@ std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>> get_pro
 
 //   const string msg_init = "Server has received the number of fractional bits \n";
 //   boost::asio::write(socket_, boost::asio::buffer(msg_init));
-//   cout << "Servent sent message to Client!" << endl;
+//   cout << "server sent message to Client!" << endl;
 //   cout << "compute server fractional bits are :- " << int(fractional_bits) << endl;
 
 //   // read operation
@@ -295,7 +295,7 @@ std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>> get_pro
 //   // write operation
 //   const string msg = "Server has received the number of elements \n";
 //   boost::asio::write(socket_, boost::asio::buffer(msg));
-//   cout << "Servent sent message to Client!" << endl;
+//   cout << "server sent message to Client!" << endl;
 
 //   // Read the data in the reuired format
 //   std::vector<Shares> data = read_struct(socket_, num_elements);
@@ -332,7 +332,7 @@ get_provider_mat_mul_data_new(int port_number) {
   // write operation
   const string msg1 = "Server has received the Actual answer in write operation\n";
   boost::asio::write(socket_, boost::asio::buffer(msg1));
-  cout << "Servent sent actual answer to Client!" << endl;
+  cout << "server sent actual answer to Client!" << endl;
 
   // Read and write the number of fractional bits
   // boost::system::error_code ec;
@@ -346,7 +346,7 @@ get_provider_mat_mul_data_new(int port_number) {
 
   const string msg_init = "Server has received the number of fractional bits \n";
   boost::asio::write(socket_, boost::asio::buffer(msg_init));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
   cout << "compute server fractional bits are :- " << int(fractional_bits) << endl;
 
   // read operation
@@ -368,7 +368,7 @@ get_provider_mat_mul_data_new(int port_number) {
   // write operation
   const string msg = "Server has received the number of elements \n";
   boost::asio::write(socket_, boost::asio::buffer(msg));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
 
   // Read the data in the reuired format
   std::vector<Shares> data = read_struct(socket_, num_elements);
@@ -403,7 +403,7 @@ get_provider_mat_mul_const_data(int port_number) {
 
   const string msg_init = "Server has received the number of fractional bits \n";
   boost::asio::write(socket_, boost::asio::buffer(msg_init));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
 
   // read operation
   int arr[2];
@@ -423,7 +423,7 @@ get_provider_mat_mul_const_data(int port_number) {
   // write operation
   const string msg = "Server has received the number of elements \n";
   boost::asio::write(socket_, boost::asio::buffer(msg));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
 
   // Read the data in the reuired format
   std::vector<Shares> data = read_struct(socket_, num_elements);
@@ -431,7 +431,7 @@ get_provider_mat_mul_const_data(int port_number) {
   // Write Operation
   const string msg2 = "Server has received the elements \n";
   boost::asio::write(socket_, boost::asio::buffer(msg2));
-  cout << "Servent sent message to Client!" << endl;
+  cout << "server sent message to Client!" << endl;
 
   // Read the constant
   int constant;
