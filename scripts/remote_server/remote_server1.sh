@@ -125,6 +125,7 @@ if [ $layer_id -eq 1 ];
 then
     input_config="remote_image_shares"
 fi
+start=$(date +%s)
 #######################################Matrix multiplication layer 1 ###########################################################################
 
 
@@ -159,13 +160,13 @@ echo "layer 2 - matrix multiplication and addition  is done"
 
 ####################################### Argmax  ###########################################################################
 
-$build_path/bin/argmax --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $debug_1/argmax1_layer2.txt &
+$build_path/bin/argmax --my-id 1 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $debug_1/argmax1_layer2.txt &
 pid1=$!
 
 
 wait $pid1 
 echo "layer 2 - argmax is done"
-
+end=$(date +%s)
 ###################################### Final output provider  ###########################################################################
 
 $build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
@@ -196,5 +197,6 @@ Memory=$(printf "%.3f" $Mem2)
 
 echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
 echo "Time taken by inferencing task:" $Time "ms"
+echo "Elapsed Time: $(($end-$start)) seconds"
 
 cd $scripts_path

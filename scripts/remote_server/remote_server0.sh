@@ -124,7 +124,7 @@ if [ $layer_id -eq 1 ];
 then
     input_config=$image_share
 fi
-
+start=$(date +%s)
 #######################################Matrix multiplication layer 1 ###########################################################################
 $build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference  --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/tensor_gt_mul0_layer1.txt &
 pid1=$!
@@ -168,13 +168,13 @@ wait $pid1
 echo "layer 2 - matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
-$build_path/bin/argmax --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
+$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
 pid1=$!
 
 wait $pid1 
 
 echo "layer 2 - argmax is done"
-
+end=$(date +%s)
 ####################################### Final output provider  ###########################################################################
 $build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider0.txt &
 pid3=$!
@@ -212,6 +212,6 @@ Memory=$(printf "%.3f" $Mem2)
 
 echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
 echo "Time taken by inferencing task:" $Time "ms"
-
+echo "Elapsed Time: $(($end-$start)) seconds"
 
 cd $scripts_path 
