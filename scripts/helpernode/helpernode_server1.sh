@@ -140,7 +140,7 @@ then
 fi
 
 #######################################Matrix multiplication layer 1 ###########################################################################
-
+start=$(date +%s)
 $build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
 
 pid1=$!
@@ -180,6 +180,7 @@ pid1=$!
 
 wait $pid1
 echo "Layer 2: Argmax is done"
+end=$(date +%s)
 
 ####################################### Final output provider  ###########################################################################
 
@@ -210,5 +211,6 @@ Memory=$(printf "%.3f" $Mem2)
 
 echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
 echo "Time taken by inferencing task:" $Time "ms"
+echo "Elapsed Time: $(($end-$start)) seconds"
 
 cd $scripts_path

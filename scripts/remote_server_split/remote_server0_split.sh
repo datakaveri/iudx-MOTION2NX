@@ -131,6 +131,8 @@ echo "Inferencing task of the image shared starts"
 # echo "image_id $image_id" >> MemoryDetails0
 echo "Number of splits for layer 1 matrix multiplication: $splits"
 x=$((256/splits))
+
+start=$(date +%s)
 for  (( m = 1; m <= $splits; m++ )) 
   do 
 
@@ -147,6 +149,8 @@ for  (( m = 1; m <= $splits; m++ ))
 	let a=$(((m-1)*x+1)) 
 	let b=$((m*x)) 
 	let r=$((l*x)) 
+
+  
     #######################################Matrix multiplication layer 1 ###########################################################################
     #Layer 1
     $build_path/bin/tensor_gt_mul_split --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path > $debug_0/tensor_gt_mul0_layer1_split.txt &
@@ -215,6 +219,8 @@ pid1=$!
 
 wait $pid1 
 
+end=$(date +%s)
+
 echo "Layer 2: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
@@ -254,6 +260,7 @@ Memory=$(printf "%.3f" $Mem2)
 
 echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
 echo "Time taken by inferencing task:" $Time "ms"
+echo "Elapsed Time: $(($end-$start)) seconds"
 
 
 cd $scripts_path 
