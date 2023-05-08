@@ -1,11 +1,11 @@
-version: '2.4'
+version: "2.4"
 
-networks:
-  motion2nx-net:
-    driver: bridge
+# networks:
+#   motion2nx-net:
+#     driver: bridge
 
 services:
-# SMPC server 0, image provider server
+  # SMPC server 0, image provider server
   smpc-server0:
     image: iudx/motion2nx:latest
     volumes:
@@ -16,17 +16,22 @@ services:
       - ./data/ImageProvider/images:/usr/share/app/data/ImageProvider/images:ro
       - ./config_files:/usr/share/app/config_files:ro
     restart: on-failure
-    networks:
-      - motion2nx-net
+    # networks:
+    #   - motion2nx-net
+    network_mode: "host"
     ports:
       # cs0_port_data_receiver
       - "4005:4005"
       # cs0_port_cs0_output_receiver
       - "4007:4007"
-      # cs0_port_cs1_output_receiver   
+      # cs0_port_cs1_output_receiver
       - "4008:4008"
       # cs0_port_inference
       - "4009:4009"
+      # cs1_port_data_receiver
+      - "4006:4006"
+      # cs1_port_inference
+      - "4010:4010"
     logging:
       driver: "json-file"
       options:
@@ -34,8 +39,7 @@ services:
         max-size: "10m"
     command: bash -c "cd scripts/remote_server/ && ./remote_server0.sh && while (true);  do  sleep 10; done"
 
-
-# SMPC server 1, model provider server
+  # SMPC server 1, model provider server
   smpc-server1:
     image: iudx/motion2nx:latest
     volumes:
@@ -45,8 +49,9 @@ services:
         source: smpc-server1-volume
         target: /usr/share/app/logs
     restart: on-failure
-    networks:
-      - motion2nx-net
+    # networks:
+    # - motion2nx-net
+    network_mode: "host"
     ports:
       # cs1_port_data_receiver
       - "4006:4006"
@@ -58,9 +63,6 @@ services:
         max-file: "5"
         max-size: "10m"
     command: bash -c "cd scripts/remote_server/ && ./remote_server1.sh && while (true);  do  sleep 10; done"
-
-
-
 
 volumes:
   smpc-server1-volume:

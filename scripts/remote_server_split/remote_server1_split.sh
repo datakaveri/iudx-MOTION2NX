@@ -126,7 +126,8 @@ echo "Inferencing task of the image shared starts"
 
 echo "Number of splits for layer 1 matrix multiplication - $splits"
 x=$((256/splits))
- 
+
+ start=$(date +%s)
 ############################Inputs for inferencing tasks #######################################################################################
  for  (( m = 1; m <= $splits; m++ )) 
   do 
@@ -141,9 +142,9 @@ x=$((256/splits))
    let a=$(((m-1)*x+1)) 
    let b=$((m*x)) 
    let r=$((l*x)) 
-
+   
 #######################################Matrix multiplication layer 1 ###########################################################################
-
+  
    #Layer 1   
    $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer1_split.txt &
    pid1=$!
@@ -205,6 +206,7 @@ pid1=$!
 wait $pid1 
 echo "Layer 2: Argmax is done"
 
+end=$(date +%s)
 ####################################### Final output provider  ###########################################################################
 
 $build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
@@ -235,5 +237,6 @@ Memory=$(printf "%.3f" $Mem2)
 
 echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
 echo "Time taken by inferencing task:" $Time "ms"
+echo "Elapsed Time: $(($end-$start)) seconds"
 
 cd $scripts_path
