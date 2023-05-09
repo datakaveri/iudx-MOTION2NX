@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as build
+FROM ubuntu:jammy-20230425 as build
 SHELL ["/bin/bash", "-c"]
 ARG BOOST_VERSION=1.79.0
 ARG NUM_JOBS=8
