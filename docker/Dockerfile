@@ -89,7 +89,7 @@ RUN CC=gcc CXX=g++ cmake \
     cmake --build build_debwithrelinfo_gcc
 RUN ldconfig
 # Final Image (stage)
-FROM ubuntu:22.04 as final
+FROM ubuntu:jammy-20230425 as final
 
 ENV DEBIAN_FRONTEND noninteractive
 
