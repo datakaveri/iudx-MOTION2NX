@@ -32,9 +32,7 @@ reverse_ssh_host=`dig +short $reverse_ssh_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 # Ports on which weights,image provider  receiver listens/talks
-cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
-cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`
-cs0_port_image_receiver=`echo $smpc_config | jq -r .cs0_port_image_receiver`
+cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_model_receiver`
 cs1_port_image_receiver=`echo $smpc_config | jq -r .cs1_port_image_receiver`     
 
 # Port on which final output talks to image provider 
@@ -44,23 +42,12 @@ cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_rec
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
 cs0_port_inference=`echo $smpc_config | jq -r .cs0_port_inference`
 cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
-
+relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
+relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 #number of splits
 splits=`echo "$smpc_config" | jq -r .splits`
-
-# echo all input variables
-#echo "cs0_host $cs0_host"
-#echo "cs1_host $cs1_host"
-#echo "cs0_port_data_receiver $cs0_port_data_receiver"
-#echo "cs1_port_data_receiver $cs1_port_data_receiver"
-#echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-#echo "cs0_port_inference $cs0_port_inference"
-#echo "cs1_port_inference $cs1_port_inference"
-#echo "fractional bits: $fractional_bits"
-#echo "no. of splits: $splits"
-##########################################################################################################################################
 
 if [ ! -d "$debug_1" ];
 then
@@ -117,7 +104,6 @@ echo "Image shares received"
 ########################Inferencing task starts ###############################################################################################
 
 echo "Inferencing task of the image starts"
-
 echo "Number of splits for layer 1 matrix multiplication - $splits"
 x=$((256/splits))
  
@@ -140,25 +126,23 @@ x=$((256/splits))
 
    #Layer 1   
    $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer1_split.txt &
-   pid1=$!
-   wait $pid1  
+   pid3=$!
+   wait $pid3  
    echo "Layer 1, split $m: Matrix multiplication and addition is done"
    
    if [ $m -eq 1 ];then
 
       touch finaloutput_1
-
       printf "$x 1\n" >> finaloutput_1
-
       $build_path/bin/appendfile 1
-      pid1=$!
-      wait $pid1 
+      pid4=$!
+      wait $pid4 
       
       else 
       
       $build_path/bin/appendfile 1
-      pid1=$!
-      wait $pid1 
+      pid5=$!
+      wait $pid5 
     fi
 
 		sed -i "1s/${r} 1/${b} 1/" finaloutput_1
@@ -166,12 +150,11 @@ x=$((256/splits))
 
  cp finaloutput_1  $build_path/server1/outputshare_1
 
-
 #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
-pid1=$!
+$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
+pid6=$!
 
-wait $pid1 
+wait $pid6
 echo "Layer 1: ReLU is done"
 
 #######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
@@ -185,29 +168,28 @@ fi
 
 #######################################Matrix multiplication layer 2 ###########################################################################
 $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul1_layer2.txt &
-pid1=$!
+pid7=$!
 
-wait $pid1 
+wait $pid7
 echo "Layer 2: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
 
 $build_path/bin/argmax --my-id 1 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $debug_1/argmax1_layer2.txt &
-pid1=$!
+pid8=$!
 
-wait $pid1 
+wait $pid8
 echo "Layer 2: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
 
 $build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $reverse_ssh_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
-pid1=$!
+pid9=$!
 
-wait $pid1 
+wait $pid9
 echo "Output shares of server 1 sent to the Image provider"
 
 wait 
-#kill $pid5 $pid6
 
  awk '{ sum += $1 } END { print sum }' AverageTimeDetails1 >> AverageTime1
 #  > AverageTimeDetails1 #clearing the contents of the file
