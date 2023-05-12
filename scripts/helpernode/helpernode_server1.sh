@@ -64,9 +64,13 @@ helpernode_host=`dig +short $helpernode_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 
-# Ports on which weights,image provider  receiver listens/talks
+# Ports on which weights provider  receiver listens/talks
 cs0_port_data_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
 cs1_port_data_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`
+
+# Ports on which image provider  receiver listens/talks
+cs0_port_image_receiver=`echo $smpc_config | jq -r .cs0_port_image_receiver`
+cs1_port_image_receiver=`echo $smpc_config | jq -r .cs1_port_image_receiver`
 
 # Ports on which Image provider listens for final inference output
 cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_receiver`
@@ -100,12 +104,12 @@ fi
 
 ######################### Weights Share Receiver ############################################################################################
 echo "Weight Shares Receiver starts"
-$build_path/bin/Weights_Share_Receiver --my-id 1 --port $cs1_port_data_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver1.txt &
+$build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_data_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver1.txt &
 pid2=$!
 
 #########################Weights Provider ############################################################################################
 echo "Weight Provider starts"
-$build_path/bin/weights_provider --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_data_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_data_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
+$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_data_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_data_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
 pid3=$!
 
 wait $pid3
@@ -115,7 +119,7 @@ echo "Weight Shares received"
 # #########################Image Share Receiver ############################################################################################
 echo "Image Shares Receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_data_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
+$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
 pid2=$!
 
 wait $pid2
