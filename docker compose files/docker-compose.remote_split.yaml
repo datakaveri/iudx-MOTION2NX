@@ -31,9 +31,9 @@ services:
       # cs0_port_inference
       - "4009:4009"
       # cs1_port_data_receiver
-      - "4006:4006"
+      #- "4006:4006"
       # cs1_port_inference
-      - "4010:4010"
+      #- "4010:4010"
     mem_limit: 600m
     cpus: 0.750
     logging:
@@ -41,7 +41,7 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/remote_server_split/ && ./remote_server0_split.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/ && ./remote_server0_split.sh && while (true);  do  sleep 10; done"
 
 
 # SMPC server 1, model provider server
@@ -69,7 +69,7 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/remote_server_split/ && ./remote_server1_split.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/ && ./remote_server1_split.sh && while (true);  do  sleep 10; done"
 
 
 
