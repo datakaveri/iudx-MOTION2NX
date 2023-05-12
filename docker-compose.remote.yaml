@@ -28,10 +28,10 @@ services:
       - "4008:4008"
       # cs0_port_inference
       - "4009:4009"
-      # cs1_port_data_receiver
-      - "4006:4006"
-      # cs1_port_inference
-      - "4010:4010"
+      # relu0_port_inference
+      - "4012:4012"
+      # cs0_port_image_receiver
+      - "4014:4014"
     logging:
       driver: "json-file"
       options:
@@ -57,6 +57,10 @@ services:
       - "4006:4006"
       # cs1_port_inference
       - "4010:4010"
+      # relu1_port_inference
+      - "4013:4013"
+      # cs1_port_image_receiver
+      - "4015:4015"
     logging:
       driver: "json-file"
       options:
