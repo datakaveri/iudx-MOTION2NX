@@ -2,7 +2,7 @@
 # paths required to run cpp files
 model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
-debug_2=$build_path/logs/helpernode/debug_files
+debug_2=${BASE_DIR}/logs/helpernode/
 scripts_path=${BASE_DIR}/scripts
 smpc_config_path=${BASE_DIR}/config_files/smpc-remote-config.json
 smpc_config=`cat $smpc_config_path`
@@ -52,13 +52,6 @@ echo "Helper node starts"
 
 ############################ Inputs for inferencing tasks #######################################################################################
 layer_id=1
-input_config=" "
-image_share="remote_image_shares"
-if [ $layer_id -eq 1 ];
-then
-    input_config="remote_image_shares"
-fi
-
 # ####################################### Matrix multiplication layer 1 ###########################################################################
 
 $build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference> $debug_2/helpernode_layer${layer_id}.txt &

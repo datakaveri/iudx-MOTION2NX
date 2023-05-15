@@ -7,7 +7,7 @@ version: '2.4'
 services:
 # SMPC server 0, image provider server
   smpc-server0:
-    image: iudx/motion2nx:latest
+    image: iudx/motion2nx:local
     volumes:
       - type: volume
         source: smpc-server0-volume
