@@ -26,8 +26,8 @@ fi
 
 
 # Ports on which weights,image provider  receiver listens/talks
-cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
-cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`  
+cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_model_receiver`
+cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_model_receiver`  
 # Port on which final output talks to image provider 
 cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_receiver`
 
@@ -45,7 +45,7 @@ fi
 # Creates the weights and bias shares and sends it to server 0 and server 1
 echo "Weight Provider starts."
 
-$build_path/bin/weights_provider --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_ModelProv/weights_provider.txt &
+$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_ModelProv/weights_provider.txt &
 pid1=$!
 wait $pid1 
 echo "Weight shares sent."

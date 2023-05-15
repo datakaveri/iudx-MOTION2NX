@@ -5,7 +5,7 @@ add_executable(Image_Share_Receiver Image_Share_Receiver.cpp)
 add_executable(Weights_Share_Receiver Weights_Share_Receiver.cpp)
 add_executable(final_output_provider final_output_provider.cpp)
 add_executable(tensor_gt_mul_split tensor_gt_mul_split.cpp)
-
+add_executable(Weights_Share_Receiver_remote Weights_Share_Receiver_remote.cpp)
 
 find_package(Boost COMPONENTS json log program_options REQUIRED)
 
@@ -14,6 +14,7 @@ target_compile_features(argmax PRIVATE cxx_std_20)
 target_compile_features(tensor_gt_mul_test PRIVATE cxx_std_20)
 target_compile_features(Image_Share_Receiver PRIVATE cxx_std_20)
 target_compile_features(Weights_Share_Receiver PRIVATE cxx_std_20)
+target_compile_features(Weights_Share_Receiver_remote PRIVATE cxx_std_20)
 target_compile_features(final_output_provider PRIVATE cxx_std_20)
 target_compile_features(tensor_gt_mul_split PRIVATE cxx_std_20)
 
@@ -46,6 +47,13 @@ target_link_libraries(Image_Share_Receiver
 )
 
 target_link_libraries(Weights_Share_Receiver
+    MOTION::motion
+    Boost::json
+    Boost::log
+    Boost::program_options
+)
+
+target_link_libraries(Weights_Share_Receiver_remote
     MOTION::motion
     Boost::json
     Boost::log

@@ -64,9 +64,13 @@ helpernode_host=`dig +short $helpernode_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 
-# Ports on which weights,image provider  receiver listens/talks
-cs0_port_data_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
-cs1_port_data_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`
+# Ports on which weights provider  receiver listens/talks
+cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_model_receiver`
+cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_model_receiver`
+
+# Ports on which image provider  receiver listens/talks
+cs0_port_image_receiver=`echo $smpc_config | jq -r .cs0_port_image_receiver`
+cs1_port_image_receiver=`echo $smpc_config | jq -r .cs1_port_image_receiver`
 
 # Ports on which Image provider listens for final inference output
 cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_receiver`
@@ -83,8 +87,8 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 # echo all input variables
 #echo "cs0_host $cs0_host"
 #echo "cs1_host $cs1_host"
-#echo "cs0_port_data_receiver $cs0_port_data_receiver"
-#echo "cs1_port_data_receiver $cs1_port_data_receiver"
+#echo "cs0_port_model_receiver $cs0_port_model_receiver"
+#echo "cs1_port_model_receiver $cs1_port_model_receiver"
 #echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
 #echo "cs0_port_inference $cs0_port_inference"
 #echo "cs1_port_inference $cs1_port_inference"
@@ -99,13 +103,13 @@ then
 fi
 
 ######################### Weights Share Receiver ############################################################################################
-echo "Weight Shares Receiver starts"
-$build_path/bin/Weights_Share_Receiver --my-id 1 --port $cs1_port_data_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver1.txt &
+echo "Weight shares receiver starts"
+$build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver1.txt &
 pid2=$!
 
 #########################Weights Provider ############################################################################################
 echo "Weight Provider starts"
-$build_path/bin/weights_provider --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_data_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_data_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
+$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
 pid3=$!
 
 wait $pid3
@@ -113,9 +117,9 @@ wait $pid2
 echo "Weight Shares received"
 
 # #########################Image Share Receiver ############################################################################################
-echo "Image Shares Receiver starts"
+echo "Image shares receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_data_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
+$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
 pid2=$!
 
 wait $pid2
@@ -214,3 +218,4 @@ echo "Time taken by inferencing task:" $Time "ms"
 echo "Elapsed Time: $(($end-$start)) seconds"
 
 cd $scripts_path
+

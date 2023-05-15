@@ -2,7 +2,7 @@ add_executable(image_provider image_provider.cpp)
 add_executable(image_provider_iudx image_provider_iudx.cpp)
 add_executable(output_shares_receiver output_shares_receiver.cpp)
 add_executable(Reconstruct Reconstruct.cpp)
-
+add_executable(dp dp.cpp)
 
 set(REQUIRED_BOOST_VERSION "1.75.0")
 
@@ -42,6 +42,14 @@ target_link_libraries(output_shares_receiver
 target_compile_features(Reconstruct PRIVATE cxx_std_20)
 
 target_link_libraries(Reconstruct
+    Boost::json
+    Boost::log
+    Boost::program_options
+)
+
+target_compile_features(dp PRIVATE cxx_std_20)
+
+target_link_libraries(dp
     Boost::json
     Boost::log
     Boost::program_options

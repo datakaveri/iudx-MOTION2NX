@@ -24,9 +24,13 @@ cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 
-# Ports on which weights,image provider  receiver listens/talks
-cs0_port_data_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
-cs1_port_data_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`
+# Ports on which weights provider  receiver listens/talks
+cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_model_receiver`
+cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_model_receiver`
+
+# Ports on which image provider  receiver listens/talks
+cs0_port_image_receiver=`echo $smpc_config | jq -r .cs0_port_image_receiver`
+cs1_port_image_receiver=`echo $smpc_config | jq -r .cs1_port_image_receiver`
 
 # Port on which final output talks to image provider 
 cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_receiver`
@@ -35,7 +39,8 @@ cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_rec
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
 cs0_port_inference=`echo $smpc_config | jq -r .cs0_port_inference`
 cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
-
+relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
+relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 #number of splits
@@ -44,8 +49,8 @@ splits=`echo "$smpc_config" | jq -r .splits`
 # echo all input variables
 #echo "cs0_host $cs0_host"
 #echo "cs1_host $cs1_host"
-#echo "cs0_port_data_receiver $cs0_port_data_receiver"
-#echo "cs1_port_data_receiver $cs1_port_data_receiver"
+#echo "cs0_port_model_receiver $cs0_port_model_receiver"
+#echo "cs1_port_model_receiver $cs1_port_model_receiver"
 #echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
 #echo "cs0_port_inference $cs0_port_inference"
 #echo "cs1_port_inference $cs1_port_inference"
@@ -91,14 +96,14 @@ if [ -f AverageTime1 ]; then
 fi
 
 #########################Weights Share Receiver ############################################################################################
-echo "Weight Shares Receiver starts"
-$build_path/bin/Weights_Share_Receiver --my-id 1 --port $cs1_port_data_receiver --file-names $model_config --current-path $build_path >> $debug_1/Weights_Share_Receiver.txt &
+echo "Weight shares receiver starts"
+$build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path >> $debug_1/Weights_Share_Receiver.txt &
 pid2=$!
 
 
 #########################Weights Provider ############################################################################################
 echo "Weight Provider starts"
-$build_path/bin/weights_provider --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_data_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_data_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path >> $debug_1/weights_provider.txt &
+$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path >> $debug_1/weights_provider.txt &
 pid3=$!
 
 wait $pid3
@@ -106,9 +111,9 @@ wait $pid2
 echo "Weight shares received"
 
 #########################Image Share Receiver ############################################################################################
-echo "Image Shares Receiver starts"
+echo "Image shares receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_data_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_1/Image_Share_Receiver.txt &
+$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_1/Image_Share_Receiver.txt &
 pid2=$!
 
 wait $pid2
@@ -175,7 +180,7 @@ x=$((256/splits))
 
 
 #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
+$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
 pid1=$!
 
 wait $pid1 

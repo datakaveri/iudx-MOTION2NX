@@ -651,14 +651,14 @@ int main(int argc, char* argv[]) {
         std::cerr << "Error occurred during connection setup: " << e.what() << "\n";
         return EXIT_FAILURE;
     }
-    try{
-      logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
-      comm_layer->set_logger(logger);
-    }
-    catch (std::runtime_error& e) {
-        std::cerr << "Error occurred during logger setup: " << e.what() << "\n";
-        return EXIT_FAILURE;
-    }
+    // try{
+    //   logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
+    //   comm_layer->set_logger(logger);
+    // }
+    // catch (std::runtime_error& e) {
+    //     std::cerr << "Error occurred during logger setup: " << e.what() << "\n";
+    //     return EXIT_FAILURE;
+    // }
     try{
         comm_layer->start();
     }

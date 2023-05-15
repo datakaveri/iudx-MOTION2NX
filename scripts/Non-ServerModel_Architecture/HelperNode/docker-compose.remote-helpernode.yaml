@@ -12,10 +12,10 @@ services:
       - type: volume
         source: smpc-server0-volume
         target: /usr/share/app/logs
-      - ./data/ImageProvider/Final_Output_Shares:/usr/share/app/data/ImageProvider/Final_Output_Shares:rw
-      - ./data/ImageProvider/images:/usr/share/app/data/ImageProvider/images:ro
-      - ./config_files:/usr/share/app/config_files:ro
-      - ./scripts:/usr/share/app/scripts:rw
+      - ../../../data/ImageProvider/Final_Output_Shares:/usr/share/app/data/ImageProvider/Final_Output_Shares:rw
+      - ../../../data/ImageProvider/images:/usr/share/app/data/ImageProvider/images:ro
+      - ../../../config_files:/usr/share/app/config_files:ro
+      - ../../../scripts/:/usr/share/app/scripts:rw
 
     restart: on-failure
     network_mode: host
@@ -30,6 +30,10 @@ services:
       - "4008:4008"
       # cs0_port_inference
       - "4009:4009"
+      # relu0_port_inference
+      - "4012:4012"
+      # cs0_port_image_receiver
+      - "4014:4014"
     mem_limit: 600m
     cpus: 0.750
     logging:
@@ -41,11 +45,11 @@ services:
 
   # SMPC server 1, model provider server
   smpc-server1:
-    image: ghcr.io/datakaveri/motion2nx:1.0.0-2a9d98d
+    image: iudx/motion2nx:local
     volumes:
-      - ./data/ModelProvider/:/usr/share/app/data/ModelProvider/:ro
-      - ./config_files:/usr/share/app/config_files:ro
-      - ./scripts:/usr/share/app/scripts:rw
+      - ../../../data/ModelProvider/:/usr/share/app/data/ModelProvider/:ro
+      - ../../../config_files:/usr/share/app/config_files:ro
+      - ../../../scripts:/usr/share/app/scripts:rw
       - type: volume
         source: smpc-server1-volume
         target: /usr/share/app/logs
@@ -58,6 +62,10 @@ services:
       - "4006:4006"
       # cs1_port_inference
       - "4010:4010"
+      # relu1_port_inference
+      - "4013:4013"
+      # cs1_port_image_receiver
+      - "4015:4015"
     mem_limit: 500m
     cpus: 0.4
     logging:
@@ -69,10 +77,10 @@ services:
 
   # SMPC server 2, helpernode server
   smpc-server2:
-    image: iudx/motion2nx:latest
+    image: iudx/motion2nx:local
     volumes:
-      - ./config_files:/usr/share/app/config_files:ro
-      - ./scripts:/usr/share/app/scripts:rw
+      - ../../../config_files:/usr/share/app/config_files:ro
+      - ../../../scripts:/usr/share/app/scripts:rw
       - type: volume
         source: smpc-server2-volume
         target: /usr/share/app/logs

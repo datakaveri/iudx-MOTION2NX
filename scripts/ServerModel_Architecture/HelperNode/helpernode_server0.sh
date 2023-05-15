@@ -90,14 +90,14 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 image_id=`echo $smpc_config | jq -r .image_id`
 
 # echo all input variables
-echo "cs0_host $cs0_host"
-echo "cs1_host $cs1_host"
-echo "cs0_port_model_receiver $cs0_port_model_receiver"
-echo "cs0_port_image_receiver $cs0_port_image_receiver"
-echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-echo "cs0_port_inference $cs0_port_inference"
-echo "cs1_port_inference $cs1_port_inference"
-echo "fractional bits: $fractional_bits"
+# echo "cs0_host $cs0_host"
+# echo "cs1_host $cs1_host"
+# echo "cs0_port_model_receiver $cs0_port_model_receiver"
+# echo "cs0_port_image_receiver $cs0_port_image_receiver"
+# echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+# echo "cs0_port_inference $cs0_port_inference"
+# echo "cs1_port_inference $cs1_port_inference"
+# echo "fractional bits: $fractional_bits"
 ##########################################################################################################################################
 
 
@@ -108,12 +108,12 @@ then
 fi
 
 ######################### Weights Share Receiver ############################################################################################
-echo "Weight Shares Receiver starts"
-$build_path/bin/Weights_Share_Receiver --my-id 0 --port $cs0_port_model_receiver --file-names $model_config --current-path $build_path > $debug_0/Weights_Share_Receiver0.txt &
+echo "Weight shares receiver starts"
+$build_path/bin/Weights_Share_Receiver_remote --my-id 0 --port $cs0_port_model_receiver --file-names $model_config --current-path $build_path > $debug_0/Weights_Share_Receiver0.txt &
 pid1=$!
 
 #########################Image Share Receiver ############################################################################################
-echo "Image Shares Receiver starts"
+echo "Image shares receiver starts"
 $build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_0/Image_Share_Receiver0.txt &
 pid2=$!
 wait $pid2 $pid1

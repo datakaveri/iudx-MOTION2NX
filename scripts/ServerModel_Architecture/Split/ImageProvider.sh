@@ -47,9 +47,9 @@ fi
 
 #---------------------------------- Starting the reverse ssh tunnel to send back the output shares from the servers to the image provider. ----------------#
 # Assuming that the private key is iudx_cloud, which corresponds to the public key that is added to the analytics cloud vm for authentication.
-autossh -M 23323 -N -q -o "ExitOnForwardFailure yes"  -o "ServerAliveInterval 10" -o "ServerAliveCountMax 3" -R $cs0_port_cs0_output_receiver:localhost:$cs0_port_cs0_output_receiver sshtunuser@analytics.iudx.org.in -i ~/.ssh/iudx_cloud &
+# autossh -M 23323 -N -q -o "ExitOnForwardFailure yes"  -o "ServerAliveInterval 10" -o "ServerAliveCountMax 3" -R $cs0_port_cs0_output_receiver:localhost:$cs0_port_cs0_output_receiver sshtunuser@analytics.iudx.org.in -i ~/.ssh/iudx_cloud &
 
-autossh -M 23325 -N -q -o "ExitOnForwardFailure yes"  -o "ServerAliveInterval 10" -o "ServerAliveCountMax 3" -R $cs0_port_cs1_output_receiver:localhost:$cs0_port_cs1_output_receiver sshtunuser@analytics.iudx.org.in -i ~/.ssh/iudx_cloud &
+# autossh -M 23325 -N -q -o "ExitOnForwardFailure yes"  -o "ServerAliveInterval 10" -o "ServerAliveCountMax 3" -R $cs0_port_cs1_output_receiver:localhost:$cs0_port_cs1_output_receiver sshtunuser@analytics.iudx.org.in -i ~/.ssh/iudx_cloud &
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------#
 #--------------------------------------------- Image Share Provider -------------------------------------------------------#
@@ -81,8 +81,8 @@ wait $pid1
 
 #----------------------------------- Stopping autossh ------------------------------------#
 echo "pkill -3:" > $debug_ImageProv/stop_autosshlogs.txt 
-pkill -3 autossh >$debug_ImageProv/stop_autosshlogs.txt
-echo "killall:" > $debug_ImageProv/stop_autosshlogs.txt  
-killall autossh >$debug_ImageProv/stop_autosshlogs.txt 
+pkill -3 autossh > $debug_ImageProv/stop_autosshlogs.txt
+# echo "killall:" > $debug_ImageProv/stop_autosshlogs.txt  
+# killall autossh >$debug_ImageProv/stop_autosshlogs.txt 
 #------------------------------------------------------------------------------------------#
 wait
