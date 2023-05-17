@@ -20,32 +20,34 @@ def shift(img,sx,sy):
     shifted = cv2.warpAffine(img,M,(cols,rows))
     return shifted
 
+def convert_to_white_bg(path, img_dir):
+    old_img = Image.open(path)
+
+    img = Image.new("RGBA", old_img.size, "WHITE")
+    img.paste(old_img, (0,0), old_img)
+    img.convert("RGB").save(path)
+
+
 def main():
     base_dir = os.getenv("BASE_DIR")
 
     img_dir = os.path.join(base_dir,"data/ImageProvider")
 
-    # print(img_dir)
-
     j = str(9)
 
     # read the image
     for i in range (0, 1):
-        # old_img = Image.open(os.path.join(img_dir,"raw_images/9/"+str(i)+".png"))
 
-        # img = Image.new("RGBA", old_img.size, "WHITE")
-        # img.paste(old_img, (0,0), old_img)
-        # img.convert("RGB").save(os.path.join(img_dir,"raw_images/9/"+str(i)+".png"))
+        path = os.path.join(img_dir,"raw_images/"+j+"/"+str(i)+".png")
 
-        # img.show()
+        transparent_bg = False
 
-        # path = os.path.join(img_dir,"raw_images/"+j+"/"+str(i)+".png")
+        if(transparent_bg):
+            convert_to_white_bg(path, img_dir)       
         
-        # img_ = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        img_ = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
 
-        img_ = cv2.imread(os.path.join(img_dir,"raw_images/2222.png"), cv2.IMREAD_GRAYSCALE)
-
-        # img = cv2.imread(no, 0)
+        # img_ = cv2.imread(os.path.join(img_dir,"raw_images/2222.png"), cv2.IMREAD_GRAYSCALE)
         
         # rescale it
         img_ = cv2.resize(255-img_, (28, 28))
@@ -53,6 +55,7 @@ def main():
         # better black and white version
         (thresh, img_) = cv2.threshold(img_, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
+        # this is used to remove unnecessary black edges in the image to better refactor and resize it
         while np.sum(img_[0]) == 0:
             img_ = img_[1:]
 
@@ -91,8 +94,8 @@ def main():
         img_ = shifted
 
         # save the processed images
-        # if not(os.path.exists(os.path.join(img_dir,"processed_images/"+j+"/"))):
-        #     os.mkdir(os.path.join(img_dir,"processed_images/"+j+"/"))
+        if not(os.path.exists(os.path.join(img_dir,"processed_images/"+j+"/"))):
+            os.mkdir(os.path.join(img_dir,"processed_images/"+j+"/"))
         
         # cv2.imwrite(os.path.join(img_dir,"processed_images/"+str(i)+".png"), img_)
         cv2.imwrite(os.path.join(img_dir,"processed_images/2222.png"), img_)
