@@ -98,8 +98,8 @@ struct Options {
   bool json;
   std::size_t num_simd;
   bool sync_between_setup_and_online;
-  Matrix weights[2];
-  Matrix biases[2];
+  Matrix weights[5];
+  Matrix biases[5];
   std::size_t my_id;
   // MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
@@ -176,14 +176,16 @@ void retrieve_shares(Options* options) {
 
   ////////////////////////////////////////////////////////////
 
-  for (auto i = 0; i < 4; i++) {
+  for (auto i = 0; i < 10; i++) {
     std::cout << "Reading shares from weights provider \n";
+    auto temp = options->filepaths[i];
+    std::cout << temp << "\n";
+    
     auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(options->port);
     // auto [q1,q2,q3] = COMPUTE_SERVER::get_provider_mat_mul_data_new(port_number);
     std::vector<COMPUTE_SERVER::Shares> input_values_dp1 = pair2.second.first;
     // std::vector<COMPUTE_SERVER::Shares> input_values_dp1 = q3.first;
-    auto temp = options->filepaths[i];
-    std::cout << temp << "\n";
+    
     if ((i + 2) % 2 == 0) {
       std::cout << "Weights \n";
       file.open(temp, std::ios_base::out);
@@ -199,6 +201,7 @@ void retrieve_shares(Options* options) {
         options->weights[(i) / 2].delta.push_back(input_values_dp1[j].delta);
         file << input_values_dp1[j].Delta << " " << input_values_dp1[j].delta << "\n";
       }
+      std::cout << std::endl;
       file.close();
     } else {
       std::cout << "Bias \n";
@@ -209,13 +212,15 @@ void retrieve_shares(Options* options) {
       // options->biases[i / 2].row = q3.second[0];
       // options->biases[i / 2].col = q3.second[1];
       file << options->biases[(i - 1) / 2].row << " " << options->biases[(i - 1) / 2].col << "\n";
-      std::cout << "Size:" << input_values_dp1.size() << "rows:" << options->biases[(i - 1) / 2].row
-                << "columns:" << options->biases[(i - 2) / 2].col << "\n";
+      // std::cout << "Size:" << input_values_dp1.size() << "rows:" << options->biases[(i - 1) / 2].row
+                // << "columns:" << options->biases[(i - 2) / 2].col << "\n";
+      
       for (int j = 0; j < input_values_dp1.size(); j++) {
         options->biases[(i - 1) / 2].Delta.push_back(input_values_dp1[j].Delta);
         options->biases[(i - 1) / 2].delta.push_back(input_values_dp1[j].delta);
         file << input_values_dp1[j].Delta << " " << input_values_dp1[j].delta << "\n";
       }
+      std::cout << std::endl;
       file.close();
     }
   }
