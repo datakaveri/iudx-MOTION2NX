@@ -82,7 +82,8 @@ relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
-image_id=`echo $smpc_config | jq -r .image_id`
+# image_id=`echo $smpc_config | jq -r .image_id`
+
 
 # echo all input variables
 #echo "cs0_host $cs0_host"
@@ -110,6 +111,13 @@ wait $pid2
 echo "Weight Shares received"
 
 #########################Image Share Receiver ############################################################################################
+for((image_id=0; image_id<99; image_id++))
+# i=(19000 19001 18000 18001 17006 17003 16006 16002 15001 15000 14009 14005 13008 13002 12003 12000 11001 11006 10005 10003)
+# for image_id in "${i[@]}"
+do
+
+echo "$image_id"
+
 echo "Image Shares Receiver starts"
 
 $build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_data_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_0/Image_Share_Receiver0.txt &
@@ -131,7 +139,11 @@ echo "Image shares received"
 echo "Inferencing task of the image shared starts"
 
 ############################Inputs for inferencing tasks #######################################################################################
-layer_id=1
+# layer_id=1
+
+for((layer_id=1; layer_id<5; layer_id++))
+do
+
 # input_config=" "
 image_share="remote_image_shares"
 if [ $layer_id -eq 1 ];
@@ -139,16 +151,33 @@ then
     input_config="remote_image_shares"
 fi
 
-#######################################Matrix multiplication layer 1 ###########################################################################
+#######################################Matrix multiplication layer $layer_id ###########################################################################
 
+#######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
+
+# #Updating the config file for layers 2 and above.
+if [ $layer_id -gt 1 ];
+then
+    input_config="outputshare"
+fi
 
 $build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
 
 pid1=$!
 
 wait $pid1
-echo "Layer 1: Matrix multiplication and addition is done"
+echo "Layer $layer_id: Matrix multiplication and addition is done"
 
+
+# #######################################ReLu layer $layer_id ####################################################################################
+$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu1_layer${layer_id}.txt &
+pid1=$!
+
+wait $pid1
+
+echo "Layer $layer_id: ReLU is done"
+
+done
 
 # #######################################Output share receivers ###########################################################################
 $build_path/bin/output_shares_receiver --my-id 0 --listening-port $cs0_port_cs0_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver0.txt &
@@ -159,32 +188,15 @@ pid6=$!
 
 echo "Image Provider is listening for the inferencing result"
 
-# #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu1_layer0.txt &
-pid1=$!
 
-wait $pid1
-
-echo "Layer 1: ReLU is done"
-
-#######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
-((layer_id++))
-
-# #Updating the config file for layers 2 and above.
-if [ $layer_id -gt 1 ];
-then
-    input_config="outputshare"
-fi
-
-
-#######################################Matrix multiplication layer 2 ###########################################################################
+#######################################Matrix multiplication layer 5 ###########################################################################
 $build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference  --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
 
 pid1=$!
 
 wait $pid1
 
-echo "Layer 2: Matrix multiplication and addition is done"
+echo "Layer 5: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
 $build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path > $debug_0/argmax0_layer2.txt &
@@ -192,7 +204,7 @@ pid1=$!
 
 wait $pid1
 
-echo "Layer 2: Argmax is done"
+echo "Layer 5: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
 $build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider0.txt &
@@ -231,5 +243,9 @@ Memory=$(printf "%.3f" $Mem2)
 
 echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
 echo "Time taken by inferencing task:" $Time "ms"
+echo -e "\n\n"
+
+done
 
 cd $scripts_path
+

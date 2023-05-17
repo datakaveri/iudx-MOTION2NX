@@ -113,6 +113,9 @@ wait $pid2
 echo "Weight Shares received"
 
 # #########################Image Share Receiver ############################################################################################
+for((i=0;i<99;i++))
+do
+
 echo "Image Shares Receiver starts"
 
 $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_data_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
@@ -131,7 +134,10 @@ echo "Image shares received"
 echo "Inferencing task of the image shared starts"
 
 ############################Inputs for inferencing tasks #######################################################################################
-layer_id=1
+# layer_id=1
+for((layer_id=1; layer_id<5; layer_id++))
+do
+
 input_config=" "
 image_share="remote_image_shares"
 if [ $layer_id -eq 1 ];
@@ -139,24 +145,7 @@ then
     input_config="remote_image_shares"
 fi
 
-#######################################Matrix multiplication layer 1 ###########################################################################
-
-$build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
-
-pid1=$!
-
-wait $pid1
-echo "Layer 1: Matrix multiplication and addition is done"
-
-# #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
-pid1=$!
-
-wait $pid1
-echo "Layer 1: ReLU is done"
-
 #######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
-((layer_id++))
 
 # #Updating the config file for layers 2 and above.
 if [ $layer_id -gt 1 ];
@@ -164,13 +153,31 @@ then
     input_config="outputshare"
 fi
 
-#######################################Matrix multiplication layer 2 ###########################################################################
+#######################################Matrix multiplication layer $layer_id ###########################################################################
+
+$build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
+
+pid1=$!
+
+wait $pid1
+echo "Layer $layer_id: Matrix multiplication and addition is done"
+
+# #######################################ReLu layer $layer_id ####################################################################################
+$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
+pid1=$!
+
+wait $pid1
+echo "Layer $layer_id: ReLU is done"
+
+done
+
+#######################################Matrix multiplication layer 5 ###########################################################################
 
 $build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
 pid1=$!
 
 wait $pid1 #$pid2 #$pid3
-echo "Layer 2: Matrix multiplication and addition is done"
+echo "Layer 5: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
 
@@ -179,7 +186,7 @@ pid1=$!
 
 
 wait $pid1
-echo "Layer 2: Argmax is done"
+echo "Layer 5: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
 
@@ -210,5 +217,7 @@ Memory=$(printf "%.3f" $Mem2)
 
 echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
 echo "Time taken by inferencing task:" $Time "ms"
+
+done
 
 cd $scripts_path

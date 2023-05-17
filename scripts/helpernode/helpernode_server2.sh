@@ -42,22 +42,21 @@ helpernode_port_inference=`echo $smpc_config | jq -r .helpernode_port_inference`
 fractional_bits=13
 ##########################################################################################################################################
 
-
 if [ ! -d "$debug_2" ];
 then
         mkdir -p $debug_2
 fi
 
-echo "Helper node starts"
+for ((j=0; j<99; j++))
+do
 
-############################ Inputs for inferencing tasks #######################################################################################
-layer_id=1
-input_config=" "
-image_share="remote_image_shares"
-if [ $layer_id -eq 1 ];
-then
-    input_config="remote_image_shares"
-fi
+echo -e "Helper node is ready\n"
+
+for((layer_id=1;layer_id<6;layer_id++))
+do
+
+echo "Helper node: layer ${layer_id} starts"
+
 
 # ####################################### Matrix multiplication layer 1 ###########################################################################
 
@@ -65,16 +64,12 @@ $build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_h
 pid1=$!
 
 wait $pid1
-echo "Helper node layer 1 is done"
 
-####################### Inputs for layer 2 ###################################################################################################
-((layer_id++))
-####################################### Matrix multiplication layer 2 ###########################################################################
+echo "Helper node: layer ${layer_id} is done"
 
-$build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference > $debug_2/helpernode_layer${layer_id}.txt &
-pid1=$!
+# wait
+done
 
-wait $pid1
-echo "Helper node layer ${layer_id} is done"
+echo -e "Helper node is done for this image\n"
 
-wait
+done
