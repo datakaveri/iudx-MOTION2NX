@@ -96,24 +96,24 @@ if [ -f AverageTime1 ]; then
 fi
 
 #########################Weights Share Receiver ############################################################################################
-echo "Weight shares receiver starts"
-$build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path >> $debug_1/Weights_Share_Receiver.txt &
-pid2=$!
+# echo "Weight shares receiver starts"
+# $build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver.txt &
+# pid2=$!
 
 
-#########################Weights Provider ############################################################################################
-echo "Weight Provider starts"
-$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path >> $debug_1/weights_provider.txt &
-pid3=$!
+# #########################Weights Provider ############################################################################################
+# echo "Weight Provider starts"
+# $build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
+# pid3=$!
 
-wait $pid3
-wait $pid2 
+# wait $pid3
+# wait $pid2 
 echo "Weight shares received"
 
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_1/Image_Share_Receiver.txt &
+$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver.txt &
 pid2=$!
 
 wait $pid2
@@ -126,7 +126,7 @@ echo "Image shares received"
 
 ########################Inferencing task starts ###############################################################################################
 
-#  echo "image_ids X"$image_id >> MemoryDetails1 
+#  echo "image_ids X"$image_id > MemoryDetails1 
 echo "Inferencing task of the image shared starts"
 
 echo "Number of splits for layer 1 matrix multiplication - $splits"
@@ -214,7 +214,7 @@ echo "Layer 2: Argmax is done"
 end=$(date +%s)
 ####################################### Final output provider  ###########################################################################
 
-$build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
+$build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider.txt &
 pid4=$!
 
 wait $pid4 

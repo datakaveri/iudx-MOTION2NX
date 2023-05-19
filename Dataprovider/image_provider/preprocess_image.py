@@ -36,7 +36,7 @@ def main():
     j = str(56)
 
     # read the image
-    for i in range (2222, 2223):
+    for i in range (2133,2134):
 
         path = os.path.join(img_dir,"raw_images/"+str(i)+".png")
 
@@ -98,7 +98,7 @@ def main():
             os.mkdir(os.path.join(img_dir,"processed_images/"))
         
         # cv2.imwrite(os.path.join(img_dir,"processed_images/"+str(i)+".png"), img_)
-        cv2.imwrite(os.path.join(img_dir,"processed_images/2222.png"), img_)
+        cv2.imwrite(os.path.join(img_dir,"processed_images/.png"), img_)
 
 
         """

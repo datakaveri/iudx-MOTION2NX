@@ -73,7 +73,7 @@ std::optional<Options> parse_program_options(int argc, char *argv[])
 }
 
 template <typename E>
-std::uint64_t blah(E &engine)
+std::uint64_t RandomNumGenerator(E &engine)
 {
      std::uniform_int_distribution<unsigned long long> dis(
          std::numeric_limits<std::uint64_t>::min(),
@@ -120,8 +120,8 @@ void share_generation(std::ifstream &indata, int num_elements, Shares *cs0_data,
      {
           std::random_device rd;
           std::mt19937 gen(rd());
-          std::uint64_t del0 = blah(gen);
-          std::uint64_t del1 = blah(gen);
+          std::uint64_t del0 = RandomNumGenerator(gen);
+          std::uint64_t del1 = RandomNumGenerator(gen);
 
           std::uint64_t Del = del0 + del1 + data[i];
 
