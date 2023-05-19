@@ -755,7 +755,7 @@ void ArithmeticBEAVYInputGateReceiver<T>::evaluate_setup() {
   output_->get_secret_share() = rng.GetUnsigned<T>(input_id_, num_simd_);
   auto& my_secret_share = output_->get_secret_share();
 
-  std::cout << "Owner:- " << input_owner_ << "\nSecret Share: ";
+  std::cout << "Owner :- " << input_owner_ << "\nSecret Share: ";
   for (long unsigned int i = 0; i < my_secret_share.size(); i++) {
     std::cout << my_secret_share[i];
   }

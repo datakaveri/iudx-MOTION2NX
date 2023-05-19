@@ -82,7 +82,7 @@ wait $pid1
 #----------------------------------- Stopping autossh ------------------------------------#
 echo "pkill -3:" > $debug_ImageProv/stop_autosshlogs.txt 
 pkill -3 autossh > $debug_ImageProv/stop_autosshlogs.txt
-# echo "killall:" > $debug_ImageProv/stop_autosshlogs.txt  
-# killall autossh >$debug_ImageProv/stop_autosshlogs.txt 
+echo "killall:" > $debug_ImageProv/stop_autosshlogs.txt  
+killall autossh >$debug_ImageProv/stop_autosshlogs.txt 
 #------------------------------------------------------------------------------------------#
 wait

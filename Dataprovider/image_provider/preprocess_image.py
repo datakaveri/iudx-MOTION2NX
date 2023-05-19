@@ -36,7 +36,7 @@ def main():
     j = str(56)
 
     # read the image
-    for i in range (2222, 2223):
+    for i in range (222, 223):
 
         path = os.path.join(img_dir,"raw_images/"+str(i)+".png")
 
@@ -98,7 +98,7 @@ def main():
             os.mkdir(os.path.join(img_dir,"processed_images/"))
         
         # cv2.imwrite(os.path.join(img_dir,"processed_images/"+str(i)+".png"), img_)
-        cv2.imwrite(os.path.join(img_dir,"processed_images/2222.png"), img_)
+        cv2.imwrite(os.path.join(img_dir,"processed_images/222.png"), img_)
 
 
         """
@@ -112,7 +112,7 @@ def main():
 
         # Insert the new number at the top of the array
         final_image = np.insert(flattened_img, 0, new_number, axis=0)
-        np.savetxt(os.path.join(img_dir,"images/X2222.csv"),final_image,delimiter=",")
+        np.savetxt(os.path.join(img_dir,"images/X222.csv"),final_image,delimiter=",")
 
     return 1
 

@@ -6,7 +6,7 @@ version: "2.4"
 
 services:
   smpc-server0:
-    image: iudx/motion2nx:local
+    image: ghcr.io/datakaveri/motion2nx:local
     volumes:
       - type: volume
         source: smpc-server0-volume
@@ -39,7 +39,7 @@ services:
 
   # SMPC server 1
   smpc-server1:
-    image: iudx/motion2nx:local
+    image: ghcr.io/datakaveri/motion2nx:local
     volumes:
       - ../../../config_files:/usr/share/app/config_files:ro
       - ../../../scripts:/usr/share/app/scripts:rw
@@ -70,7 +70,7 @@ services:
 
   # SMPC server 2 - helpernode server
   smpc-server2:
-    image: iudx/motion2nx:local
+    image: ghcr.io/datakaveri/motion2nx:local
     volumes:
       - ../../../config_files:/usr/share/app/config_files:ro
       - ../../../scripts:/usr/share/app/scripts:rw

@@ -87,6 +87,8 @@ struct Options {
   Matrix input;
 };
 
+bool is_empty(std::ifstream& file) { return file.peek() == std::ifstream::traits_type::eof(); }
+
 void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
   int tSize = 0, resident = 0, share = 0;
   std::ifstream buffer("/proc/self/statm");
@@ -135,7 +137,7 @@ std::uint64_t read_file(std::ifstream& indata) {
       break;
     }
   }
-  std::cout<<"Read "<<str<<std::endl;
+  std::cout << "Read " << str << std::endl;
   std::string::size_type sz = 0;
   std::uint64_t ret = (uint64_t)std::stoull(str, &sz, 0);
   return ret;
@@ -155,51 +157,88 @@ std::string read_filepath(std::ifstream& indata) {
   return str;
 }
 
-void input_shares(Options* options, std::string p) {
-  // std::cout << "Inside input shares \n";
+int input_shares(Options* options, std::string p) {
   std::ifstream indata;
-  indata.open(p);
-  // std::cout << "p:" << p << std::endl;
-  assert(indata);
+  try {
+    if (std::ifstream(p)) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+    indata.open(p);
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the input bias share file.\n";
+    return EXIT_FAILURE;
+  }
 
-  options->num_elements = read_file(indata);
-  std::cout<<"options.num_elements"<<options->num_elements<<std::endl; 
-  // options->row = options->num_elements;
-  /// Use the following line only if the shares file also has number of
-  ////columns on the top
-  options->col = read_file(indata);
-  // options->col = options->column_size;
+  try {
+    if (is_empty(indata)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Input share file is empty.\n";
+    return EXIT_FAILURE;
+  }
+
+  int num_elements, col;
+  try {
+    num_elements = read_file(indata);
+    std::cout << "num_elements: " << num_elements << " ";
+    col = read_file(indata);
+    std::cout << "col: " << col << "\n";
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading rows and columns from input share file.\n";
+    return EXIT_FAILURE;
+  }
+
+  options->num_elements = num_elements;
+  options->col = col;
 
   for (int i = 0; i < options->num_elements; i++) {
-    uint64_t m1 = read_file(indata);
-    options->input.Delta_T.push_back(m1);
-    // std::cout << m1 << " ";
-
-    uint64_t m2 = read_file(indata);
-    options->input.delta_T.push_back(m2);
-    // std::cout << m2 << std::endl;
+    try {
+      uint64_t m1 = read_file(indata);
+      options->input.Delta_T.push_back(m1);
+      uint64_t m2 = read_file(indata);
+      options->input.delta_T.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the input share file.\n";
+      return EXIT_FAILURE;
+    }
   }
   indata.close();
 }
 
-void file_read(Options* options) {
+int file_read(Options* options) {
   std::string path = options->currentpath;
   // std::string path = std::filesystem::current_path();
   std::string t1 = path + "/" + options->filepath;
+  std::cout << t1 << std::endl;
 
-   std::cout << t1 << std::endl;
-
-  std::string t2 = path + "/" + "server" + std::to_string(options->my_id) + "/Actual_label/" +
-                   "remote_share_actual_answer";
-
+  // std::string t2 = path + "/" + "server" + std::to_string(options->my_id) + "/Actual_label/" +
+  //                  "remote_share_actual_answer";
   //  std::cout << t2 << std::endl;
 
   std::ifstream file1;
-  file1.open(t1);
-  if (file1) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+
+  try {
+    if (std::ifstream(t1)) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+    file1.open(t1);
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the file_config_input.\n";
+    return EXIT_FAILURE;
+  }
+
+  try {
+    if (is_empty(file1)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Input share file is empty.\n";
+    return EXIT_FAILURE;
   }
 
   std::string i = read_filepath(file1);
@@ -439,7 +478,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyBackend& b
 
 // Reads the public and private share from each gate file and consolidates it to a single file to
 // share to the image provider.
-void consolidate_share_files(const Options& options, size_t num_outputs, size_t first_gate_number) {
+int consolidate_share_files(const Options& options, size_t num_outputs, size_t first_gate_number) {
   std::string op = getenv("BASE_DIR");
   std::ofstream outdata;
 
@@ -452,7 +491,6 @@ void consolidate_share_files(const Options& options, size_t num_outputs, size_t 
     op += options.inputfilename;
     op += ".txt";
   }
-
   outdata.open(op);
   assert(outdata);
   // outdata << options.my_id <<"\n";
@@ -476,11 +514,16 @@ void consolidate_share_files(const Options& options, size_t num_outputs, size_t 
       ip += ".txt";
     }
 
-    indata.open(ip);
-    assert(indata);
-    if (!indata) {
-      std::cerr << " Error in reading file\n";
-      return;
+    try {
+      indata.open(ip);
+      if (indata) {
+        std::cout << "File found\n";
+      } else {
+        std::cout << "File not found\n";
+      }
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while opening the boolean output share with gate file.\n";
+      return EXIT_FAILURE;
     }
 
     auto output_Delta = read_file(indata);

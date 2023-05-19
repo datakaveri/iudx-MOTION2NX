@@ -8,10 +8,12 @@ At the argument "--filepath " give the path of the file containing shares from b
 Server-0
 ./bin/tensor_gt_mul_test --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
 --boolean-protocol yao --fractional-bits 13 --config-file-model file_config_model0 --layer-id 1
+--current-path ${BASE_DIR}/build_debwithrelinfo_gcc
 
 Server-1
 ./bin/tensor_gt_mul_test --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
 --boolean-protocol yao --fractional-bits 13 --config-file-model file_config_model1 --layer-id 1
+--current-path ${BASE_DIR}/build_debwithrelinfo_gcc
 
 */
 // MIT License
@@ -75,6 +77,8 @@ int j = 0;
 static std::vector<uint64_t> generate_inputs(const MOTION::tensor::TensorDimensions dims) {
   return MOTION::Helpers::RandomVector<uint64_t>(dims.get_data_size());
 }
+
+bool is_empty(std::ifstream& file) { return file.peek() == std::ifstream::traits_type::eof(); }
 
 void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
   int tSize = 0, resident = 0, share = 0;
@@ -183,90 +187,158 @@ std::string read_filepath(std::ifstream& indata, int count) {
   return str;
 }
 
-void image_shares(Options* options, std::string p) {
+int image_shares(Options* options, std::string p) {
   std::ifstream temps;
-  temps.open(p);
-  // std::cout << "p:" << p << "\n";
-  if (temps) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+  try {
+    temps.open(p);
+    if (temps) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the image share file.\n";
+    return EXIT_FAILURE;
   }
-  assert(temps);
 
-  std::uint64_t rows = read_file(temps);
-  options->image_file.row = rows;
-  std::cout << "r " << rows << " ";
-  std::uint64_t cols = read_file(temps);
-  options->image_file.col = cols;
-  std::cout << "c " << cols << "\n";
+  try {
+    if (is_empty(temps)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Image share input file is empty.\n";
+    return EXIT_FAILURE;
+  }
+
+  std::uint64_t rows, cols;
+  try {
+    rows = read_file(temps);
+    options->image_file.row = rows;
+    std::cout << "r " << rows << " ";
+    cols = read_file(temps);
+    options->image_file.col = cols;
+    std::cout << "c " << cols << "\n";
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading columns from image shares.\n";
+    return EXIT_FAILURE;
+  }
 
   for (int i = 0; i < rows * cols; ++i) {
-    uint64_t m1 = read_file(temps);
-    // std::cout << m1 << " ";
-    options->image_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(temps);
-    // std::cout << m2 << "\n";
-    options->image_file.delta.push_back(m2);
+    try {
+      uint64_t m1 = read_file(temps);
+      options->image_file.Delta.push_back(m1);
+      uint64_t m2 = read_file(temps);
+      options->image_file.delta.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading columns from image shares.\n";
+      return EXIT_FAILURE;
+    }
   }
   temps.close();
 }
 
-void W_shares(Options* options, std::string p) {
+int W_shares(Options* options, std::string p) {
   std::ifstream indata;
-  indata.open(p);
-  if (std::ifstream(p)) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+  try {
+    indata.open(p);
+    if (std::ifstream(p)) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the input weight share file.\n";
+    return EXIT_FAILURE;
   }
-  assert(indata);
 
-  int rows = read_file(indata);
-  options->W_file.row = rows;
-  std::cout << "r " << rows << " ";
-  int cols = read_file(indata);
-  options->W_file.col = cols;
-  std::cout << "c " << cols << "\n";
+  try {
+    if (is_empty(indata)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Weight share input file is empty.\n";
+    return EXIT_FAILURE;
+  }
+
+  int rows, cols;
+  try {
+    rows = read_file(indata);
+    options->W_file.row = rows;
+    std::cout << "r " << rows << " ";
+    cols = read_file(indata);
+    options->W_file.col = cols;
+    std::cout << "c " << cols << "\n";
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading rows and columns from weight shares.\n";
+    return EXIT_FAILURE;
+  }
 
   for (int i = 0; i < rows * cols; ++i) {
-    uint64_t m1 = read_file(indata);
-    options->W_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(indata);
-    options->W_file.delta.push_back(m2);
+    try {
+      uint64_t m1 = read_file(indata);
+      options->W_file.Delta.push_back(m1);
+      uint64_t m2 = read_file(indata);
+      options->W_file.delta.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading input weight shares from file.\n";
+      return EXIT_FAILURE;
+    }
   }
   indata.close();
 }
 
-void B_shares(Options* options, std::string p) {
+int B_shares(Options* options, std::string p) {
   std::ifstream indata;
-  indata.open(p);
+  try {
+    if (std::ifstream(p)) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
 
-  if (std::ifstream(p)) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+    indata.open(p);
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the input bias share file.\n";
+    return EXIT_FAILURE;
   }
-  assert(indata);
 
-  int rows = read_file(indata);
-  options->B_file.row = rows;
-  std::cout << "r " << rows << " ";
-  int cols = read_file(indata);
-  options->B_file.col = cols;
-  std::cout << "c " << cols << "\n";
+  try {
+    if (is_empty(indata)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Bias share file is empty.\n";
+    return EXIT_FAILURE;
+  }
 
+  int rows, cols;
+  try {
+    rows = read_file(indata);
+    options->B_file.row = rows;
+    std::cout << "r " << rows << " ";
+    cols = read_file(indata);
+    options->B_file.col = cols;
+    std::cout << "c " << cols << "\n";
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading rows and columns from input bias share file.\n";
+    return EXIT_FAILURE;
+  }
   for (int i = 0; i < rows * cols; ++i) {
-    uint64_t m1 = read_file(indata);
-    options->B_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(indata);
-    options->B_file.delta.push_back(m2);
+    try {
+      uint64_t m1 = read_file(indata);
+      options->B_file.Delta.push_back(m1);
+      uint64_t m2 = read_file(indata);
+      options->B_file.delta.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the input bias share file.\n";
+      return EXIT_FAILURE;
+    }
   }
   indata.close();
 }
 
 // changes made in this function
-void file_read(Options* options) {
+int file_read(Options* options) {
   std::string path = options->currentpath;
   std::string t1, i;
   // if layer_id=1 then read filename inside server
@@ -282,24 +354,33 @@ void file_read(Options* options) {
   }
 
   image_shares(options, t1);
-  // std::cout << "i:" << t1 << "\n";
-  // model path
 
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // model path --> builddebwithrelinfo_gcc/file_config_model0/1
   std::string t2 = path + "/" + options->modelpath;
-  // std::cout << "t2:" << t2 << "\n";
-
   std::ifstream file2;
-  file2.open(t2);
-  if (file2) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+  try {
+    file2.open(t2);
+    if (file2) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening config_model file.\n";
+    return EXIT_FAILURE;
   }
 
-  // file1.close();
+  try {
+    if (is_empty(file2)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "file_config_model is empty.\n";
+    return EXIT_FAILURE;
+  }
 
   j = 0;
-
   //  skip 2(layer_id-1) and read first 2 lines
   int c = 2 * (options->layer_id - 1);
   std::string w = read_filepath(file2, c);
@@ -472,15 +553,6 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   // retrieve the gate factories for the chosen protocols
   auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
-
-  ////////////////Using below to set size of input tensor/////////////////////
-  ////////Looks clumsy but could not fix it
-  /*const MOTION::tensor::GemmOp gemm_op1 = {
-      .input_A_shape_ = {256, 784}, .input_B_shape_ = {784, 1}, .output_shape_ = {256, 1}};
-*/
-
-  // std::cout << options.W_file.row << " " << options.W_file.col << "\n";
-  // std::cout << options.image_file.row << " " << options.image_file.col << "\n";
 
   const MOTION::tensor::GemmOp gemm_op1 = {
       .input_A_shape_ = {options.W_file.row, options.W_file.col},
