@@ -373,9 +373,9 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 
   ////////////////Using below to set size of input tensor/////////////////////
   ////////Looks clumsy but could not fix it
-  const MOTION::tensor::GemmOp gemm_op1 = {.input_A_shape_ = {784, 256},
-                                           .input_B_shape_ = {options.num_elements, 1},
-                                           .output_shape_ = {784, 1}};
+  // const MOTION::tensor::GemmOp gemm_op1 = {.input_A_shape_ = {784, 256},
+                                          //  .input_B_shape_ = {options.num_elements, 1},
+                                          //  .output_shape_ = {784, 1}};
 
   /*const MOTION::tensor::GemmOp gemm_op1 = {
       .input_A_shape_ = {options.W_file.row, options.W_file.col},
@@ -383,14 +383,22 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       .output_shape_ = {options.W_file.row, options.image_file.col}};
       */
 
-  const auto input_dims = gemm_op1.get_input_B_tensor_dims();
+  MOTION::tensor::TensorDimensions tensor_dims;
+  tensor_dims.batch_size_=  1;
+  tensor_dims.num_channels_ = 1;
+  tensor_dims.height_ = options.num_elements;
+  tensor_dims.width_ = 1;
+
+   //const input_dims = {options.num_elements, 1};
+  // const auto input_dims = gemm_op1.get_input_B_tensor_dims();
+
   /////////////////////////////////////////////////////////////////////////
   MOTION::tensor::TensorCP tensor_input;
-  auto pair_input = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_dims);
+  auto pair_input = arithmetic_tof.make_arithmetic_64_tensor_input_shares(tensor_dims);
   std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_vector =
       std::move(pair_input.first);
   tensor_input = pair_input.second;
-  // assert(tensor_input);
+  assert(tensor_input);
 
   ///////////////////////////////////////////////////////////////
   input_vector[0].set_value(options.input.Delta);
