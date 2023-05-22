@@ -38,16 +38,16 @@ def main():
     # read the image
     for i in range (0, 1):
 
-        path = os.path.join(img_dir,"raw_images/"+j+"/"+str(i)+".png")
+        # path = os.path.join(img_dir,"raw_images/"+j+"/"+str(i)+".png")
 
         transparent_bg = False
 
-        if(transparent_bg):
-            convert_to_white_bg(path, img_dir)       
+        # if(transparent_bg):
+        #     convert_to_white_bg(path, img_dir)       
         
-        img_ = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        # img_ = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
 
-        # img_ = cv2.imread(os.path.join(img_dir,"raw_images/2222.png"), cv2.IMREAD_GRAYSCALE)
+        img_ = cv2.imread(os.path.join(img_dir,"raw_images/6666.png"), cv2.IMREAD_GRAYSCALE)
         
         # rescale it
         img_ = cv2.resize(255-img_, (28, 28))
@@ -98,7 +98,7 @@ def main():
             os.mkdir(os.path.join(img_dir,"processed_images/"+j+"/"))
         
         # cv2.imwrite(os.path.join(img_dir,"processed_images/"+str(i)+".png"), img_)
-        cv2.imwrite(os.path.join(img_dir,"processed_images/2222.png"), img_)
+        cv2.imwrite(os.path.join(img_dir,"processed_images/6666.png"), img_)
 
 
         """
@@ -112,7 +112,7 @@ def main():
 
         # Insert the new number at the top of the array
         final_image = np.insert(flattened_img, 0, new_number, axis=0)
-        np.savetxt(os.path.join(img_dir,"images/X2222.csv"),final_image,delimiter=",")
+        np.savetxt(os.path.join(img_dir,"images/X6666.csv"),final_image,delimiter=",")
 
     return 1
 
