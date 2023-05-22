@@ -174,8 +174,8 @@ void retrieve_shares(Options& options) {
     std::vector<COMPUTE_SERVER::Shares> input_values_dp1 = data_and_dims.first[i];
     auto currentdims = data_and_dims.second[i];
     file.open(data_share_file_path, std::ios_base::out);
-    file << currentdims[0] << " " << currentdims[1] << "\n";
-    std::cout << "rows:" << currentdims[0] << " columns:" << currentdims[1] << std::endl;
+    file << currentdims.first << " " << currentdims.second << "\n";
+    std::cout << "rows:" << currentdims.first << " columns:" << currentdims.second << std::endl;
     for (int j = 0; j < input_values_dp1.size(); j++) {
       file << input_values_dp1[j].Delta << " " << input_values_dp1[j].delta << "\n";
     }
