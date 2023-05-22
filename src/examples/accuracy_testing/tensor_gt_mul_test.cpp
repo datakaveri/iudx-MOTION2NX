@@ -474,10 +474,6 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
 
   ////////////////Using below to set size of input tensor/////////////////////
-  ////////Looks clumsy but could not fix it
-  /*const MOTION::tensor::GemmOp gemm_op1 = {
-      .input_A_shape_ = {256, 784}, .input_B_shape_ = {784, 1}, .output_shape_ = {256, 1}};
-*/
 
   // std::cout << options.W_file.row << " " << options.W_file.col << "\n";
   // std::cout << options.image_file.row << " " << options.image_file.col << "\n";
