@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as build
+FROM ubuntu:jammy-20230425 as build
 SHELL ["/bin/bash", "-c"]
 ARG BOOST_VERSION=1.79.0
 ARG NUM_JOBS=8
@@ -56,35 +56,3 @@ RUN cd /tmp && \
     cmake ../../eigen-${EIGEN_VERSION} && \
     make install  && \
     rm -rf /tmp/*
-   
-WORKDIR /usr/share/app
-
-# Download submodules and checkout to needed commit
-RUN git init && \
-    git submodule add https://github.com/fmtlib/fmt.git extern/fmt && cd extern/fmt && git checkout c85efef && cd - && \
-    git submodule add https://github.com/google/flatbuffers.git extern/flatbuffers && cd extern/flatbuffers && git checkout bcd58a1  && cd -  && \
-    git submodule add https://github.com/google/googletest.git extern/googletest &&  cd extern/googletest && git checkout e2239ee  && cd -  && \
-    git submodule add https://github.com/google/benchmark.git extern/benchmark  && cd extern/benchmark && git checkout f91b6b4 && cd -
-
-# Copy MOTION2NX source files
-COPY CMakeLists.txt .
-COPY cmake cmake
-COPY src src
-COPY fbs fbs
-COPY Dataprovider Dataprovider
-COPY flatbuffers-build flatbuffers-build
-COPY circuits circuits
-
-# AVX instruction to compile with
-# Possible values : OFF, AVX, AVX2,AVX512
-ARG AVX=AVX2
-# Build MOTION2NX
-# Delete source, build files and keep binaries
-RUN CC=gcc CXX=g++ cmake \
-    -B build_debwithrelinfo_gcc \
-    -DCMAKE_BUILD_TYPE=DebWithRelInfo \
-    -DMOTION_BUILD_EXE=On \
-    -DMOTION_BUILD_TESTS=On \
-    -DMOTION_USE_AVX=${AVX} && \
-    cmake --build build_debwithrelinfo_gcc
-RUN ldconfig

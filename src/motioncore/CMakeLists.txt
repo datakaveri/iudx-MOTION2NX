@@ -166,7 +166,7 @@ target_compile_options(motion PRIVATE
         -Wall -Wextra
         -pedantic -ansi
         -maes -msse2 -msse4.1 -msse4.2 -mpclmul
-        -ffunction-sections -march=native -ffast-math
+        -ffunction-sections -march=x86-64 -ffast-math
         ${MOTION_VECT_COST_MODEL_GCC_FLAG}
         )
 

@@ -12,12 +12,12 @@
 #include "utility/logger.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/chrono.hpp>
 #include <boost/json/serialize.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
-#include <boost/chrono.hpp>
-#include <boost/thread/thread.hpp> 
+#include <boost/thread/thread.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -25,11 +25,10 @@
 #include <vector>
 #include "utility/new_fixed_point.h"
 
-
 std::vector<std::uint64_t> x0, w0;
 std::vector<std::uint64_t> x1, w1;
 int c1 = 1, c2 = 1, c3 = 1, c4 = 1;
-bool operations_done_flag=false, server0_ready_flag = false, server1_ready_flag = false;
+bool operations_done_flag = false, server0_ready_flag = false, server1_ready_flag = false;
 std::uint64_t w_rows = 0, w_cols = 0, x_rows = 0, x_cols = 0;
 std::vector<std::uint8_t> msg_Z, msg_R;
 namespace po = boost::program_options;
@@ -393,14 +392,14 @@ int main(int argc, char* argv[]) {
       std::cerr << "Error occurred during connection setup: " << e.what() << "\n";
       return EXIT_FAILURE;
     }
-    try{
-    logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
-    comm_layer->set_logger(logger);
-    }
-    catch (std::runtime_error& e) {
-      std::cerr << "Error occurred during logger setup: " << e.what() << "\n";
-      return EXIT_FAILURE;
-    }
+    // try{
+    // logger = std::make_shared<MOTION::Logger>(my_id, boost::log::trivial::severity_level::trace);
+    // comm_layer->set_logger(logger);
+    // }
+    // catch (std::runtime_error& e) {
+    //   std::cerr << "Error occurred during logger setup: " << e.what() << "\n";
+    //   return EXIT_FAILURE;
+    // }
     std::cout<<"Starting the communication layer\n";
     try{
       comm_layer->start();

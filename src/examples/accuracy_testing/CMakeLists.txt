@@ -15,6 +15,7 @@ target_compile_features(argmax PRIVATE cxx_std_20)
 target_compile_features(tensor_gt_mul_test PRIVATE cxx_std_20)
 target_compile_features(Image_Share_Receiver PRIVATE cxx_std_20)
 target_compile_features(Weights_Share_Receiver PRIVATE cxx_std_20)
+target_compile_features(Weights_Share_Receiver_remote PRIVATE cxx_std_20)
 target_compile_features(final_output_provider PRIVATE cxx_std_20)
 target_compile_features(tensor_gt_mul_split PRIVATE cxx_std_20)
 target_compile_features(weight_share_receiver_genr PRIVATE cxx_std_20)
@@ -48,6 +49,13 @@ target_link_libraries(Image_Share_Receiver
 )
 
 target_link_libraries(Weights_Share_Receiver
+    MOTION::motion
+    Boost::json
+    Boost::log
+    Boost::program_options
+)
+
+target_link_libraries(Weights_Share_Receiver_remote
     MOTION::motion
     Boost::json
     Boost::log
