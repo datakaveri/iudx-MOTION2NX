@@ -96,18 +96,18 @@ if [ -f AverageTime1 ]; then
 fi
 
 #########################Weights Share Receiver ############################################################################################
-# echo "Weight shares receiver starts"
-# $build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver.txt &
-# pid2=$!
+echo "Weight shares receiver starts"
+$build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver.txt &
+pid2=$!
 
 
-# #########################Weights Provider ############################################################################################
-# echo "Weight Provider starts"
-# $build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
-# pid3=$!
+#########################Weights Provider ############################################################################################
+echo "Weight Provider starts"
+$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
+pid3=$!
 
-# wait $pid3
-# wait $pid2 
+wait $pid3
+wait $pid2 
 echo "Weight shares received"
 
 #########################Image Share Receiver ############################################################################################

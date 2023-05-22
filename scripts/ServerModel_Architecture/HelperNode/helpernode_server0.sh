@@ -191,7 +191,7 @@ awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0
 sort -r -g AverageMemoryDetails0 | head  -1 >> AverageMemory0
 #  > AverageMemoryDetails0 #clearing the contents of the file
 
-echo -e "\nInferencing Finished"
+echo -e "Inferencing Finished"
 
 Mem=`cat AverageMemory0`
 Time=`cat AverageTime0`

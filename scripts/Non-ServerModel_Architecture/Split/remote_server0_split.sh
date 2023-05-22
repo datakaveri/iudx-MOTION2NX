@@ -109,10 +109,10 @@ if [ -f AverageTime0 ]; then
 fi
 
 #########################Weights Share Receiver ############################################################################################
-# echo "Weight shares receiver starts"
-# $build_path/bin/Weights_Share_Receiver_remote --my-id 0 --port $cs0_port_model_receiver --file-names $model_config --current-path $build_path > $debug_0/Weights_Share_Receiver.txt &
-# pid2=$!
-# wait $pid2
+echo "Weight shares receiver starts"
+$build_path/bin/Weights_Share_Receiver_remote --my-id 0 --port $cs0_port_model_receiver --file-names $model_config --current-path $build_path > $debug_0/Weights_Share_Receiver.txt &
+pid2=$!
+wait $pid2
 echo "Weight shares received"
 
 #########################Image Share Receiver ############################################################################################
