@@ -219,11 +219,11 @@ void image_shares(Options* options, std::string p) {
   std::uint64_t rows = read_file(temps);
   options->image_file.row = rows;
   // options->image_file.row = options->row_end-options->row_start+1;
-  // std::cout << "Actual rows:" << rows << " ";
+  std::cout << "Actual rows:" << rows << " ";
   std::uint64_t cols = read_file(temps);
   options->image_file.col = cols;
   // options->image_file.col = 1;
-  // std::cout << "Actual columns:" << cols << "\n";
+  std::cout << "Actual columns:" << cols << "\n";
 
   // ////////////////////////////Reading from specific rows////////////////////
   //    // t1 is the path of the file that is to be read
@@ -363,15 +363,14 @@ void file_read(Options* options) {
   // if layer_id=1 then read filename inside server
   // else read file_config_input (id is appended)
   if (options->layer_id == 1) {
-    std::cout << "hello\n";
+    // std::cout << "hello\n";
     t1 = path + "/server" + std::to_string(options->my_id) + "/Image_shares/" +
          options->imageprovider;
   } else if (options->layer_id > 1) {
-    t1 = path + "/" + options->imageprovider + std::to_string(options->my_id);
+    t1 = path + "/server" + std::to_string(options->my_id) + "/" + options->imageprovider + "_" + std::to_string(options->my_id);
   }
 
   std::string t2 = path + "/" + options->modelpath;
-  std::cout << "t2:" << t2 << "\n";
 
   std::ifstream file1, file2;
 
@@ -380,14 +379,21 @@ void file_read(Options* options) {
   if (options->layer_id > 1) {
     file1.open(t1);
     file2.open(t2);
-    if (file2 && file1) {
-      std::cout << "File found\n";
+    std::cout << "\nt1: " << t1 << std::endl;
+    std::cout << "t2: " << t2 << std::endl;
+    if(file1) {
+      std::cout << "File 1 found\n";
+      image_shares(options, t1);
+    }
+    else {
+      std::cout << "File 1 not found\n";
+    }
 
-      i = read_filepath(file1, 0);
-      std::cout << "i:" << i << "\n";
-      image_shares(options, i);
-    } else {
-      std::cout << "File not found\n";
+    if(file2) {
+      std::cout << "File 2 found\n";  
+    }
+    else {
+      std::cout << "File 2 not found\n";
     }
   }  // else open only file_config_model and
      // send filepath of ip directly to image_shares directly w/o going into read_filepath
@@ -524,7 +530,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << "\n Either row start or row end is not a feasible number.\n";
     return std::nullopt;
   }
-  if ((options.row_end > 256)) {
+  if ((options.row_end > 784)) {
     std::cerr << "\n Row end is not a feasible number it should be less than 784.\n";
     return std::nullopt;
   }
@@ -679,7 +685,6 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
 
 int main(int argc, char* argv[]) {
   // testMemoryOccupied();
-  std::cout << "Inside main";
   bool WriteToFiles = 1;
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
