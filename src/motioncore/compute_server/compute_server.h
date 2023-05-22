@@ -23,6 +23,6 @@ std::tuple<int, std::size_t, std::pair<std::vector<Shares>, std::vector<int>>>
 std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>>
     get_provider_mat_mul_const_data(int port_number);
 std::tuple<int, std::size_t,
-           std::pair<std::vector<std::vector<Shares>>, std::vector<std::vector<int>>>>
+           std::pair<std::vector<std::vector<Shares>>, std::vector<std::pair<int, int>>>>
     get_provider_total_data(int port_number);
 }  // namespace COMPUTE_SERVER
