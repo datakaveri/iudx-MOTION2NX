@@ -103,7 +103,7 @@ fi
 
 #########################Weights Share Receiver ############################################################################################
 echo "Weight shares Receiver starts"
-$build_path/bin/weight_share_receiver_genr --my-id 0 --port $cs0_port_data_receiver --file-names $model_config --current-path $build_path >> $debug_0/Weights_Share_Receiver0.txt &
+$build_path/bin/weight_share_receiver_genr --my-id 0 --port $cs0_port_data_receiver --current-path $build_path >> $debug_0/Weights_Share_Receiver0.txt &
 pid2=$!
 wait $pid2
 echo "Weight shares received"
@@ -130,7 +130,7 @@ echo "Inferencing task of the image shared starts"
 
 layer_id=1
 
-i=(512 256 128)
+i=(256)
 for rows in "${i[@]}"
 
 do
@@ -219,74 +219,10 @@ echo "Image Provider listening for the inferencing result"
 
 ####################### Next layer, layer 2, inputs for layer 2 ###################################################################################################
 
-# echo "Number of splits for layer $layer_id matrix multiplication - $splits"
-
-# # head -1 $build_path/server0/outputshare_0 
-
-# x=$((256/splits)) # make changes here, have to make it dynamic depending on how many layers have to be split
-
-# for(( m = 1; m <= $splits; ++m)) 
-#    do 
-
-# ############################Inputs for inferencing tasks ######################################################################################
-    
-# 	let l=$((m-1)) 
-# 	let a=$((l*x+1)) 
-# 	let b=$((m*x)) 
-# 	let r=$((l*x))
-#     ####################################### Matrix multiplication layer ###########################################################################
-
-#     $build_path/bin/tensor_gt_mul_split --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path > $debug_0/tensor_gt_mul0_layer${layer_id}_split.txt &
-#     pid1=$!
-   
-#     wait $pid1 
-#     echo "Layer $layer_id, split $m: Matrix multiplication and addition is done."
-#     if [ $m -eq 1 ];then
-#       touch finaloutput_0
-#       printf "$x 1\n" >> finaloutput_0
-#       echo -e "$x 1\n"
-#       $build_path/bin/appendfile 0
-#       pid1=$!
-#       wait $pid1 
-      
-#     else 
-      
-#       $build_path/bin/appendfile 0
-#       pid1=$!
-#       wait $pid1 
-#     fi
-
-#    head -1 $build_path/finaloutput_0
-
-# 	sed -i "1s/${r} 1/${b} 1/" finaloutput_0
-#    echo -e "$m: $r 1\t$b 1"
-#    head -1 $build_path/finaloutput_0
-
-# done
-
-# cp finaloutput_0  $build_path/server0/outputshare_0 
-
-# head -1 $build_path/server0/outputshare_0 
-
-# ####################################### ReLu layer ####################################################################################
-# input_config="outputshare"
-
-# $build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu0_layer${layer_id}.txt &
-# pid1=$!
-
-# wait $pid1 
-
-# echo "Layer $layer_id: ReLU is done"
-
-# head -1 $build_path/server0/outputshare_0 
-
-# ####################### Next layer, layer 2, inputs for layer 2 ###################################################################################################
-# ((layer_id++))
-
 ####################################### Matrix multiplication layer ###########################################################################
 input_config="outputshare"
 
-for((; layer_id<5; layer_id++))
+for((; layer_id<2; layer_id++))
 do
 
 $build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/tensor_gt_mul0_layer${layer_id}.txt &
