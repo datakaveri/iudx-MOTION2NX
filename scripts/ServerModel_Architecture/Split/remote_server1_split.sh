@@ -197,7 +197,7 @@ wait
   sort -r -g AverageMemoryDetails1 | head  -1 >> AverageMemory1
 #  > AverageMemoryDetails1 #clearing the contents of the file
 
-echo -e "\nInferencing Finished"
+echo -e "Inferencing Finished"
 
 Mem=`cat AverageMemory1`
 Time=`cat AverageTime1`

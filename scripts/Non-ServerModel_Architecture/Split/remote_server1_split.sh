@@ -115,7 +115,7 @@ echo "Weight shares received"
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_1/Image_Share_Receiver.txt &
+$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver.txt &
 pid2=$!
 
 wait $pid2
@@ -128,7 +128,7 @@ echo "Image shares received"
 
 ########################Inferencing task starts ###############################################################################################
 
-#  echo "image_ids X"$image_id >> MemoryDetails1 
+#  echo "image_ids X"$image_id > MemoryDetails1 
 echo "Inferencing task of the image shared starts"
 
 layer_id=1
@@ -253,7 +253,7 @@ echo "Layer $layer_id: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
 
-$build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
+$build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider.txt &
 pid4=$!
 
 wait $pid4 

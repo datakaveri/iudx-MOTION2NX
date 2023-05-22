@@ -265,8 +265,8 @@ void print_stats(const Options& options,
 
 auto create_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backend) {
   // retrieve the gate factories for the chosen protocols
-  auto& gate_factory_arith = backend.get_gate_factory(options.arithmetic_protocol);  // gmw
-  auto& gate_factory_bool = backend.get_gate_factory(options.boolean_protocol);      // beavy
+  auto& gate_factory_arith = backend.get_gate_factory(options.arithmetic_protocol);//gmw
+  auto& gate_factory_bool = backend.get_gate_factory(options.boolean_protocol);// beavy
 
   // share the inputs using the arithmetic protocol
   // NB: the inputs need to always be specified in the same order:
@@ -292,8 +292,10 @@ auto create_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backen
   // load a boolean circuit for to compute 'greater-than'
   MOTION::CircuitLoader circuit_loader;
 
-  auto& gt_circuit = circuit_loader.load_circuit(fmt::format("int_mul{}_{}.bristol", 64, "depth"),
-                                                 MOTION::CircuitFormat::Bristol);
+
+  auto& gt_circuit =
+      circuit_loader.load_circuit(fmt::format("int_mul{}_{}.bristol", 64, "depth"),
+                   MOTION::CircuitFormat::Bristol);
   // apply the circuit to the Boolean sahres
   auto output = backend.make_circuit(gt_circuit, input_0_bool, input_1_bool);
 
@@ -304,7 +306,7 @@ auto create_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backen
   return std::make_pair(std::move(input_promise), std::move(output_future));
 }
 
-void run_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backend) {
+void run_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backend){
   // build the circuit and gets promise/future for the input/output
   auto [input_promise, output_future] = create_mult_circuit(options, backend);
 
@@ -319,13 +321,14 @@ void run_mult_circuit(const Options& options, MOTION::TwoPartyBackend& backend) 
   backend.run();
 
   // retrieve the result from the future
-  auto bvs = output_future.get();
+  auto bvs = output_future.get(); 
   auto mult_result = 0;
 
   // Conversion of result to readable arithmetic format
-  for (int i = 63; i >= 0; i--) {
+  for(int i=63;i>=0;i--)
+  {
     mult_result = mult_result + bvs.at(i).Get(0);
-    // left shift is easier to implement
+    // left shift is easier to implement 
     mult_result = mult_result << 1;
   }
   mult_result = mult_result >> 1;
@@ -351,7 +354,7 @@ int main(int argc, char* argv[]) {
     for (std::size_t i = 0; i < options->num_repetitions; ++i) {
       MOTION::TwoPartyBackend backend(*comm_layer, options->threads,
                                       options->sync_between_setup_and_online, logger);
-      // run_circuit(*options, backend);
+      //run_circuit(*options, backend);
 
       run_mult_circuit(*options, backend);
 

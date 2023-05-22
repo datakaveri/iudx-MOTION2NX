@@ -193,7 +193,7 @@ void adduint64(std::uint64_t num, std::vector<std::uint8_t>& message) {
 }
 
 template <typename E>
-std::uint64_t blah(E &engine)
+std::uint64_t RandomNumGenerator(E &engine)
 {
      std::uniform_int_distribution<unsigned long long> dis(
          std::numeric_limits<std::uint64_t>::min(),
@@ -294,7 +294,7 @@ void operations()
     { 
       std::random_device rd;
       std::mt19937 gen(rd());
-      auto temp=blah(gen);
+      auto temp=RandomNumGenerator(gen);
       randomnum[i]=temp;
     }
 

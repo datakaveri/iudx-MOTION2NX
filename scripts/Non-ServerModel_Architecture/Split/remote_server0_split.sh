@@ -116,12 +116,12 @@ echo "Weight shares received"
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_0/Image_Share_Receiver0.txt &
+$build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_0/Image_Share_Receiver.txt &
 pid1=$!
 
 #########################Image Share Provider ############################################################################################
 echo "Image Provider starts"
-$build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path >> $debug_0/image_provider.txt &
+$build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path > $debug_0/image_provider.txt &
 pid3=$!
 
 wait $pid3 $pid1
@@ -265,7 +265,7 @@ wait $pid1
 echo "Layer $layer_id: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
-$build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider0.txt &
+$build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider.txt &
 pid3=$!
 
 echo "Output shares of server 0 sent to the image provider"
