@@ -109,12 +109,12 @@ pid2=$!
 
 #########################Weights Provider ############################################################################################
 echo "Weight Provider starts"
-$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
+$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
 pid3=$!
 
 wait $pid3
 wait $pid2
-echo "Weight Shares received"
+echo "Weight shares received"
 
 # #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
@@ -218,4 +218,3 @@ echo "Time taken by inferencing task:" $Time "ms"
 echo "Elapsed Time: $(($end-$start)) seconds"
 
 cd $scripts_path
-
