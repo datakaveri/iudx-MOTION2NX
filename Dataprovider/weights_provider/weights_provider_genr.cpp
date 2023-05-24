@@ -177,7 +177,10 @@ class Matrix {
 
     std::ifstream indata;
     indata.open(fullFileName);
-
+    if(!indata) {
+      // std::cout << "Error: There was an issue in opening the weights and bias csv file\n";
+      throw std::ifstream::failure("Error opening the weights and bias csv file: " + fullFileName);      
+    }
     std::string line;
     while (std::getline(indata, line)) {
       std::stringstream lineStream(line);
@@ -187,6 +190,7 @@ class Matrix {
         data.push_back(stold(cell));
       }
     }
+    
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     cout << "Duration for reading from the file:" << duration.count() << "msec" << endl;
@@ -235,7 +239,7 @@ class Matrix {
 std::vector<Matrix> read_Data(Options& options) {
   std::ifstream jsonFile(options.config_file);
 
-  std::vector<Matrix> allData;
+  std::vector<Matrix> allData, nullData;
   fs::path data_dir(options.fullfilepath);
 
   if (jsonFile.is_open()){   //checking whether the file is open
@@ -253,7 +257,7 @@ std::vector<Matrix> read_Data(Options& options) {
         if (json_elem.first == "no_of_layers") {
           options.numberOfLayers = stoi(json_elem.second.data());
         }
-        else {
+        else if(json_elem.first == "Layers") {
           for (auto &layer_id : json_elem.second) {
             curr_layer_id++;
             for (auto &data : layer_id.second) {
@@ -266,36 +270,48 @@ std::vector<Matrix> read_Data(Options& options) {
                 else if (property.first == "columns") {
                   num_columns = stoi(property.second.data());
                 }
-                else {
+                else if (property.first == "file_name") {
                   std::string file_name = property.second.data();
                   fs::path data_file_name(file_name);
                   data_file_path = data_dir/data_file_name;
+                }
+                else {
+                  throw std::runtime_error("There is an error in the field names given inside the json file.");
                 }
               }
 
               // std::cout << curr_layer_id << " " << options.numberOfLayers << " " << num_rows << " " << num_columns << " " << data_file_path << " " << std::endl;
               
               Matrix vector_data = Matrix(num_rows, num_columns, data_file_path, options.fractional_bits, options);
-              vector_data.readMatrixCSV();
+              try {
+                vector_data.readMatrixCSV();                
+              }
+              catch(const std::ifstream::failure& e) {
+                std::cout << "Error: " << e.what() << std::endl;
+                return nullData;
+              }
               vector_data.generateShares();
               allData.push_back(vector_data);
             }
             if(curr_layer_id > options.numberOfLayers) {
-              cout << "Error: Number of layers in model config exceed number of layers stated." << std::endl;
-              EXIT_FAILURE;
+              // cout << "Error: Number of layers in model config exceed number of layers stated." << std::endl;
+              throw std::runtime_error("Number of layers in model config exceed number of layers stated.");
             }                  
           }
         }
+        else {
+          throw std::runtime_error("There is an error in the field names given inside the json file.");
+        }
       }
       if(curr_layer_id < options.numberOfLayers) {
-        cout << "Error: Details of the layers provided are leser than number of layers. Please provide all the details of all the layers." << std::endl;
-        EXIT_FAILURE; 
+        // cout << "Error: Details of the layers provided are leser than number of layers. Please provide all the details of all the layers." << std::endl;
+        throw std::runtime_error("Details of the layers provided are leser than the number of layers. Please provide all the details of all the layers."); 
       }
       jsonFile.close();   //close the file object.
   }
   else {
-    std::cout << "Error in opening file" << std::endl;
-    EXIT_FAILURE;
+    // std::cout << "Error in opening file" << std::endl;
+    throw std::ifstream::failure("Error in opening json config file");
   }
   return allData;
 }
@@ -322,8 +338,6 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
     socket.connect(tcp::endpoint(boost::asio::ip::address::from_string(ip), port));
 
     /////////Sending number of layers to be expected
-    // int numberOfLayers = 5;
-    // int numberOfVectors = 2 * numberLayers;
     boost::system::error_code error_layer;
     boost::asio::write(socket, boost::asio::buffer(&options.numberOfLayers, sizeof(options.numberOfLayers)),
                        error_layer);
@@ -458,11 +472,22 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
   
-  auto model_share_data = read_Data(*options);
-
-  send_shares_to_servers(model_share_data, *options);
+  try {
+    auto model_share_data = read_Data(*options);
+    if(model_share_data.size() == 0) {
+      std::cout << "Error: There was an error in reading the data\n";
+      return EXIT_FAILURE;
+    }
+    send_shares_to_servers(model_share_data, *options);
+  }
+  catch(std::exception const& e) {
+    std::cout << "Runtime Error: " << e.what() << std::endl;
+  }
+  catch(const std::ifstream::failure& e) {
+    std::cout << "Error in file: " << e.what() <<std::endl;
+  }
 
   send_confirmation(*options);
 
-  return 0;
+  return EXIT_SUCCESS;
 }
