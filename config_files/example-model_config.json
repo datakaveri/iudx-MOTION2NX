@@ -1,0 +1,21 @@
+{
+    "no_of_layers" : 5,
+    "Layers" : {
+        "1" : { 
+            "Weights" : {"rows" : 512, "columns" : 784, "file_name" : "5L_W1.csv"}, 
+            "Bias" : {"rows" : 512, "columns" : 1, "file_name" : "5L_B1.csv"}},
+        "2" : { 
+            "Weights" : {"rows" : 256, "columns" : 512, "file_name" : "5L_W2.csv"}, 
+            "Bias" : {"rows" : 256, "columns" : 1, "file_name" : "5L_B2.csv"}},
+        "3" : {
+            "Weights" : {"rows" : 128, "columns" : 256, "file_name" : "5L_W3.csv"}, 
+            "Bias" : {"rows" : 128, "columns" : 1, "file_name" : "5L_B3.csv"}},
+        "4" : { 
+            "Weights" : {"rows" : 64, "columns" : 128, "file_name" : "5L_W4.csv"}, 
+            "Bias" : {"rows" : 64, "columns" : 1, "file_name" : "5L_B4.csv"}},
+        "5" : { 
+            "Weights" : {"rows" : 10, "columns" : 64, "file_name" : "5L_W5.csv"}, 
+            "Bias" : {"rows" : 10, "columns" : 1, "file_name" : "5L_B5.csv"}}
+    }
+    
+}
