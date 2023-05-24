@@ -162,7 +162,7 @@ void retrieve_shares(Options& options) {
   ////////////////////////////////////////////////////////////
 
   auto [numberOfLayers, frac, data_and_dims] =
-      COMPUTE_SERVER::get_provider_total_data(options.port);
+      COMPUTE_SERVER::get_provider_total_data_genr(options.port);
   options.number_of_layers = numberOfLayers;
 
   generate_filepaths(options);

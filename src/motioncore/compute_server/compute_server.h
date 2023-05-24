@@ -20,9 +20,12 @@ std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>> get_pro
     int port_number);
 std::tuple<int, std::size_t, std::pair<std::vector<Shares>, std::vector<int>>>
     get_provider_mat_mul_data_new(int port_number);
+std::tuple<int, std::size_t,
+           std::pair<std::vector<std::vector<Shares>>, std::vector<std::vector<int>>>>
+    get_provider_total_data(int port_number);
 std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>>
     get_provider_mat_mul_const_data(int port_number);
 std::tuple<int, std::size_t,
            std::pair<std::vector<std::vector<Shares>>, std::vector<std::pair<int, int>>>>
-    get_provider_total_data(int port_number);
+    get_provider_total_data_genr(int port_number);
 }  // namespace COMPUTE_SERVER
