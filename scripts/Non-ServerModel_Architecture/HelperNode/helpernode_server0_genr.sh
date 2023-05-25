@@ -112,7 +112,7 @@ $build_path/bin/weight_share_receiver_genr --my-id 0 --port $cs0_port_model_rece
 pid2=$!
 pid2=$!
 wait $pid2
-echo "Weight Shares received"
+echo "Weight shares received"
 
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"

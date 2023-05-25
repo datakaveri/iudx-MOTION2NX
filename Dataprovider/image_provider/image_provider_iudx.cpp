@@ -326,7 +326,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
       }
     data = boost::asio::buffer_cast<const char*>(receive_buffer.data());
-    std::cout << "Response received from server: " << data << std::endl;
+    std::cout << "Received response: " << data << std::endl;
     // --------------------------------- Sending shares to compute_server----------------------------------------------------
     try
     {       
