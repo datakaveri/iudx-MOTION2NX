@@ -1,6 +1,6 @@
 {
     "no_of_layers" : 5,
-    "layers" : {
+    "Layers" : {
         "1" : { 
             "Weights" : {"rows" : 512, "columns" : 784, "file_name" : "5L_W1.csv"}, 
             "Bias" : {"rows" : 512, "columns" : 1, "file_name" : "5L_B1.csv"}},
