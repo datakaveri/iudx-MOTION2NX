@@ -215,9 +215,9 @@ int main(int argc, char* argv[]) {
 
   retrieve_shares(*options);
 
-  if (options->my_id == 0) {
-    get_confirmation(*options);
-  }
+  // if (options->my_id == 0) {
+  //   get_confirmation(*options);
+  // }
 
   try {
     auto logger = std::make_shared<MOTION::Logger>(options->my_id,
