@@ -381,7 +381,7 @@ std::vector<Matrix> read_Data(Options& options) {
 void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& options) {
   std::cout << "Sending shares to the compute servers." << std::endl;
 
-  for(int id = 0; id < 2; ++id) {
+  for(int i = 1; i >= 0; --i) {
     boost::asio::io_service io_service;
 
     // socket creation
@@ -391,7 +391,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
     std::cout << "Fractional bits:" << options.fractional_bits << "\n";
     auto port = options.cs0_port;
     auto ip = options.cs0_ip;
-    if (id) {
+    if (i) {
       port = options.cs1_port;
       ip = options.cs1_ip;
     }
@@ -402,7 +402,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
     }
     else{
         socket.close();
-        throw std::runtime_error("Connection could not established with the weights share receiver in server "+ std::to_string(id) +"\n");
+        throw std::runtime_error("Connection could not established with the weights share receiver in server "+ std::to_string(i) +"\n");
     }
     boost::system::error_code send_error, read_error;
     //------------------------ Sending number of layers to be expected -----------------------------------
@@ -481,7 +481,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
       
       // -----Sending share data to compute_server------
       auto share_data = data_array.getData(0);
-      if (id) {
+      if (i) {
         share_data = data_array.getData(1);
       }
       // std::cout << "inside main size of cs 0 data:" << sizeof(cs0_data)<< "\n";
@@ -520,7 +520,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
       auto duration = duration_cast<milliseconds>(stop - start);
       std::cout << "Time taken to send the shares:" << duration.count() << "msec" << std::endl;
     }
-    std::cout << "Data sent to server " << id << std::endl;
+    std::cout << "Data sent to server " << i << std::endl;
     socket.close();
   }
 }
@@ -576,7 +576,7 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
     send_shares_to_servers(model_share_data, *options);
-    send_confirmation(*options);
+    // send_confirmation(*options);
   }
   catch(const std::ifstream::failure& e) {
     std::cerr << "Error in file: " << e.what() <<std::endl;

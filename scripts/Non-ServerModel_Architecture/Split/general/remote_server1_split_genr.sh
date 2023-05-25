@@ -140,8 +140,8 @@ input_config=" "
       input_config="remote_image_shares"
    fi
 
-rows=(512 256 128 64)
-splits=(16 8 4 2)
+rows=(512 256)
+splits=(16 8)
 
 for i in "${!rows[@]}"
 

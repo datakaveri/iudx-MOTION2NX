@@ -3,12 +3,7 @@
 ./bin/weight_share_receiver_genr --my-id 0 --port 1234 --current-path ${BASE_DIR}/build_debwithrelinfo_gcc
 
 ./bin/weight_share_receiver_genr --my-id 1 --port 1235 --current-path ${BASE_DIR}/build_debwithrelinfo_gcc
-
 */
-/* This code generates shares files for w1,b1,w2,b2.
-
-*/
-
 // MIT License
 //
 // Copyright (c) 2021 Lennart Braun
@@ -226,9 +221,9 @@ int main(int argc, char* argv[]) {
   }
   try{
       retrieve_shares(*options);
-      if (options->my_id == 0) {
-        get_confirmation(*options);
-      }
+      // if (options->my_id == 0) {
+      //   get_confirmation(*options);
+      // }
   }
   catch (const boost::system::system_error& error) {
     std::cerr << error.what();

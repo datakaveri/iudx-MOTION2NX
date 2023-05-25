@@ -640,10 +640,6 @@ get_provider_total_data_genr(int port_number) {
     std::cout << "Finished reading input W1\n";
   }
   socket_.close();
-  // std::cout << "Dims 1:" << dims[0][0] << " " << dims[0][1] << endl;
-  // std::cout << "Dims 2:" << dims[1][0] << " " << dims[1][1] << endl;
-  // std::cout << "Dims 3:" << dims[2][0] << " " << dims[2][1] << endl;
-  // std::cout << "Dims 4:" << dims[3][0] << " " << dims[3][1] << endl;
   int i = 1;
   for(auto iter : dims_of_all_shares) {
     cout << "Dims " << i << ": " << iter.first << " " << iter.second << endl;
