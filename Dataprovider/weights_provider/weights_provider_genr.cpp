@@ -319,7 +319,7 @@ std::vector<Matrix> read_Data(Options& options) {
 void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& options) {
   std::cout << "Sending shares to the compute servers." << std::endl;
 
-  for(int i = 0; i < 2; ++i) {
+  for(int i = 1; i >= 0; --i) {
     boost::asio::io_service io_service;
 
     // socket creation
@@ -440,11 +440,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
 
 void send_confirmation(const Options& options) {
   int validation_bit = 1;
-
-  // for (int i = 0; i < 2; i++) {
-
-  // }
-  // std::cin.ignore();
+  
   sleep(2);
   cout << "\nStart of send to compute server\n";
 
@@ -487,7 +483,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Error in file: " << e.what() <<std::endl;
   }
 
-  send_confirmation(*options);
+  // send_confirmation(*options);
 
   return EXIT_SUCCESS;
 }
