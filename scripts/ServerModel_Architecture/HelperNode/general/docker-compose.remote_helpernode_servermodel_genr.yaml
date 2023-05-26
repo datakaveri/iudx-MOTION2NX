@@ -11,8 +11,8 @@ services:
       - type: volume
         source: smpc-server0-volume
         target: /usr/share/app/logs
-      - ../../../config_files:/usr/share/app/config_files:ro
-      - ../../../scripts:/usr/share/app/scripts:rw
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts:/usr/share/app/scripts:rw
 
     restart:
       on-failure
@@ -41,8 +41,8 @@ services:
   smpc-server1:
     image: ghcr.io/datakaveri/motion2nx:local
     volumes:
-      - ../../../config_files:/usr/share/app/config_files:ro
-      - ../../../scripts:/usr/share/app/scripts:rw
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts:/usr/share/app/scripts:rw
       - type: volume
         source: smpc-server1-volume
         target: /usr/share/app/logs
@@ -72,8 +72,8 @@ services:
   smpc-server2:
     image: ghcr.io/datakaveri/motion2nx:local
     volumes:
-      - ../../../config_files:/usr/share/app/config_files:ro
-      - ../../../scripts:/usr/share/app/scripts:rw
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts:/usr/share/app/scripts:rw
       - type: volume
         source: smpc-server2-volume
         target: /usr/share/app/logs
