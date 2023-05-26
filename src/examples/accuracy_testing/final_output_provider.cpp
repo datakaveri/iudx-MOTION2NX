@@ -268,7 +268,7 @@ int main(int argc, char* argv[]) {
       }
     else
       {
-        std::cerr<<"Connection could not established with the receiver"<<std::endl;
+        std::cerr<<"Connection could not be established with the receiver"<<std::endl;
         socket.close();
         return EXIT_FAILURE;
       }
