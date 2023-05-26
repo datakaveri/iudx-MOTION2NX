@@ -83,11 +83,8 @@ helpernode_port_inference=`echo $smpc_config | jq -r .helpernode_port_inference`
 relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
 relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 
-
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
-# Index of the image for which inferencing task is run
-image_id=`echo $smpc_config | jq -r .image_id`
 
 # echo all input variables
 # echo "cs0_host $cs0_host"

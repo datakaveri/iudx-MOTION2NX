@@ -83,9 +83,6 @@ relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
-# Index of the image for which inferencing task is run
-image_id=`echo $smpc_config | jq -r .image_id`
-
 # echo all input variables
 #echo "cs0_host $cs0_host"
 #echo "cs1_host $cs1_host"
@@ -116,7 +113,7 @@ $build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver -
 pid2=$!
 
 wait $pid1 $pid2
-echo "Weight Shares received"
+echo "Weight shares received"
 echo "Image shares received"
 ########################Share generators end ############################################################################################
 
@@ -146,7 +143,6 @@ fi
 $build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
 
 pid1=$!
-
 wait $pid1
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
@@ -158,25 +154,12 @@ pid1=$!
 wait $pid1
 
 echo "Layer $layer_id: ReLU is done"
-
-#######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
-# #Updating the config file for layers 2 and above.
-
 done
-# #######################################Output share receivers ###########################################################################
-$build_path/bin/output_shares_receiver --my-id 0 --listening-port $cs0_port_cs0_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver0.txt &
-pid5=$!
 
-$build_path/bin/output_shares_receiver --my-id 1 --listening-port $cs0_port_cs1_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver1.txt &
-pid6=$!
-
-echo "Image Provider is listening for the inferencing result"
-
-#######################################Matrix multiplication layer 2 ###########################################################################
+#######################################Matrix multiplication layer 2....n ###########################################################################
 $build_path/bin/server0 --WB_file file_config_model0 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference  --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_0/server0_layer${layer_id}.txt &
 
 pid1=$!
-
 wait $pid1
 
 echo "Layer $layer_id: Matrix multiplication and addition is done"
@@ -184,7 +167,6 @@ echo "Layer $layer_id: Matrix multiplication and addition is done"
 ####################################### Argmax  ###########################################################################
 $build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path > $debug_0/argmax0_layer2.txt &
 pid1=$!
-
 wait $pid1
 end=$(date +%s)
 
@@ -195,16 +177,7 @@ $build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_
 pid3=$!
 
 echo "Output shares of server 0 sent to the Image provider"
-
-
-wait $pid5 $pid6
-
-echo "Output shares of server 0 received at the Image provider"
-echo "Output shares of server 1 received at the Image provider"
-
-############################            Reconstruction       ##################################################################################
-echo "Reconstruction Starts"
-$build_path/bin/Reconstruct --current-path $image_provider_path
+wait $pid3
 
 wait
 
@@ -230,4 +203,3 @@ echo "Time taken by inferencing task:" $Time "ms"
 echo "Elapsed Time: $(($end-$start)) seconds"
 
 cd $scripts_path
-
