@@ -154,6 +154,7 @@ pid1=$!
 wait $pid1
 
 echo "Layer $layer_id: ReLU is done"
+
 done
 
 #######################################Matrix multiplication layer 2....n ###########################################################################

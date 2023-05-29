@@ -45,9 +45,6 @@ relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
-#number of splits
-# splits=`echo "$smpc_config" | jq -r .splits`
-
 # echo all input variables
 #echo "cs0_host $cs0_host"
 #echo "cs1_host $cs1_host"
@@ -123,9 +120,6 @@ wait $pid2
 echo "Image shares received"
 #########################Share generators end ############################################################################################
 
-
-
-
 ########################Inferencing task starts ###############################################################################################
 
 #  echo "image_ids X"$image_id > MemoryDetails1 
@@ -140,122 +134,105 @@ input_config=" "
       input_config="remote_image_shares"
    fi
 
-rows=(512 256)
-splits=(16 8)
+for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64'); do
+   rows=$(echo ${split_layer} | base64 --decode | jq -r '.rows')
+   num_splits=$(echo ${split_layer} | base64 --decode | jq -r '.splits')
 
-for i in "${!rows[@]}"
+   # echo "image_id $image_id" >> MemoryDetails0
+   echo "Number of splits for layer $layer_id matrix multiplication: $rows::$num_splits"
 
-do
+   x=$(($rows/$num_splits))
+   # echo "split value: $x"
 
-echo "Number of splits for layer $layer_id matrix multiplication: ${splits[i]}"
+   start=$(date +%s)
+   for((m=1; m <= $num_splits; m++ )); do 
 
-x=$((${rows[i]}/${splits[i]}))
-echo "split value: $x"
+      if [ $layer_id -gt 1 ]; then
+         input_config="mult_output"
+      fi
 
-start=$(date +%s)
-############################Inputs for inferencing tasks #######################################################################################
- for((m = 1; m <= ${splits[i]}; m++ )) 
-  do 
-   
-
-   if [ $layer_id -gt 1 ];
-   then
-    input_config="mult_output"
-   fi
-
-   let l=$((m-1)) 
-   let a=$(((m-1)*x+1)) 
-   let b=$((m*x)) 
-   let r=$((l*x)) 
+      let l=$((m-1)) 
+      let a=$(((m-1)*x+1)) 
+      let b=$((m*x)) 
+      let r=$((l*x)) 
 
 #######################################Matrix multiplication layer 1 ###########################################################################
 
-   #Layer 1   
-   $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer${layer_id}_split.txt &
-   pid1=$!
-   wait $pid1  
-   echo "Layer $layer_id, split $m: Matrix multiplication and addition is done"
+      #Layer 1   
+      $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $num_splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer${layer_id}_split.txt &
+      pid1=$!
+      wait $pid1  
+      echo "Layer $layer_id, split $m: Matrix multiplication and addition is done"
    
-   if [ $m -eq 1 ];then
+      if [ $m -eq 1 ]; then
+         touch finaloutput_1
+         printf "$x 1\n" >> finaloutput_1
 
-      touch finaloutput_1
-
-      printf "$x 1\n" >> finaloutput_1
-
-      $build_path/bin/appendfile 1
-      pid1=$!
-      wait $pid1 
-      
+         $build_path/bin/appendfile 1
+         pid1=$!
+         wait $pid1 
       else 
-      
-      $build_path/bin/appendfile 1
-      pid1=$!
-      wait $pid1 
-    fi
+         $build_path/bin/appendfile 1
+         pid1=$!
+         wait $pid1 
+      fi
 
 		sed -i "1s/${r} 1/${b} 1/" finaloutput_1
 
-done
+   done
 
-cp finaloutput_1  $build_path/server1/outputshare_1
-
+   cp finaloutput_1  $build_path/server1/outputshare_1
 
 #######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer${layer_id}.txt &
-pid1=$!
+   $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer${layer_id}.txt &
+   pid1=$!
 
-wait $pid1 
-echo "Layer $layer_id: ReLU is done"
+   wait $pid1 
+   echo "Layer $layer_id: ReLU is done"
 
-if [ -f finaloutput_1 ]; then
-   rm finaloutput_1
-   # echo "final output 1 is removed"
+   if [ -f finaloutput_1 ]; then
+      rm finaloutput_1
+      # echo "final output 1 is removed"
+   fi
+
+   cp $build_path/server1/outputshare_1  $build_path/server1/mult_output_1
+
+   ((layer_id++))
+
+done
+
+####################################### Matrix multiplication layer ###########################################################################
+for((; layer_id<$number_of_layers; layer_id++)); do
+
+   if [ $layer_id -gt 1 ]; then
+      input_config="outputshare"
+   fi
+
+   $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
+   pid1=$!
+
+   wait $pid1 
+   echo "Layer $layer_id: Matrix multiplication and addition is done"
+
+####################################### ReLu layer 1 ####################################################################################
+   $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
+   pid1=$!
+
+   wait $pid1 
+   echo "Layer $layer_id: ReLU is done"
+
+done
+
+####################################### final Matrix multiplication layer ###########################################################################
+if [ $layer_id -gt 1 ]; then
+   input_config="outputshare"
 fi
 
-cp $build_path/server1/outputshare_1  $build_path/server1/mult_output_1
-
-((layer_id++))
-
-done
-
-if [ $layer_id -gt 1 ];
-   then
-    input_config="outputshare"
-   fi
-
-
-#######################################Matrix multiplication layer 2 ###########################################################################
-for((; layer_id<$number_of_layers; layer_id++))
-do
-
-if [ $layer_id -gt 1 ];
-   then
-    input_config="outputshare"
-   fi
-
 $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
 pid1=$!
 
 wait $pid1 
 echo "Layer $layer_id: Matrix multiplication and addition is done"
-
-#######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
-pid1=$!
-
-wait $pid1 
-echo "Layer $layer_id: ReLU is done"
-
-done
-
-#######################################Matrix multiplication layer 5 ###########################################################################
-
-$build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
-pid1=$!
-
-wait $pid1 
-echo "Layer $layer_id: Matrix multiplication and addition is done"
-
 
 ####################################### Argmax  ###########################################################################
 

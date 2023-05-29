@@ -23,5 +23,6 @@
       "number_of_layers": 5,
       "fractional_bits": 13,
       "image_id": 2,
-      "splits": 8
+      "splits": 8,
+      "split_layers_genr": [{"rows":512, "splits":16}, {"rows":256, "splits":8}]
 }

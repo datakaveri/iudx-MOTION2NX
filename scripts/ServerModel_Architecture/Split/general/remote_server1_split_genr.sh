@@ -10,19 +10,27 @@ smpc_config=`cat $smpc_config_path`
 # Do dns reolution or not 
 cs0_dns_resolve=`echo $smpc_config | jq -r .cs0_dns_resolve`
 cs1_dns_resolve=`echo $smpc_config | jq -r .cs1_dns_resolve`
+reverse_ssh_dns_resolve=`echo $smpc_config | jq -r .reverse_ssh_dns_resolve`
 
 # cs0_host is the ip/domain of server0, cs1_host is the ip/domain of server1
 cs0_host=`echo $smpc_config | jq -r .cs0_host`
 cs1_host=`echo $smpc_config | jq -r .cs1_host`
+reverse_ssh_host=`echo $smpc_config | jq -r .reverse_ssh_host`
+
 if [[ $cs0_dns_resolve == "true" ]];
 then 
 cs0_host=`dig +short $cs0_host | grep '^[.0-9]*$' | head -n 1`
 fi
+
 if [[ $cs1_dns_resolve == "true" ]];
 then 
 cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
+if [[ $reverse_ssh_dns_resolve == "true" ]];
+then 
+reverse_ssh_host=`dig +short $reverse_ssh_host | grep '^[.0-9]*$' | head -n 1`
+fi
 
 # Ports on which weights provider  receiver listens/talks
 cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_model_receiver`
@@ -100,26 +108,16 @@ fi
 #########################Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"
 $build_path/bin/weight_share_receiver_genr --my-id 1 --port $cs1_port_model_receiver --current-path $build_path >> $debug_1/Weights_Share_Receiver.txt &
-pid2=$!
-
-
-#########################Weights Provider ############################################################################################
-echo "Weight Provider starts"
-$build_path/bin/weights_provider_genr --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --fractional-bits $fractional_bits --filepath $model_provider_path --config-file-path $model_config >> $debug_1/weights_provider.txt &
-pid3=$!
-
-wait $pid3
-wait $pid2 
-echo "Weight shares received"
+pid1=$!
 
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
-
 $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver.txt &
 pid2=$!
 
-wait $pid2
+wait $pid1 $pid2
 
+echo "Weight shares received"
 echo "Image shares received"
 #########################Share generators end ############################################################################################
 
@@ -138,22 +136,18 @@ input_config=" "
       input_config="remote_image_shares"
    fi
 
-rows=(512 256)
-splits=(16 8)
+for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64'); do
+   rows=$(echo ${split_layer} | base64 --decode | jq -r '.rows')
+   num_splits=$(echo ${split_layer} | base64 --decode | jq -r '.splits')
 
-for i in "${!rows[@]}"
+# echo "image_id $image_id" >> MemoryDetails0
+   echo "Number of splits for layer $layer_id matrix multiplication: $rows::$num_splits"
 
-do
+   x=$(($rows/$num_splits))
+   # echo "split value: $x"
 
-echo "Number of splits for layer $layer_id matrix multiplication: ${splits[i]}"
-
-x=$((${rows[i]}/${splits[i]}))
-echo "split value: $x"
-
-start=$(date +%s)
-############################Inputs for inferencing tasks #######################################################################################
- for((m = 1; m <= ${splits[i]}; m++ )) 
-  do 
+   start=$(date +%s)
+   for(( m = 1; m <= $num_splits; m++ )); do
    
 
    if [ $layer_id -gt 1 ];
@@ -169,7 +163,7 @@ start=$(date +%s)
 #######################################Matrix multiplication layer 1 ###########################################################################
 
    #Layer 1   
-   $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer${layer_id}_split.txt &
+   $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $num_splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer${layer_id}_split.txt &
    pid1=$!
    wait $pid1  
    echo "Layer $layer_id, split $m: Matrix multiplication and addition is done"
@@ -268,7 +262,7 @@ echo "Layer $layer_id: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
 
-$build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider.txt &
+$build_path/bin/final_output_provider --my-id 1 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs1_output_receiver --config-input $image_share --current-path $build_path > $debug_1/final_output_provider.txt &
 pid4=$!
 
 wait $pid4 
