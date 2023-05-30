@@ -110,11 +110,9 @@ def process_img(img_name):
     to use the same 0-1 based range
     """
     flattened_img = img_.flatten() / 255.0
-    new_number = 99
 
     # Insert the new number at the top of the array
-    final_image = np.insert(flattened_img, 0, new_number, axis=0)
-    np.savetxt(os.path.join(img_dir, "images/X" + img_name[:-4] + ".csv"), final_image,delimiter=",")
+    np.savetxt(os.path.join(img_dir, "images/X" + img_name[:-4] + ".csv"), flattened_img, delimiter=",")
 
     return 1
 
