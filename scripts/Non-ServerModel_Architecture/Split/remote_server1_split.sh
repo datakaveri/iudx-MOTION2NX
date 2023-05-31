@@ -1,4 +1,15 @@
 #! /bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
+
+
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
@@ -97,33 +108,42 @@ fi
 #--------------------------------Weights Share Receiver ------------------------------------------------#
 echo "Weight shares receiver starts"
 $build_path/bin/Weights_Share_Receiver_remote --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver.txt &
-pid2=$!
+pid1=$!
 
 #----------------------------------------Weights Provider ------------------------------------------------#
-echo "Weight Provider starts"
+echo "Weight provider starts"
 $build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_1/weights_provider.txt &
-pid3=$!
+pid2=$!
 
-wait $pid3
-wait $pid2 
+wait $pid2
+weight_prov_status=$?
+wait $pid1 
+
+weight_recv_status=$?
+check_exit_statuses $weight_prov_status $weight_recv_status
+
 echo "Weight shares received"
-#----------------------------------------Image Share Receiver ------------------------------------------------#
+#----------------------------------------Image Share Receiver -------------------------------------------#
 echo "Image shares receiver starts"
 $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path >> $debug_1/Image_Share_Receiver.txt &
-pid2=$!
-wait $pid2
-echo "Image shares received"
-#--------------------------------Share generators end --------------------------------------------------------#
 
-#------------------------Inferencing task starts ----------------------------------------------------------------#
+pid1=$!
+wait $pid1
+
+check_exit_statuses $?
+
+echo "Image shares received"
+#--------------------------------Share generators end ----------------------------------------------------#
+
+#------------------------Inferencing task starts ---------------------------------------------------------#
 #  echo "image_ids X"$image_id >> MemoryDetails1 
 echo "Inferencing task of the image shared starts"
-echo "Number of splits for layer 1 matrix multiplication - $splits"
+echo "Number of splits for layer 1 matrix multiplication: $splits"
 x=$((256/splits))
 
 start=$(date +%s)
 #--------------------------------Inputs for inferencing tasks ------------------------------------------------#
- for  (( m = 1; m <= $splits; m++ )) 
+for  (( m = 1; m <= $splits; m++ )) 
   do 
    layer_id=1
    input_config=" "
@@ -142,35 +162,39 @@ start=$(date +%s)
    #Layer 1   
    $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path  > $debug_1/tensor_gt_mul_layer${layer_id}_split.txt &
    pid1=$!
-   wait $pid1  
+   wait $pid1 
+
+   check_exit_statuses $?
+
    echo "Layer ${layer_id}, split $m: Matrix multiplication and addition is done"
 
    if [ $m -eq 1 ];then
-
       touch finaloutput_1
       printf "$x 1\n" >> finaloutput_1
       $build_path/bin/appendfile 1
       pid1=$!
       wait $pid1 
-      
-      else 
-      
+      append_status=$?
+   else 
       $build_path/bin/appendfile 1
       pid1=$!
       wait $pid1 
-    fi
+      append_status=$?
+   fi
+   check_exit_statuses $append_status
+	sed -i "1s/${r} 1/${b} 1/" finaloutput_1
+done
 
-		sed -i "1s/${r} 1/${b} 1/" finaloutput_1
- done
-
- cp finaloutput_1  $build_path/server1/outputshare_1
-
+cp finaloutput_1  $build_path/server1/outputshare_1
+check_exit_statuses $?
 
 #----------------------------------------ReLu layer 1 ------------------------------------------------------------------------#
 $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu_layer${layer_id}.txt &
-pid1=$!
 
+pid1=$!
 wait $pid1 
+check_exit_statuses $?
+
 echo "Layer 1: ReLU is done"
 
 #------------------------------------------------Next layer, layer 2, inputs for layer 2 ----------------------------------------#
@@ -186,21 +210,29 @@ fi
 $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul_layer${layer_id}.txt &
 pid1=$!
 wait $pid1 
+
+check_exit_statuses $?
+
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
-#---------------------------------------- Argmax  --------------------------------------------------------------------------------#
+#------------------------------------- Argmax --------------------------------------------------#
 
 $build_path/bin/argmax --my-id 1 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $debug_1/argmax_layer$layer_id.txt &
 pid1=$!
 wait $pid1 
+
+check_exit_statuses $?
+
 echo "Layer $layer_id: Argmax is done"
 
 end=$(date +%s)
-#---------------------------------------- Final output provider  --------------------------------------------------------#
+#------------------------------ Final output provider  --------------------------------------------#
 
 $build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
-pid4=$!
-wait $pid4 
+pid1=$!
+wait $pid1
+
+check_exit_statuses $?
 
 echo "Output shares of server 1 sent to the Image provider"
 

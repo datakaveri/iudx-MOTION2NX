@@ -1,4 +1,13 @@
 #! /bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
