@@ -174,7 +174,10 @@ done
 #######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
 
 #Updating the config file for layers 2 and above.
-
+if [ $layer_id -gt 1 ];
+   then
+      input_config="outputshare"
+fi
 #######################################Matrix multiplication layer 2 ###########################################################################
 
 $build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &

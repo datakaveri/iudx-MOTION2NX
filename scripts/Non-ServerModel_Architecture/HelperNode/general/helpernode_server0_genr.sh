@@ -178,7 +178,10 @@ do
 done
 #######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
 #Updating the config file for layers 2 and above.
-
+if [ $layer_id -gt 1 ];
+   then
+      input_config="outputshare"
+fi
 #######################################Output share receivers ###########################################################################
 $build_path/bin/output_shares_receiver --my-id 0 --listening-port $cs0_port_cs0_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver0.txt &
 pid5=$!
