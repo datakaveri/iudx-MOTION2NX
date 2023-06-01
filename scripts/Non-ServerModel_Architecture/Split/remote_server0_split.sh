@@ -132,11 +132,9 @@ echo "Image Provider starts"
 $build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path > $debug_0/image_provider.txt &
 pid2=$!
 wait $pid2 
-img_prov_status=$?
+check_exit_statuses $?
 wait $pid1
-img_recv_status=$?
-
-check_exit_statuses $img_recv_status $img_prov_status
+check_exit_statuses $?
 
 echo "Image shares received"
 #---------------------- Share generators end -----------------------------------------------#
@@ -183,14 +181,13 @@ for  (( m = 1; m <= $splits; m++ ))
       $build_path/bin/appendfile 0
       pid1=$!
       wait $pid1 
-      append_status=$?
+      check_exit_statuses $?
    else 
       $build_path/bin/appendfile 0
       pid1=$!
       wait $pid1 
-      append_status=$?
+      check_exit_statuses $?
    fi
-   check_exit_statuses $append_status
 
 	sed -i "1s/${r} 1/${b} 1/" finaloutput_0
    check_exit_statuses $?
@@ -253,10 +250,9 @@ check_exit_statuses $?
 echo "Output shares of server 0 sent to the image provider"
 
 wait $pid5 
-output_recv0_status=$?
+check_exit_statuses $?
 wait $pid6 
-output_recv1_status=$?
-check_exit_statuses $output_recv0_status $output_recv1_status
+check_exit_statuses $?
 echo "Output shares of server 0 received by the Image provider"
 echo "Output shares of server 1 received by the Image provider"
 

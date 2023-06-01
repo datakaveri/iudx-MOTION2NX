@@ -75,10 +75,9 @@ pid6=$!
 
 echo "Image Provider is waiting for the inferencing result"
 wait $pid5
-output_recv0_status=$?
+check_exit_statuses $?
 wait $pid6
-output_recv1_status=$?
-check_exit_statuses $output_recv0_status $output_recv1_status
+check_exit_statuses $?
 #----------------------------------------------     Reconstruction       -------------------------------------------------------#
 
 echo "Reconstruction Starts"

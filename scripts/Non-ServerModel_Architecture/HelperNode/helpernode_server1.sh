@@ -121,10 +121,9 @@ $build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute
 pid3=$!
 
 wait $pid3
-weight_prov_status=$?
+check_exit_statuses $?
 wait $pid2
-weight_recv_status=$?
-check_exit_statuses $weight_prov_status $weight_recv_status
+check_exit_statuses $?
 echo "Weight shares received"
 
 ######################### Image Share Receiver ############################################################################################

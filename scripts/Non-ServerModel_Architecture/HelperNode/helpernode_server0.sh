@@ -134,11 +134,9 @@ $build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-ser
 pid3=$!
 
 wait $pid3
-image_prov_status=$? 
+check_exit_statuses $? 
 wait $pid2
-image_recv_status=$?
-
-check_exit_statuses $image_prov_status $image_recv_status
+check_exit_statuses $?
 
 echo "Image shares received"
 #------------------------------Share generators end ----------------------------------------------------------------------#
@@ -211,12 +209,11 @@ wait $pid1
 echo "Output shares of server 0 sent to the Image provider"
 
 wait $pid5 
-out_recv0_status=$?
+check_exit_statuses $?
 
 wait $pid6
-out_recv1_status=$?
+check_exit_statuses $?
 
-check_exit_statuses $out_recv0_status $out_recv1_status
 echo "Output shares of server 0 received at the Image provider"
 echo "Output shares of server 1 received at the Image provider"
 

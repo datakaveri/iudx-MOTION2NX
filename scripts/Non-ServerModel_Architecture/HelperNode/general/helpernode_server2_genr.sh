@@ -1,4 +1,13 @@
 #! /bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
 # paths required to run cpp files
 model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
@@ -7,7 +16,7 @@ scripts_path=${BASE_DIR}/scripts
 smpc_config_path=${BASE_DIR}/config_files/smpc-remote-config.json
 smpc_config=`cat $smpc_config_path`
 
-# #####################Inputs##########################################################################################################
+#####################Inputs##########################################################################################################
 
 # Do dns resolution or not
 cs0_dns_resolve=`echo $smpc_config | jq -r .cs0_dns_resolve`
@@ -24,15 +33,16 @@ if [[ $cs0_dns_resolve == "true" ]];
 then
 cs0_host=`dig +short $cs0_host | grep '^[.0-9]*$' | head -n 1`
 fi
+
 if [[ $cs1_dns_resolve == "true" ]];
 then
 cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
+
 if [[ $helpernode_dns_resolve == "true" ]];
 then
 helpernode_host=`dig +short $helpernode_host | grep '^[.0-9]*$' | head -n 1`
 fi
-
 
 # Ports on which server0 and server1 of the inferencing tasks talk to each other
 cs0_port_inference=`echo $smpc_config | jq -r .cs0_port_inference`
@@ -42,7 +52,6 @@ helpernode_port_inference=`echo $smpc_config | jq -r .helpernode_port_inference`
 number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 fractional_bits=13
 ##########################################################################################################################################
-
 
 if [ ! -d "$debug_2" ];
 then
@@ -60,6 +69,7 @@ $build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_h
 pid1=$!
 
 wait $pid1
+check_exit_statuses $?
 echo "Helper node layer $layer_id is done"
 
 done

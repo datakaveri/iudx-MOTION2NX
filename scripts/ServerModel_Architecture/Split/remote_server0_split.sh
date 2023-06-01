@@ -113,10 +113,9 @@ $build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver -
 pid2=$!
 
 wait $pid2
-image_recv_status=$? 
+check_exit_statuses $? 
 wait $pid1
-weight_recv_status=$?
-check_exit_statuses $image_recv_status $weight_recv_status
+check_exit_statuses $?
 echo "Weight shares received"
 echo "Image shares received"
 ######################### Share receivers end ############################################################################################

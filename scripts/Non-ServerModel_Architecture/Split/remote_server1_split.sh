@@ -116,11 +116,9 @@ $build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute
 pid2=$!
 
 wait $pid2
-weight_prov_status=$?
+check_exit_statuses $?
 wait $pid1 
-
-weight_recv_status=$?
-check_exit_statuses $weight_prov_status $weight_recv_status
+check_exit_statuses $?
 
 echo "Weight shares received"
 #----------------------------------------Image Share Receiver -------------------------------------------#
@@ -174,14 +172,13 @@ for  (( m = 1; m <= $splits; m++ ))
       $build_path/bin/appendfile 1
       pid1=$!
       wait $pid1 
-      append_status=$?
+      check_exit_statuses $?
    else 
       $build_path/bin/appendfile 1
       pid1=$!
       wait $pid1 
-      append_status=$?
+      check_exit_statuses $?
    fi
-   check_exit_statuses $append_status
 	sed -i "1s/${r} 1/${b} 1/" finaloutput_1
 done
 
