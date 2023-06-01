@@ -1,4 +1,14 @@
 #! /bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
+
 # paths required to run cpp files
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
@@ -45,13 +55,13 @@ then
 	mkdir -p $debug_ImageProv
 fi
 
-#---------------------------------------------------------------------------------------------------------------------------------------------------------#
 #----------------------------------------- Image Share Provider ------------------------------------------------------------------------------------------#
 # Create Image shares and send it to server 0 and server 1
 echo "Image Provider starts"
 $build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path > $debug_ImageProv/image_provider.txt &
 pid1=$!
 wait $pid1
+check_exit_statuses $?
 echo "Image shares sent."
 #----------------------------------------- Share generators end ---------------------------------------------------------------------------------------------------#
 
@@ -64,12 +74,16 @@ $build_path/bin/output_shares_receiver --my-id 1 --listening-port $cs0_port_cs1_
 pid6=$!
 
 echo "Image Provider is waiting for the inferencing result"
-wait $pid5 $pid6
-
+wait $pid5
+output_recv0_status=$?
+wait $pid6
+output_recv1_status=$?
+check_exit_statuses $output_recv0_status $output_recv1_status
 #----------------------------------------------     Reconstruction       -------------------------------------------------------#
 
 echo "Reconstruction Starts"
 $build_path/bin/Reconstruct --current-path $output_shares_path 
 pid1=$!
 wait $pid1
+check_exit_statuses $?
 wait
