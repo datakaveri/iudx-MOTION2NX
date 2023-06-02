@@ -47,7 +47,7 @@ services:
       - type: volume
         source: smpc-server1-volume
         target: /usr/share/app/logs
-    restart: on-failure
+    restart: no
     network_mode:
       "host"
       # - motion2nx-net
