@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # paths required to run cpp files
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider

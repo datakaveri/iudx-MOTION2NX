@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 model_config=${BASE_DIR}/config_files/model_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc

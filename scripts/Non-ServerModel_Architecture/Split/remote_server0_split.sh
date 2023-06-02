@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 check_exit_statuses() {
    for status in "$@";
    do

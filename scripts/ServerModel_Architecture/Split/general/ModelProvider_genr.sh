@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_config=${BASE_DIR}/config_files/model_config.json
 model_provider_path=${BASE_DIR}/data/ModelProvider

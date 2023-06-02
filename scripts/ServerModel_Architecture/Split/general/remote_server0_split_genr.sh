@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
