@@ -1,0 +1,106 @@
+version: "2.4"
+
+networks:
+  motion2nx-net:
+    driver: bridge
+
+services:
+  # SMPC server 0, image provider server
+  smpc-server0:
+    image: ghcr.io/datakaveri/motion2nx:local
+    volumes:
+      - type: volume
+        source: smpc-server0-volume
+        target: /usr/share/app/logs
+      - ../../../../data/ImageProvider/Final_Output_Shares:/usr/share/app/data/ImageProvider/Final_Output_Shares:rw
+      - ../../../../data/ImageProvider/images:/usr/share/app/data/ImageProvider/images:ro
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts/:/usr/share/app/scripts:rw
+
+    restart: no
+    network_mode: host
+    # networks:
+    #   - motion2nx-net
+    ports:
+      # cs0_port_data_receiver
+      - "4005:4005"
+      # cs0_port_cs0_output_receiver
+      - "4007:4007"
+      # cs0_port_cs1_output_receiver
+      - "4008:4008"
+      # cs0_port_inference
+      - "4009:4009"
+      # relu0_port_inference
+      - "4012:4012"
+      # cs0_port_image_receiver
+      - "4014:4014"
+    mem_limit: 600m
+    cpus: 0.750
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/HelperNode/general/ && ./helpernode_server0_genr.sh && while (true);  do  sleep 10; done"
+
+  # SMPC server 1, model provider server
+  smpc-server1:
+    image: ghcr.io/datakaveri/motion2nx:local
+    volumes:
+      - ../../../../data/ModelProvider/:/usr/share/app/data/ModelProvider/:ro
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts:/usr/share/app/scripts:rw
+      - type: volume
+        source: smpc-server1-volume
+        target: /usr/share/app/logs
+    restart: no
+    network_mode: host
+    # networks:
+    #   - motion2nx-net
+    ports:
+      # cs1_port_data_receiver
+      - "4006:4006"
+      # cs1_port_inference
+      - "4010:4010"
+      # relu1_port_inference
+      - "4013:4013"
+      # cs1_port_image_receiver
+      - "4015:4015"
+    mem_limit: 500m
+    cpus: 0.4
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/HelperNode/general/ && ./helpernode_server1_genr.sh && while (true);  do  sleep 10; done"
+
+  # SMPC server 2, helpernode server
+  smpc-server2:
+    image: ghcr.io/datakaveri/motion2nx:local
+    volumes:
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts:/usr/share/app/scripts:rw
+      - type: volume
+        source: smpc-server2-volume
+        target: /usr/share/app/logs
+    restart: no
+    network_mode: host
+    # networks:
+    #   - motion2nx-net
+    ports:
+      # helpernode_port_inference
+      - "4011:4011"
+    mem_limit: 300m
+    cpus: 0.4
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/HelperNode/general/ && ./helpernode_server2_genr.sh && while (true);  do  sleep 10; done"
+
+volumes:
+  smpc-server1-volume:
+  smpc-server0-volume:
+  smpc-server2-volume:

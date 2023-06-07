@@ -1,4 +1,13 @@
-#! /bin/bash
+#!/bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_provider_path=${BASE_DIR}/data/ModelProvider
 debug_ModelProv=${BASE_DIR}/logs/ModelProvider_logs/
@@ -21,7 +30,6 @@ then
 cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
-
 # Ports on which weights,image provider  receiver listens/talks
 cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
 cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`
@@ -38,13 +46,13 @@ then
 	mkdir -p $debug_ModelProv
 fi
 
-
 #########################Weights Provider ############################################################################################
 # Creates the weights and bias shares and sends it to server 0 and server 1
 echo "Weight Provider starts."
 
-$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_ModelProv/weights_provider.txt &
+$build_path/bin/weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_ModelProv/weights_provider.txt &
 pid1=$!
 wait $pid1 
+check_exit_statuses $?
 echo "Weight shares sent."
 #########################Share generators end ############################################################################################

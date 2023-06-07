@@ -1,4 +1,14 @@
-#! /bin/bash
+#!/bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
+
 # paths required to run cpp files
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 debug_2=${BASE_DIR}/logs/helpernode/
@@ -54,8 +64,8 @@ layer_id=1
 
 $build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference> $debug_2/helpernode_layer${layer_id}.txt &
 pid1=$!
-
 wait $pid1
+check_exit_statuses $?
 echo "Helper node layer 1 is done"
 
 ####################### Inputs for layer 2 ###################################################################################################
@@ -64,8 +74,8 @@ echo "Helper node layer 1 is done"
 
 $build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference > $debug_2/helpernode_layer${layer_id}.txt &
 pid2=$!
-
 wait $pid2
+check_exit_statuses $?
 echo "Helper node layer ${layer_id} is done"
 
 #To catch any extra processes

@@ -439,7 +439,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_vector =
       std::move(pair_input.first);
   tensor_input = pair_input.second;
-  // assert(tensor_input);
+  assert(tensor_input);
 
   ///////////////////////////////////////////////////////////////
   input_vector[0].set_value(options.input.Delta);

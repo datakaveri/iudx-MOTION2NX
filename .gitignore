@@ -50,9 +50,11 @@ docker-compose.remote-registry.yaml
 
 # data
 /data/
+data/
 
 # config file
 config_files/smpc-remote-config.json
+config_files/model_config.json
 
 # log files
 logs/

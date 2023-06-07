@@ -1,4 +1,13 @@
-#! /bin/bash
+#!/bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 model_config=${BASE_DIR}/config_files/file_config_model
@@ -60,7 +69,6 @@ then
 	mkdir -p $debug_0
 fi
 
-
 cd $build_path
 
 if [ -f finaloutput_0 ]; then
@@ -104,7 +112,10 @@ echo "Image shares receiver starts"
 $build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_0/Image_Share_Receiver0.txt &
 pid2=$!
 
-wait $pid2 $pid1
+wait $pid2
+check_exit_statuses $? 
+wait $pid1
+check_exit_statuses $?
 echo "Weight shares received"
 echo "Image shares received"
 ######################### Share receivers end ############################################################################################
@@ -134,8 +145,8 @@ for  (( m = 1; m <= $splits; m++ ))
     #Layer 1
     $build_path/bin/tensor_gt_mul_split --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path > $debug_0/tensor_gt_mul0_layer1_split.txt &
     pid3=$!
-   
-    wait $pid3 
+    wait $pid3
+    check_exit_statuses $? 
     echo "Layer 1, split $m: Matrix multiplication and addition is done."
     if [ $m -eq 1 ];then
       touch finaloutput_0
@@ -143,12 +154,14 @@ for  (( m = 1; m <= $splits; m++ ))
       $build_path/bin/appendfile 0
       pid4=$!
       wait $pid4 
-      
+      check_exit_statuses $?
+
     else 
       
       $build_path/bin/appendfile 0
       pid5=$!
       wait $pid5 
+      check_exit_statuses $?
     fi
 
 	sed -i "1s/${r} 1/${b} 1/" finaloutput_0
@@ -156,14 +169,13 @@ for  (( m = 1; m <= $splits; m++ ))
 done
 
 cp finaloutput_0  $build_path/server0/outputshare_0 
-
-   
+check_exit_statuses $?
 
 #######################################ReLu layer 1 ####################################################################################
 $build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu1_layer0.txt &
 pid6=$!
 wait $pid6 
-
+check_exit_statuses $?
 echo "Layer 1: ReLU is done"
 
 #######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
@@ -179,21 +191,21 @@ fi
 $build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/tensor_gt_mul0_layer2.txt &
 pid7=$!
 wait $pid7 
-
+check_exit_statuses $?
 echo "Layer 2: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
 $build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
 pid8=$!
 wait $pid8
-
+check_exit_statuses $?
 echo "Layer 2: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
 $build_path/bin/final_output_provider --my-id 0 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider0.txt &
 pid9=$!
 wait $pid9
-
+check_exit_statuses $?
 echo "Output shares of server 0 sent to the image provider"
 
 awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0

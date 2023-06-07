@@ -123,6 +123,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
 
 
 int main(int argc, char* argv[]) {
+  std::cout<<"Output shares receiver starts.\n";
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
     std::cerr<<"Error while parsing the given input options.\n";
@@ -136,6 +137,7 @@ int main(int argc, char* argv[]) {
 
   // waiting for the connection
   try {
+  std::cout<<"Waiting for the final output provider at port "<<options->listening_port_number<<"\n";
   acceptor_.accept(socket_);
   std::cout<<"Accepted a connection at port "<<options->listening_port_number<<"\n";
   }

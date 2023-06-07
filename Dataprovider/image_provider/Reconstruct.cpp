@@ -53,42 +53,55 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
   auto options = parse_program_options(argc, argv);
   std::string path = options->currentpath;
-  // Reading contents from file
-  std::string t1 = path + "/server0_shares_X";
-  std::string t2 = path + "/server1_shares_X";
+  try {
+    // Reading contents from file
+    std::string t1 = path + "/server0_shares_X";
+    std::string t2 = path + "/server1_shares_X";
 
-  std::ifstream file1, file2;
-  file1.open(t1);
-  file2.open(t2);
-  // if ((std::ifstream(t1)) && (std::ifstream(t2)) )
-  // cout << "Both files found";
+    std::ifstream file1, file2;
 
-  if (!(std::ifstream(t1)))
-    cout << "File " << t1 << "not found";
-  else if (!(std::ifstream(t2)))
-    cout << "File " << t2 << "not found";
+    try {
+      file1.open(t1);
+      file2.open(t2);
+      if (file1 && file2) {
+        std::cout << " ";
+      }
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while opening the input files.\n";
+      return EXIT_FAILURE;
+    }
+    Shares shares_data_0[10], shares_data_1[10];
+    // get input data
+    // std::vector<float> data1
 
-  Shares shares_data_0[10], shares_data_1[10];
-  // get input data
-  // std::vector<float> data1
-
-  std::vector<bool> final_answer;
-  for (int i = 0; i < 10; i++) {
-    file1 >> shares_data_0[i].Delta;
-    file1 >> shares_data_0[i].delta;
-    file2 >> shares_data_1[i].Delta;
-    file2 >> shares_data_1[i].delta;
-    if (shares_data_0[i].Delta != shares_data_1[i].Delta)
-    std:
-      cout << "Error at " << i << " index \n";
-    bool temp = shares_data_0[i].Delta ^ shares_data_0[i].delta ^ shares_data_1[i].delta;
-    // std::cout << temp <<" ";
-    final_answer.push_back(temp);
+    std::vector<bool> final_answer;
+    for (int i = 0; i < 10; i++) {
+      file1 >> shares_data_0[i].Delta;
+      file1 >> shares_data_0[i].delta;
+      file2 >> shares_data_1[i].Delta;
+      file2 >> shares_data_1[i].delta;
+      try {
+        if (shares_data_0[i].Delta != shares_data_1[i].Delta)
+          std::cout << "Error at " << i << " index \n";
+      } catch (std::ifstream::failure e) {
+        std::cerr << "Incorrect output shares.\n";
+        return EXIT_FAILURE;
+      }
+      bool temp = shares_data_0[i].Delta ^ shares_data_0[i].delta ^ shares_data_1[i].delta;
+      // std::cout << temp <<" ";
+      final_answer.push_back(temp);
+    }
+    int i = 0;
+    while (final_answer[i] != 0) {
+      i++;
+    }
+    std::cout << "\nThe image shared is detected as"
+              << ":" << i << "\n";
+  } catch (std::runtime_error& e) {
+    std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
+    std::cerr << "ERROR Caught !!"
+              << "\n";
+    return EXIT_FAILURE;
   }
-  int i = 0;
-  while (final_answer[i] != 0) {
-    i++;
-  }
-  std::cout << "\nThe image shared is detected as"
-            << ":" << i << "\n";
+  return EXIT_SUCCESS;
 }

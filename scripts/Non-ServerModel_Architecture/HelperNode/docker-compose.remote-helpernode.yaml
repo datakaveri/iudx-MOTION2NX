@@ -17,7 +17,7 @@ services:
       - ../../../config_files:/usr/share/app/config_files:ro
       - ../../../scripts/:/usr/share/app/scripts:rw
 
-    restart: on-failure
+    restart: no
     network_mode: host
     # networks:
     #   - motion2nx-net
@@ -53,7 +53,7 @@ services:
       - type: volume
         source: smpc-server1-volume
         target: /usr/share/app/logs
-    restart: on-failure
+    restart: no
     network_mode: host
     # networks:
     #   - motion2nx-net
@@ -84,7 +84,7 @@ services:
       - type: volume
         source: smpc-server2-volume
         target: /usr/share/app/logs
-    restart: on-failure
+    restart: no
     network_mode: host
     # networks:
     #   - motion2nx-net

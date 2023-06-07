@@ -44,7 +44,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("compute-server1-port", po::value<int>()->required(), "Port number of compute server 1")
     ("fractional-bits", po::value<size_t>()->required(), "Number of fractional bits")
     ("dp-id", po::value<int>()->required(), "Id of the data provider")
-    ("filepath", po::value<string>()->required(), "Name of the image file for which shares should be created")
+    ("filepath", po::value<string>()->required(), "Name of the weight file for which shares should be created")
     ;
   // clang-format on
 
@@ -384,36 +384,78 @@ int main(int argc, char* argv[]) {
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
-  std::string p1 = options->fullfilepath + "/newW1.csv";
+  std::string p1 = options->fullfilepath + "/5L_W1.csv";
   // dimensions should be 512*784
-  Matrix weightL1 = Matrix(256, 784, p1, options->fractional_bits, *options);
+  Matrix weightL1 = Matrix(512, 784, p1, options->fractional_bits, *options);
   weightL1.readMatrixCSV();
   weightL1.generateShares();
   weightL1.sendToServers(*options);
 
-  p1 = options->fullfilepath + "/newB1.csv";
+  p1 = options->fullfilepath + "/5L_B1.csv";
   // dimensions should be 512*1
-  Matrix biasL1 = Matrix(256, 1, p1, options->fractional_bits, *options);
+  Matrix biasL1 = Matrix(512, 1, p1, options->fractional_bits, *options);
   biasL1.readMatrixCSV();
   biasL1.generateShares();
   biasL1.sendToServers(*options);
 
-  p1 = options->fullfilepath + "/newW2.csv";
+  p1 = options->fullfilepath + "/5L_W2.csv";
   // dimensions should be 256*512
-  Matrix weightL2 = Matrix(10, 256, p1, options->fractional_bits, *options);
+  Matrix weightL2 = Matrix(256, 512, p1, options->fractional_bits, *options);
   weightL2.readMatrixCSV();
   weightL2.generateShares();
   weightL2.sendToServers(*options);
 
-  p1 = options->fullfilepath + "/newB2.csv";
+  p1 = options->fullfilepath + "/5L_B2.csv";
   // dimensions should be 256*1
-  Matrix biasL2 = Matrix(10, 1, p1, options->fractional_bits, *options);
+  Matrix biasL2 = Matrix(256, 1, p1, options->fractional_bits, *options);
   biasL2.readMatrixCSV();
   biasL2.generateShares();
   biasL2.sendToServers(*options);
 
+  p1 = options->fullfilepath + "/5L_W3.csv";
+  // dimensions should be 128*256
+  Matrix weightL3 = Matrix(128, 256, p1, options->fractional_bits, *options);
+  weightL3.readMatrixCSV();
+  weightL3.generateShares();
+  weightL3.sendToServers(*options);
+
+  p1 = options->fullfilepath + "/5L_B3.csv";
+  // dimensions should be 128*1
+  Matrix biasL3 = Matrix(128, 1, p1, options->fractional_bits, *options);
+  biasL3.readMatrixCSV();
+  biasL3.generateShares();
+  biasL3.sendToServers(*options);
+
+  p1 = options->fullfilepath + "/5L_W4.csv";
+  // dimensions should be 64*128
+  Matrix weightL4 = Matrix(64, 128, p1, options->fractional_bits, *options);
+  weightL4.readMatrixCSV();
+  weightL4.generateShares();
+  weightL4.sendToServers(*options);
+
+  p1 = options->fullfilepath + "/5L_B4.csv";
+  // dimensions should be 64*1
+  Matrix biasL4 = Matrix(64, 1, p1, options->fractional_bits, *options);
+  biasL4.readMatrixCSV();
+  biasL4.generateShares();
+  biasL4.sendToServers(*options);
+
+  p1 = options->fullfilepath + "/5L_W5.csv";
+  // dimensions should be 10*64
+  Matrix weightL5 = Matrix(10, 64, p1, options->fractional_bits, *options);
+  weightL5.readMatrixCSV();
+  weightL5.generateShares();
+  weightL5.sendToServers(*options);
+
+  p1 = options->fullfilepath + "/5L_B5.csv";
+  // dimensions should be 10*1
+  Matrix biasL5 = Matrix(10, 1, p1, options->fractional_bits, *options);
+  biasL5.readMatrixCSV();
+  biasL5.generateShares();
+  biasL5.sendToServers(*options);
+
   send_confirmation(*options);
 
-  biasL2.printData();
+  // biasL2.printData();
   return 0;
 }

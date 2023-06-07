@@ -20,7 +20,9 @@
       "relu1_port_inference": 4013,
       "cs0_port_image_receiver": 4014,
       "cs1_port_image_receiver": 4015,
+      "number_of_layers": 5,
       "fractional_bits": 13,
       "image_id": 2,
-      "splits": 8
+      "splits": 8,
+      "split_layers_genr": [{"rows":512, "splits":16}, {"rows":256, "splits":8}]
 }

@@ -96,7 +96,6 @@ std::vector<Shares> read_struct(tcp::socket& socket, int num_elements) {
   return data;
 }
 
-/////////////////////////////////////////////////////////////////////
 std::vector<Shares> read_struct_vector(tcp::socket& socket, int num_elements) {
   std::cout << "Before reading of data\n";
   std::vector<Shares> data;
@@ -109,14 +108,14 @@ std::vector<Shares> read_struct_vector(tcp::socket& socket, int num_elements) {
     cout << "Received successfully \n";
   }
   int j = 0;
-  cout << "Num elemen\n";
+  cout << "Num element\n";
   for (int i = 0; i < num_elements; i++) {
     Shares temp;
     temp.Delta = arr[j];
     // std::cout << temp.Delta << " ";
-    j = j + 1;
+    j++;
     temp.delta = arr[j];
-    j = j + 1;
+    j++;
     // std::cout << temp.delta << "\n";
     data.push_back(temp);
   }
@@ -236,6 +235,7 @@ std::pair<std::size_t, std::pair<std::vector<Shares>, std::vector<int>>> get_pro
   // read operation
   int arr[2];
   read(socket_, boost::asio::buffer(&arr, sizeof(arr)), ec);
+  std::cout << arr[0] << "\t" << arr[1] << std::endl;
   if (ec) {
     cout << ec << "\n";
   } else {
@@ -407,7 +407,6 @@ get_provider_mat_mul_data_new(int port_number) {
   return {actualanswer, fractional_bits, std::make_pair(data, dims)};
 }
 
-//////////////////Function to receive all vectors one shot, Ramya may 3,2023
 std::tuple<int, std::size_t,
            std::pair<std::vector<std::vector<Shares>>, std::vector<std::vector<int>>>>
 get_provider_total_data(int port_number) {
@@ -561,6 +560,92 @@ get_provider_mat_mul_const_data(int port_number) {
   std::cout << "Finished reading input \n\n";
 
   return std::make_pair(fractional_bits, std::make_pair(data, dims));
+}
+
+//////////////////Function to receive all vectors one shot, Ramya may 3,2023
+std::tuple<int, std::size_t,
+           std::pair<std::vector<std::vector<Shares>>, std::vector<std::pair<int, int>>>>
+get_provider_total_data_genr(int port_number) {
+  // cout << "Inside new function \n";
+  boost::asio::io_service io_service;
+
+  // listen for new connection
+  tcp::acceptor acceptor_(io_service, tcp::endpoint(tcp::v4(), port_number));
+
+  // socket creation
+  tcp::socket socket_(io_service);
+
+  // waiting for the connection
+  acceptor_.accept(socket_);
+  boost::system::error_code ec;
+  size_t fractional_bits;
+  int numberOfLayers;
+  const string msg_layer = "Server has received the number of layers expected \n";
+  const string msg_init = "Server has received the number of fractional bits \n";
+  const string msg = "Server has received the number of elements \n";
+  /////////Receiving number of layers to be expected
+  read(socket_, boost::asio::buffer(&numberOfLayers, sizeof(numberOfLayers)), ec);
+  if (ec) {
+    cout << ec << "\n";
+  } else {
+    cout << "No Error. Number of layers: " << numberOfLayers << "\n";
+  }
+
+  boost::asio::write(socket_, boost::asio::buffer(msg_layer));
+  cout << "Server received the number of layers!" << endl;
+
+  ///////////
+
+  // Read and write the number of fractional bits
+  read(socket_, boost::asio::buffer(&fractional_bits, sizeof(fractional_bits)), ec);
+  if (ec) {
+    cout << ec << "\n";
+  } else {
+    cout << "No Error. Number of franctional bits: " << fractional_bits << "\n";
+  }
+
+  boost::asio::write(socket_, boost::asio::buffer(msg_init));
+  cout << "Server sent ack message to Client!" << endl;
+  std::vector<std::pair<int, int>> dims_of_all_shares;
+  std::pair<int, int> dims;
+  int num_elements1;
+  std::vector<std::vector<Shares>> data;
+  const string msg_data = "Server has received the data.\n";
+  //////////////////////////////// Repeatedly use the following////////////////
+  // read operation
+  for (int i = 0; i < 2*numberOfLayers; i++) {
+    read(socket_, boost::asio::buffer(&dims, sizeof(dims)), ec);
+    if (ec) {
+      cout << ec << "\n";
+    } else {
+      cout << "No Error\n";
+    }
+    std::cout << "Before dims push back \n";
+    dims_of_all_shares.push_back(dims);
+    // dims1.push_back(arr1[1]);
+    std::cout << "After dims push back \n";
+    num_elements1 = dims.first * dims.second;
+    cout << "Rows, columns: " << dims.first << " " << dims.second << endl;
+    cout << "The number of elements are :- " << num_elements1 << endl;
+
+    // write operation
+    boost::asio::write(socket_, boost::asio::buffer(msg));
+    cout << "Server sent message to Client!" << endl;
+
+    // Read the data in the required format
+    cout << "Before read struct vector " << endl;
+    data.push_back(read_struct_vector(socket_, num_elements1));
+    boost::asio::write(socket_, boost::asio::buffer(msg_data));
+    // cout << "Servent sent w1 to Client!" << endl;
+    std::cout << "Finished reading input W1\n";
+  }
+  socket_.close();
+  int i = 1;
+  for(auto iter : dims_of_all_shares) {
+    cout << "Dims " << i << ": " << iter.first << " " << iter.second << endl;
+    i++;  
+  }
+  return {numberOfLayers, fractional_bits, std::make_pair(data, dims_of_all_shares)};
 }
 
 }  // namespace COMPUTE_SERVER

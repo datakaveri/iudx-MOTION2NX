@@ -4,8 +4,7 @@
 
 ./bin/Weights_Share_Receiver --my-id 1--file-names $model_config --current-path $build_path
 
-./bin/weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --dp-id 0
---fractional-bits $fractional_bits --filepath $build_path_model
+./bin/weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --fractional-bits $fractional_bits --filepath $build_path_model
 
 ./bin/Weights_Share_Receiver --my-id 0 --port 1234 --file-names
 ${BASE_DIR}/config_files/file_config_model --current-path ${BASE_DIR}/build_debwithrelinfo_gcc

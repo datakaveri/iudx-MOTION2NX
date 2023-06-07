@@ -130,7 +130,7 @@ void retrieve_shares(Options& options) {
   auto temp = options.filepaths[1];
   shares_file.open(temp, std::ios_base::out);
   if (!shares_file) {
-    std::cerr << "Unable to create file "<<temp<<"\n";
+    std::cerr << "Unable to create/open file "<<temp<<"\n";
     throw std::runtime_error("Unable to create file " + temp+"\n");
     // return EXIT_FAILURE;
   }
