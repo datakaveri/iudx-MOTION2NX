@@ -1,0 +1,1 @@
+python /home/daksh1115/Desktop/IUDX/Tkinter/Main/preprocess_image.py -f Daksh.jpg
