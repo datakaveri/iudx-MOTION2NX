@@ -4,9 +4,8 @@ import paint
 import File_location
 import time
 import SMPC
-import NN_helper
+import NN
 import outputtable
-
 
 # window = Tk()
 
@@ -62,18 +61,19 @@ def call():
         if choice == "Secure Multiparty Computation":
             window.destroy()
             SMPC.call()
-        elif choice == "Neural Network Inferencing with helper node":
+        elif choice == "Neural Network Inferencing":
             window.destroy()
-            NN_helper.call()
+            NN.call()
         elif choice == "Output Result Table":
             window.destroy()
             outputtable.call()
+        
 
     clicked = StringVar()
     my_combo = ttk.Combobox(canvas_2, values=options,font=('Times 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
     my_combo.grid(row = 0 , column=0, columnspan=4, ipadx=300,ipady=10, padx=10, pady=10)
     # my_combo.config(dropdown_font = ('Times 20 bold'))
-    my_combo.set( "Neural Network Inferencing" )
+    my_combo.set( "Neural Network Inferencing with helper node" )
     my_combo.bind("<<ComboboxSelected>>", display_selected)
     
 
@@ -81,7 +81,7 @@ def call():
     canvas_1 = Canvas(window, width= WIDTH, height=HEIGHT, highlightthickness=2, highlightbackground="black")
     canvas_1.grid(row = 1 , column=0,padx=20, rowspan=2)
 
-    back_image2 = PhotoImage(file="./Images_Video/NN.png") 
+    back_image2 = PhotoImage(file="./Images_Video/NN_helper.png") 
     my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image2)
 
 
@@ -91,6 +91,7 @@ def call():
 
     details_smpc = "Secure Multiparty Computation\n\n   -> Compute servers to jointly compute a function\n      over the inputs of data providers\n\n   -> Data providers provide secret shares to compute\n      servers to preserve privacy.\n\n   -> Compute servers have no knowledge of inputs\n      and intermediate values and the final solution.\n"
     canvas.create_text(700/2, 512/2,anchor= CENTER, text=details_smpc, fill="black", font=('sans 18 normal'))
+
 
     def client():
         yellow_file_1 = PhotoImage(file="./Images_Video/yellow.png") 

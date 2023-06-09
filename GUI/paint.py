@@ -5,6 +5,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 import File_location
 import SMPC
+import NN
 
 
 
@@ -80,11 +81,11 @@ def call():
     def saveImage():
         try:
             fileLocation = filedialog.asksaveasfilename(defaultextension=".png")
-            print(fileLocation)
+            # print(fileLocation)
             x = root.winfo_rootx() + frame2.winfo_x()
             y = root.winfo_rooty()+ canvas.winfo_y()
-            print(x,y)
-            print(canvas.winfo_x(), canvas.winfo_y())
+            # print(x,y)
+            # print(canvas.winfo_x(), canvas.winfo_y())
 
             x1 = x + canvas.winfo_width()
             y1 = y + canvas.winfo_height()
@@ -99,7 +100,7 @@ def call():
                 img.show()
                 showImage1 = messagebox.askyesno("Paint App" , "Do you want to Upload Image?")
                 if showImage1:
-                    Uploader(root)
+                    Uploader(root, fileLocation)
                 else:
                     root.destroy()
                     call()
@@ -118,13 +119,13 @@ def call():
         clear()
 
 
-    def Uploader(root):
+    def Uploader(root,fileLocation):
         root.destroy()
-        File_location.call()
+        File_location.call(fileLocation)
     
     def back(root):
         root.destroy()
-        SMPC.call()
+        NN.call()
 
     # ------------------- User Interface -------------------
 
