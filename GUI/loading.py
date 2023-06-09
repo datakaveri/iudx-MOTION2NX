@@ -43,12 +43,13 @@ def call(image):
 
             else:
                 base_dir = os.getenv("BASE_DIR")
+                f = open("output.txt", "w")
                 iter = subprocess.call("python " + base_dir + "/Dataprovider/image_provider/preprocess_image.py -f "+image, shell=True)
-                temp1 = subprocess.call(base_dir + "/scripts/ServerModel_Architecture/HelperNode/general/ImageProvider_genr.sh")
+                temp1 = subprocess.call([base_dir + "/scripts/ServerModel_Architecture/HelperNode/general/ImageProvider_genr.sh"], stdout=f)
                 # print(iter)
-                answer = new.loop()
-                if answer == 9:
-                    temp = False
+                # answer = new.loop()
+                # if answer == 9:
+                temp = False
                 time.sleep(1)
                 
         # print(my_progress_bar['value'])
@@ -91,7 +92,7 @@ def call(image):
             # my_progress_bar.destroy()
             
             root.destroy()
-            result.call(image, 1)
+            result.call(image)
             
 
 

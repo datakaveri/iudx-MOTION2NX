@@ -3,14 +3,16 @@ from tkinter import filedialog, PhotoImage
 from PIL import ImageTk, Image
 from tkinter.filedialog import askopenfile
 import SMPC
+import NN
 import loading
 import subprocess
 import os
 
 
-def call():
+def call(fileLocation):
     root = Tk()
     global myLabel, filepath
+    filepath = fileLocation
     root.title("Application")
     # root.attributes('-fullscreen', True)
 
@@ -22,6 +24,7 @@ def call():
     # my_img = ImageTk.PhotoImage(Image.open("Daksh.jpg"))
     # myLabel = Label(image=my_img)
     # myLabel.pack()
+    
 
     def FilePath():
         global filepath
@@ -77,10 +80,11 @@ def call():
     e = Entry(root, width=75,borderwidth=5,font=('calibre',18,'normal'))
     e.grid(row=1,column=0,  padx=10,pady=10)
     # e.pack()
+    e.insert(0,str(fileLocation))
 
     def back(root):
         root.destroy()
-        SMPC.call()
+        NN.call()
 
 
 
@@ -89,12 +93,12 @@ def call():
     # myButton.pack()
 
     showButton = Button(root, text= "Show Image", command= lambda: openFile(filepath), width=15)
-    showButton.grid(row=2,column=0, columnspan=2, padx=75,pady=10)
+    showButton.grid(row=3,column=0, columnspan=2, padx=75,pady=10)
     # showButton.pack()
 
 
     nextButton = Button(root, text= "Share Seceret Share", command= uplaod, width=30)
-    nextButton.grid(row=3,column=0, columnspan=2, padx=75,pady=10)
+    nextButton.grid(row=4,column=0, columnspan=2, padx=75,pady=10)
 
     App_title = Label(root, text= "Upload your Image", command= None,font=('Times 20 bold'))
     App_title.grid(row=0,column=0,columnspan=2, padx=10,pady=10)

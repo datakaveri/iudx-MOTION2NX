@@ -5,6 +5,8 @@ import paint
 import File_location
 import time
 import NN
+import NN_helper
+import outputtable
 
 def call():
 
@@ -33,7 +35,7 @@ def call():
     yVelocity_blue_2 = 0.35*0.5
 
     window = Tk()
-    window.geometry("1550x775") 
+    window.geometry("1550x700") 
 
     canvas_2 = Canvas(window, width= WIDTH*2, height=70)
     canvas_2.grid(row = 0 , column=0, columnspan=4)
@@ -47,7 +49,9 @@ def call():
 
     options = [
         "Secure Multiparty Computation",
-        "Neural Network Inferencing"
+        "Neural Network Inferencing",
+        "Neural Network Inferencing with helper node",
+        "Output Result Table"
     ]
 
 
@@ -56,6 +60,12 @@ def call():
         if choice == "Neural Network Inferencing":
             window.destroy()
             NN.call()
+        elif choice == "Neural Network Inferencing with helper node":
+            window.destroy()
+            NN_helper.call()
+        elif choice == "Output Result Table":
+            window.destroy()
+            outputtable.call()
 
     clicked = StringVar()
     my_combo = ttk.Combobox(canvas_2, values=options,font=('Times 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
@@ -102,28 +112,27 @@ def call():
     canvas.grid(row = 1 , column=1,columnspan=3)
 
 
-    details_smpc = "Secure Multiparty Computation\n   - point 1\n   - point 2\n   - point 3\n     continue point 3\n   - point 4"
-    canvas.create_text(750/2 + 50, 512/2,anchor= E, text=details_smpc, fill="black", font=('Times 20 bold'))
-
+    details_smpc = "Secure Multiparty Computation\n\n   -> Compute servers to jointly compute a function\n      over the inputs of data providers\n\n   -> Data providers provide secret shares to compute\n      servers to preserve privacy.\n\n   -> Compute servers have no knowledge of inputs\n      and intermediate values and the final solution.\n"
+    canvas.create_text(700/2, 512/2,anchor= CENTER, text=details_smpc, fill="black", font=('sans 18 normal'))
 
     def client():
         yellow_file_1 = PhotoImage(file="./Images_Video/yellow.png") 
         my_yellow_image_1 = canvas_1.create_image(150,100,anchor=CENTER,image = yellow_file_1)
 
-        yellow_file_2 = PhotoImage(file="yellow.png") 
+        yellow_file_2 = PhotoImage(file="./Images_Video/yellow.png") 
         my_yellow_image_2 = canvas_1.create_image(150,100,anchor=CENTER,image = yellow_file_2)
 
 
-        red_file_1 = PhotoImage(file="red.png") 
+        red_file_1 = PhotoImage(file="./Images_Video/red.png") 
         my_red_image_1 = canvas_1.create_image(170,310,anchor=CENTER,image = red_file_1)
 
-        red_file_2 = PhotoImage(file="red.png") 
+        red_file_2 = PhotoImage(file="./Images_Video/red.png") 
         my_red_image_2 = canvas_1.create_image(170,310,anchor=CENTER,image = red_file_2)
 
-        blue_file_1 = PhotoImage(file="blue.png") 
+        blue_file_1 = PhotoImage(file="./Images_Video/blue.png") 
         my_blue_image_1 = canvas_1.create_image(160,520,anchor=CENTER,image = blue_file_1)
 
-        blue_file_2 = PhotoImage(file="blue.png") 
+        blue_file_2 = PhotoImage(file="./Images_Video/blue.png") 
         my_blue_image_2 = canvas_1.create_image(160,520,anchor=CENTER,image = blue_file_2)
 
 
@@ -234,7 +243,7 @@ def call():
 
     def server():
 
-        yellow_file_4 = PhotoImage(file="grey.png") 
+        yellow_file_4 = PhotoImage(file="./Images_Video/grey.png") 
         my_yellow_image_4 = canvas_1.create_image(500,125,anchor=CENTER,image = yellow_file_4)
         xVelocity_yellow_4 = -0.28*0.5
         yVelocity_yellow_4 = 1.65*0.5
@@ -270,19 +279,42 @@ def call():
                 yVelocity_yellow_4 = -1.65*0.5
             
             
+            
+
+            # if(coordinate_y3[0] < 472):
+            #     xVelocity_yellow_4 = 0.28*0.5
+            # if(coordinate_y3[1] > 290 ):
+            #     yVelocity_yellow_4 = 1.75*0.5
+
+            # if(coordinate_y3[0] > 500):
+            #     xVelocity_yellow_4 = 0.28*0.5
+            # if(coordinate_y3[1] > 465 ):
+            #     yVelocity_yellow_4 = -1.75*0.5
+
+            # if(coordinate_y3[0] > 530):
+            #     xVelocity_yellow_4 = -0.28*0.5
+            # if(coordinate_y3[1] < 290 ):
+            #     yVelocity_yellow_4 = -1.65*0.5
+            
+            
 
             canvas_1.move(my_yellow_image_4,xVelocity_yellow_4,yVelocity_yellow_4)
             window.update()
             
             time.sleep(0.01)
 
+    # grey_file_1 = PhotoImage(file="grey.png") 
+    # my_grey_image_1 = canvas_1.create_image(770,295,anchor=CENTER,image = grey_file_1)
+
+
+
 
     def result():
-        grey_file_1 = PhotoImage(file="grey.png") 
+        grey_file_1 = PhotoImage(file="./Images_Video/grey.png") 
         my_grey_image_1 = canvas_1.create_image(500,125,anchor=CENTER,image = grey_file_1)
         xVelocity_grey_1 = 2.7*0.5
         yVelocity_grey_1 = 1.7*0.5
-        grey_file_2 = PhotoImage(file="grey.png") 
+        grey_file_2 = PhotoImage(file="./Images_Video/grey.png") 
         my_grey_image_2 = canvas_1.create_image(500,465,anchor=CENTER,image = grey_file_2)
         xVelocity_grey_2 = 2.7*0.5
         yVelocity_grey_2 = -1.7*0.5
@@ -314,9 +346,11 @@ def call():
             
             time.sleep(0.01)
 
+    # grey_file_3 = PhotoImage(file="grey.png") 
+    # my_grey_image_3 = canvas_1.create_image(25,100,anchor=CENTER,image = grey_file_3)
 
     def result2(my_grey_image_1,my_grey_image_2):
-        grey_file_3 = PhotoImage(file="grey.png") 
+        grey_file_3 = PhotoImage(file="./Images_Video/grey.png") 
         my_grey_image_3 = canvas_1.create_image(770,295,anchor=CENTER,image = grey_file_3)
         
 
@@ -400,6 +434,7 @@ def call():
     # my_yellow_image_4 = canvas_1.create_image(530,290,anchor=CENTER,image = yellow_file_4)
 
 
+
     client_button = Button(window, text="Client", padx=40,pady=10, command=client,highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
     server_button = Button(window, text="Server", padx=40,pady=10, command=server,highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
     output_button = Button(window, text="Output", padx=40,pady=10, command=result,highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
@@ -409,22 +444,22 @@ def call():
     server_button.grid(row=2,column=2,ipadx=5)
     output_button.grid(row=2,column=3,ipadx=5)
 
-    def painter(root):
-        root.destroy()
-        paint.call()
+    # def painter(root):
+    #     root.destroy()
+    #     paint.call()
 
-    def Uploader(root):
-        root.destroy()
-        File_location.call()
+    # def Uploader(root):
+    #     root.destroy()
+    #     File_location.call()
 
-    paint_button = Button(window, text="Draw your Number", padx=80,pady=10, command=lambda: painter(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
-    upload_button = Button(window, text="Upload your Image", padx=80,pady=10, command=lambda: Uploader(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
-
-
+    # paint_button = Button(window, text="Draw your Number", padx=80,pady=10, command=lambda: painter(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
+    # upload_button = Button(window, text="Upload your Image", padx=80,pady=10, command=lambda: Uploader(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
 
 
-    paint_button.grid(row=3,column=0,ipadx=5, pady=20)
-    upload_button.grid(row=3,column=1,ipadx=5, columnspan=3, pady=20)
+
+
+    # paint_button.grid(row=3,column=0,ipadx=5, pady=20)
+    # upload_button.grid(row=3,column=1,ipadx=5, columnspan=3, pady=20)
 
 
 
