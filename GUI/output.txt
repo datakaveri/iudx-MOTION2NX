@@ -1,6 +1,2 @@
 Image Provider starts
-
-
-
-
-1
+Exiting due to error.

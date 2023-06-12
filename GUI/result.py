@@ -2,6 +2,7 @@ from tkinter import *
 from PIL import ImageTk, Image
 import cv2
 import SMPC
+import os
 
 
 def call(image):
@@ -11,7 +12,7 @@ def call(image):
 
     window = Tk()
     window.geometry("1600x900") 
-
+    base_dir = os.getenv("BASE_DIR")
     canvas_2 = Canvas(window, width= WIDTH*2, height=70)
     canvas_2.grid(row = 0 , column=0, columnspan=2)
     application_title = "Secure Multi-Party Computation"
@@ -20,13 +21,13 @@ def call(image):
     canvas_1 = Canvas(window, width= WIDTH, height=HEIGHT)
     canvas_1.grid(row = 1 , column=0)
 
-    back_image1 = PhotoImage(file=("/home/daksh1115/iudx-MOTION2NX-public/data/ImageProvider/raw_images/" + image)) 
+    back_image1 = PhotoImage(file=(base_dir+"data/ImageProvider/raw_images/" + image)) 
     my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image1)
 
 
     canvas = Canvas(window, width= WIDTH, height=HEIGHT)
     canvas.grid(row = 1 , column=1)
-    img = cv2.imread("/home/daksh1115/iudx-MOTION2NX-public/data/ImageProvider/processed_images/" +image, cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(base_dir+ "data/ImageProvider/processed_images/" +image, cv2.IMREAD_UNCHANGED)
     width = int(back_image1.width())
     height = int(back_image1.height())
     dim = (width, height)
@@ -70,7 +71,7 @@ def call(image):
     window.resizable(False , False)
     window.mainloop()
 
-call("1111.png")
+#call("1111.png")
 
 
 
