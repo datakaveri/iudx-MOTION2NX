@@ -12,7 +12,7 @@ build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_config=${BASE_DIR}/config_files/model_config.json
 model_provider_path=${BASE_DIR}/data/ModelProvider
 debug_ModelProv=${BASE_DIR}/logs/ModelProvider_logs/
-smpc_config_path=${BASE_DIR}/config_files/smpc-remote-config.json
+smpc_config_path=${BASE_DIR}/config_files/smpc-helpernode-config.json
 smpc_config=`cat $smpc_config_path`
 #--------------------------------- Inputs ------------------------------------------------------------------#
 # Do dns resolution or not 
@@ -34,8 +34,8 @@ cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 # Ports on which weights,image provider  receiver listens/talks
-cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
-cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`
+cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_model_receiver`
+cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_model_receiver`
 # Port on which final output talks to image provider 
 cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_receiver`
 

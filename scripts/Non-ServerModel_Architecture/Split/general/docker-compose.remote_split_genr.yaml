@@ -17,13 +17,12 @@ services:
       - ../../../../config_files:/usr/share/app/config_files:ro
       - ../../../../scripts:/usr/share/app/scripts:rw
 
-    restart:
-      on-failure
+    restart: no
       #    networks:
       #- motion2nx-net
     network_mode: "host"
     ports:
-      # cs0_port_data_receiver
+      # cs0_port_model_receiver
       - "4005:4005"
       # cs0_port_cs0_output_receiver
       - "4007:4007"

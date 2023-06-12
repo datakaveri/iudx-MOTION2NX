@@ -14,8 +14,7 @@ services:
       - ../../../config_files:/usr/share/app/config_files:ro
       - ../../../scripts:/usr/share/app/scripts:rw
 
-    restart:
-      on-failure
+    restart: no
       #    networks:
       #- motion2nx-net
     network_mode: "host"
