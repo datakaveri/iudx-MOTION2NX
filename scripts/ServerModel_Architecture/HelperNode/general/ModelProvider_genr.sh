@@ -34,8 +34,8 @@ cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 # Ports on which weights,image provider  receiver listens/talks
-cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_data_receiver`
-cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_data_receiver`
+cs0_port_model_receiver=`echo $smpc_config | jq -r .cs0_port_model_receiver`
+cs1_port_model_receiver=`echo $smpc_config | jq -r .cs1_port_model_receiver`
 # Port on which final output talks to image provider 
 cs0_port_cs1_output_receiver=`echo $smpc_config | jq -r .cs0_port_cs1_output_receiver`
 
