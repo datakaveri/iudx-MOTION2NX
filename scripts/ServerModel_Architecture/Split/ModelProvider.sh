@@ -13,7 +13,7 @@ model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_provider_path=${BASE_DIR}/data/ModelProvider
 debug_ModelProv=${BASE_DIR}/logs/ModelProvider_logs/
-smpc_config_path=${BASE_DIR}/config_files/smpc-remote-config.json
+smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
 smpc_config=`cat $smpc_config_path`
 # #####################Inputs##########################################################################################################
 # Do dns resolution or not 
