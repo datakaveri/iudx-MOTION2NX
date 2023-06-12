@@ -21,13 +21,13 @@ def call(image):
     canvas_1 = Canvas(window, width= WIDTH, height=HEIGHT)
     canvas_1.grid(row = 1 , column=0)
 
-    back_image1 = PhotoImage(file=(base_dir+"data/ImageProvider/raw_images/" + image)) 
+    back_image1 = PhotoImage(file=(base_dir+"/data/ImageProvider/raw_images/" + image)) 
     my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image1)
 
 
     canvas = Canvas(window, width= WIDTH, height=HEIGHT)
     canvas.grid(row = 1 , column=1)
-    img = cv2.imread(base_dir+ "data/ImageProvider/processed_images/" +image, cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(base_dir+ "/data/ImageProvider/processed_images/" +image, cv2.IMREAD_UNCHANGED)
     width = int(back_image1.width())
     height = int(back_image1.height())
     dim = (width, height)
