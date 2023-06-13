@@ -41,7 +41,7 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/ && ./remote_server0_split.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/ && ./remote_server0_split_genr.sh && while (true);  do  sleep 10; done"
 
   # SMPC server 1, model provider server
   smpc-server1:
@@ -73,7 +73,7 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/ && ./remote_server1_split.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/ && ./remote_server1_split_genr.sh && while (true);  do  sleep 10; done"
 
 volumes:
   smpc-server1-volume:

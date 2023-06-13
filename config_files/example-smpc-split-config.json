@@ -5,8 +5,6 @@
       "cs0_dns_resolve": true,
       "cs1_dns_resolve": true,
       "reverse_ssh_dns_resolve": true,
-      "cs0_port_data_receiver": 4005,
-      "cs1_port_data_receiver": 4006,
       "cs0_port_model_receiver": 4005,
       "cs1_port_model_receiver": 4006,
       "cs0_port_cs0_output_receiver": 4007,
