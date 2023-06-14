@@ -10,7 +10,7 @@ check_exit_statuses() {
 }
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/model_config.json
+model_config=${BASE_DIR}/config_files/model_helpernode_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_provider_path=${BASE_DIR}/data/ModelProvider
 debug_1=${BASE_DIR}/logs/server1/
