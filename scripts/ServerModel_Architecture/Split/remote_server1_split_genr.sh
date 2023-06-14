@@ -1,6 +1,5 @@
 #!/bin/bash
 image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/model_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_provider_path=${BASE_DIR}/data/ModelProvider
 debug_1=${BASE_DIR}/logs/server1/
@@ -107,7 +106,7 @@ fi
 
 #########################Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"
-$build_path/bin/weight_share_receiver_genr --my-id 1 --port $cs1_port_model_receiver --current-path $build_path >> $debug_1/Weights_Share_Receiver.txt &
+$build_path/bin/weight_share_receiver_genr --my-id 1 --port $cs1_port_model_receiver --current-path $build_path > $debug_1/Weights_Share_Receiver.txt &
 pid1=$!
 
 #########################Image Share Receiver ############################################################################################

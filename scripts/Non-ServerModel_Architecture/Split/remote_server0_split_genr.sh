@@ -60,16 +60,21 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 image_id=`echo $smpc_config | jq -r .image_id`
 
 # echo all input variables
-#echo "cs0_host $cs0_host"
-#echo "cs1_host $cs1_host"
-#echo "cs0_port_model_receiver $cs0_port_model_receiver"
-#echo "cs1_port_model_receiver $cs1_port_model_receiver"
-#echo "cs0_port_cs0_output_receiver $cs0_port_cs0_output_receiver"
-#echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-#echo "cs0_port_inference $cs0_port_inference"
-#echo "cs1_port_inference $cs1_port_inference"
-#echo "fractional bits: $fractional_bits"
-#echo "no. of splits: $splits"
+# echo "cs0_host $cs0_host"
+# echo "cs1_host $cs1_host"
+# echo "cs0_port_model_receiver $cs0_port_model_receiver"
+# echo "cs1_port_model_receiver $cs1_port_model_receiver"
+# echo "cs0_port_cs0_output_receiver $cs0_port_cs0_output_receiver"
+# echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+# echo "cs0_port_inference $cs0_port_inference"
+# echo "cs1_port_inference $cs1_port_inference"
+# echo "relu0_port_inference $relu0_port_inference"
+# echo "relu1_port_inference $relu1_port_inference"
+# echo "number_of_layers $number_of_layers"
+# echo "image_id $image_id"
+# echo "fractional bits: $fractional_bits"
+# echo "no. of splits: $splits"
+# echo "smpc_config_path: $smpc_config_path
 ##########################################################################################################################################
 
 if [ ! -d "$debug_0" ];

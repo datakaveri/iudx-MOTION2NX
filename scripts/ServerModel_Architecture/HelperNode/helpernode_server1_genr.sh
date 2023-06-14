@@ -10,9 +10,7 @@ check_exit_statuses() {
 }
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/model_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
-model_provider_path=${BASE_DIR}/data/ModelProvider
 debug_1=${BASE_DIR}/logs/server1/
 scripts_path=${BASE_DIR}/scripts
 smpc_config_path=${BASE_DIR}/config_files/smpc-helpernode-config.json
@@ -52,11 +50,13 @@ fi
 cs0_dns_resolve=`echo $smpc_config | jq -r .cs0_dns_resolve`
 cs1_dns_resolve=`echo $smpc_config | jq -r .cs1_dns_resolve`
 helpernode_dns_resolve=`echo $smpc_config | jq -r .helpernode_dns_resolve`
+reverse_ssh_dns_resolve=`echo $smpc_config | jq -r .reverse_ssh_dns_resolve`
 
 # cs0_host is the ip/domain of server0, cs1_host is the ip/domain of server1
 cs0_host=`echo $smpc_config | jq -r .cs0_host`
 cs1_host=`echo $smpc_config | jq -r .cs1_host`
 helpernode_host=`echo $smpc_config | jq -r .helpernode_host`
+reverse_ssh_host=`echo $smpc_config | jq -r .reverse_ssh_host`
 
 if [[ $cs0_dns_resolve == "true" ]];
 then
@@ -71,6 +71,11 @@ fi
 if [[ $helpernode_dns_resolve == "true" ]];
 then
 helpernode_host=`dig +short $helpernode_host | grep '^[.0-9]*$' | head -n 1`
+fi
+
+if [[ $reverse_ssh_dns_resolve == "true" ]];
+then 
+reverse_ssh_host=`dig +short $reverse_ssh_host | grep '^[.0-9]*$' | head -n 1`
 fi
 
 # Ports on which weights provider  receiver listens/talks
@@ -104,7 +109,7 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 #echo "cs1_port_inference $cs1_port_inference"
 #echo "fractional bits: $fractional_bits"
 
-##############################################################################################
+##########################################################################################################################################
 
 if [ ! -d "$debug_1" ];
 then
@@ -116,26 +121,20 @@ echo "Weight shares receiver starts"
 $build_path/bin/weight_share_receiver_genr --my-id 1 --port $cs1_port_model_receiver --current-path $build_path > $debug_1/Weights_Share_Receiver1.txt &
 pid1=$!
 
-#########################Weights Provider ############################################################################################
-echo "Weight Provider starts"
-$build_path/bin/weights_provider_genr --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --fractional-bits $fractional_bits --filepath $model_provider_path --config-file-path $model_config > $debug_1/weights_provider.txt &
-pid2=$!
-
-wait $pid2
-check_exit_statuses $?
-wait $pid1
-check_exit_statuses $?
-echo "Weight Shares received"
-
-#########################Image Share Receiver ############################################################################################
+# #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
 
 $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver1.txt &
-pid3=$!
-wait $pid3
+pid2=$!
+wait $pid1
+check_exit_statuses $? 
+wait $pid2
 check_exit_statuses $?
+
+echo "Weight Shares received"
 echo "Image shares received"
 ########################Share generators end ############################################################################################
+
 
 ########################Inferencing task starts ###############################################################################################
 
@@ -153,18 +152,20 @@ start=$(date +%s)
 #######################################Matrix multiplication layer 1 ###########################################################################
 for((; layer_id<$number_of_layers; layer_id++))
 do
+
 if [ $layer_id -gt 1 ];
 then
     input_config="outputshare"
 fi
 
 $build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
+
 pid1=$!
 wait $pid1
 check_exit_statuses $?
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
-#######################################ReLU layer 1 ####################################################################################
+# #######################################ReLu layer 1 ####################################################################################
 $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
 pid1=$!
 wait $pid1
@@ -175,15 +176,16 @@ done
 
 #Updating the config file for layers 2 and above.
 if [ $layer_id -gt 1 ];
-   then
-      input_config="outputshare"
+then
+    input_config="outputshare"
 fi
+
 #######################################Matrix multiplication layer 2 ###########################################################################
 
 $build_path/bin/server1 --WB_file file_config_model1 --input_file $input_config  --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path --layer-id $layer_id --fractional-bits $fractional_bits > $debug_1/server1_layer${layer_id}.txt &
 pid1=$!
-wait $pid1 
-check_exit_statuses $?
+wait $pid1
+check_exit_statuses $? 
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
@@ -197,9 +199,9 @@ end=$(date +%s)
 
 ####################################### Final output provider  ###########################################################################
 
-$build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
-pid1=$!
-wait $pid1
+$build_path/bin/final_output_provider --my-id 1 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs1_output_receiver --config-input $image_share --current-path $build_path > $debug_1/final_output_provider1.txt &
+pid4=$!
+wait $pid4
 check_exit_statuses $?
 echo "Output shares of server 1 sent to the Image provider"
 
