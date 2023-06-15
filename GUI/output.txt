@@ -3,4 +3,4 @@ Image shares sent.
 Image Provider is waiting for the inferencing result
 Reconstruction Starts
  
-The image shared is detected as:7
+The image shared is detected as:0
