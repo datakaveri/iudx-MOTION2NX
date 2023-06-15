@@ -11,7 +11,7 @@ check_exit_statuses() {
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
-debug_1=${BASE_DIR}/logs/server1/
+debug_1=${BASE_DIR}/logs/server1
 scripts_path=${BASE_DIR}/scripts
 smpc_config_path=${BASE_DIR}/config_files/smpc-helpernode-config.json
 smpc_config=`cat $smpc_config_path`

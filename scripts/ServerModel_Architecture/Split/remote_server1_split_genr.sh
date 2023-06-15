@@ -1,12 +1,21 @@
 #!/bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_provider_path=${BASE_DIR}/data/ModelProvider
-debug_1=${BASE_DIR}/logs/server1/
+debug_1=${BASE_DIR}/logs/server1
 smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
 smpc_config=`cat $smpc_config_path`
 # #####################Inputs##########################################################################################################
-# Do dns reolution or not 
+# Do dns resolution or not 
 cs0_dns_resolve=`echo $smpc_config | jq -r .cs0_dns_resolve`
 cs1_dns_resolve=`echo $smpc_config | jq -r .cs1_dns_resolve`
 reverse_ssh_dns_resolve=`echo $smpc_config | jq -r .reverse_ssh_dns_resolve`
@@ -114,7 +123,10 @@ echo "Image shares receiver starts"
 $build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver.txt &
 pid2=$!
 
-wait $pid1 $pid2
+wait $pid1
+check_exit_statuses $? 
+wait $pid2
+check_exit_statuses $?
 
 echo "Weight shares received"
 echo "Image shares received"
@@ -165,6 +177,7 @@ for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64
    $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $num_splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer${layer_id}_split.txt &
    pid1=$!
    wait $pid1  
+   check_exit_statuses $? 
    echo "Layer $layer_id, split $m: Matrix multiplication and addition is done"
    
    if [ $m -eq 1 ];then
@@ -176,26 +189,27 @@ for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64
       $build_path/bin/appendfile 1
       pid1=$!
       wait $pid1 
-      
+      check_exit_statuses $? 
       else 
       
       $build_path/bin/appendfile 1
       pid1=$!
       wait $pid1 
+      check_exit_statuses $? 
     fi
 
-		sed -i "1s/${r} 1/${b} 1/" finaloutput_1
+	sed -i "1s/${r} 1/${b} 1/" finaloutput_1
 
 done
 
 cp finaloutput_1  $build_path/server1/outputshare_1
-
+check_exit_statuses $? 
 
 #######################################ReLu layer 1 ####################################################################################
 $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer${layer_id}.txt &
 pid1=$!
-
 wait $pid1 
+check_exit_statuses $? 
 echo "Layer $layer_id: ReLU is done"
 
 if [ -f finaloutput_1 ]; then
@@ -204,7 +218,7 @@ if [ -f finaloutput_1 ]; then
 fi
 
 cp $build_path/server1/outputshare_1  $build_path/server1/mult_output_1
-
+check_exit_statuses $? 
 ((layer_id++))
 
 done
@@ -228,6 +242,7 @@ $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_infer
 pid1=$!
 
 wait $pid1 
+check_exit_statuses $? 
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
 #######################################ReLu layer 1 ####################################################################################
@@ -235,6 +250,7 @@ $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference
 pid1=$!
 
 wait $pid1 
+check_exit_statuses $? 
 echo "Layer $layer_id: ReLU is done"
 
 done
@@ -243,8 +259,8 @@ done
 
 $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
 pid1=$!
-
 wait $pid1 
+check_exit_statuses $? 
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
 
@@ -254,7 +270,7 @@ $build_path/bin/argmax --my-id 1 --threads 1 --party 0,$cs0_host,$cs0_port_infer
 pid1=$!
 
 wait $pid1 
-
+check_exit_statuses $? 
 end=$(date +%s)
 
 echo "Layer $layer_id: Argmax is done"
@@ -263,8 +279,8 @@ echo "Layer $layer_id: Argmax is done"
 
 $build_path/bin/final_output_provider --my-id 1 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs1_output_receiver --config-input $image_share --current-path $build_path > $debug_1/final_output_provider.txt &
 pid4=$!
-
-wait $pid4 
+wait $pid4
+check_exit_statuses $?  
 echo "Output shares of server 1 sent to the Image provider"
 
 wait 
