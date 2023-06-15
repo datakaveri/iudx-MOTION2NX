@@ -60,3 +60,6 @@ config_files/model_split_config.json
 config_files/image_config.json
 # log files
 logs/
+
+#GUI
+GUI/__pycache__/
