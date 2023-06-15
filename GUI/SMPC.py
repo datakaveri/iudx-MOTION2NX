@@ -6,7 +6,8 @@ import File_location
 import time
 import NN
 import NN_helper
-import outputtable
+import two_layer
+import five_layer
 
 def call():
 
@@ -35,11 +36,12 @@ def call():
     yVelocity_blue_2 = 0.35*0.5
 
     window = Tk()
+    window.title("SMPC")
     window.geometry("1550x700") 
 
     canvas_2 = Canvas(window, width= WIDTH*2, height=70)
     canvas_2.grid(row = 0 , column=0, columnspan=4)
-    canvas_2.option_add("*TCombobox*Listbox.font", "Times 20 bold")
+    canvas_2.option_add("*TCombobox*Listbox.font", "sans 20 bold")
     canvas_2.option_add("*TCombobox*Listbox.justify", "center")
 
 
@@ -51,7 +53,8 @@ def call():
         "Secure Multiparty Computation",
         "Neural Network Inferencing",
         "Neural Network Inferencing with helper node",
-        "Output Result Table"
+        "Setup: Two Layer Neural Network",
+        "Setup: Five Layer Neural Network"
     ]
 
 
@@ -63,12 +66,15 @@ def call():
         elif choice == "Neural Network Inferencing with helper node":
             window.destroy()
             NN_helper.call()
-        elif choice == "Output Result Table":
+        elif choice == "Setup: Two Layer Neural Network":
             window.destroy()
-            outputtable.call()
+            two_layer.call()
+        elif choice == "Setup: Five Layer Neural Network":
+            window.destroy()
+            five_layer.call()
 
     clicked = StringVar()
-    my_combo = ttk.Combobox(canvas_2, values=options,font=('Times 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
+    my_combo = ttk.Combobox(canvas_2, values=options,font=('sans 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
     my_combo.grid(row = 0 , column=0, columnspan=4, ipadx=300,ipady=10, padx=10, pady=10)
     # my_combo.config(dropdown_font = ('Times 20 bold'))
     my_combo.set( "Secure Multiparty Computation" )
@@ -112,7 +118,7 @@ def call():
     canvas.grid(row = 1 , column=1,columnspan=3)
 
 
-    details_smpc = "Secure Multiparty Computation\n\n   -> Compute servers to jointly compute a function\n      over the inputs of data providers\n\n   -> Data providers provide secret shares to compute\n      servers to preserve privacy.\n\n   -> Compute servers have no knowledge of inputs\n      and intermediate values and the final solution.\n"
+    details_smpc = "Secure Multiparty Computation\n\n   • Compute servers to jointly compute a function\n      over the inputs of data providers\n\n   • Data providers provide secret shares to compute\n      servers to preserve privacy.\n\n   • Compute servers have no knowledge of inputs\n      and intermediate values and the final solution.\n"
     canvas.create_text(700/2, 512/2,anchor= CENTER, text=details_smpc, fill="black", font=('sans 18 normal'))
 
     def client():

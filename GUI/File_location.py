@@ -12,8 +12,8 @@ import os
 def call(fileLocation):
     root = Tk()
     global myLabel, filepath
-    filepath = fileLocation
-    root.title("Application")
+    filepath = fileLocation 
+    root.title("Upload File")
     # root.attributes('-fullscreen', True)
 
 
@@ -97,7 +97,7 @@ def call(fileLocation):
     # showButton.pack()
 
 
-    nextButton = Button(root, text= "Share Seceret Share", command= uplaod, width=30)
+    nextButton = Button(root, text= "Send Seceret Shares", command= uplaod, width=30)
     nextButton.grid(row=4,column=0, columnspan=2, padx=75,pady=10)
 
     App_title = Label(root, text= "Upload your Image", command= None,font=('Times 20 bold'))

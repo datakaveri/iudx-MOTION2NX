@@ -80,7 +80,7 @@ def call():
 
     def saveImage():
         try:
-            fileLocation = filedialog.asksaveasfilename(defaultextension=".png")
+            
             # print(fileLocation)
             x = root.winfo_rootx() + frame2.winfo_x()
             y = root.winfo_rooty()+ canvas.winfo_y()
@@ -92,6 +92,8 @@ def call():
 
             
             img = ImageGrab.grab().crop((x,y,x1,y1))
+            
+            fileLocation = filedialog.asksaveasfilename(defaultextension=".png")
             img.save(fileLocation)
             
             

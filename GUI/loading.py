@@ -21,11 +21,12 @@ def call(image):
     global my_progress_bar,videoplayer,root, temp
 
     root = Tk()
-    root.geometry("600x600")
+    root.title("Output share Receiver")
+    root.geometry("300x300")
 
     root.title("Application")
 
-    root.geometry("1080x720")
+    root.geometry("300x300")
     root.configure(bg='white')
 
     temp = True
@@ -69,7 +70,7 @@ def call(image):
     print('Main thread is carrying on...')
 
     videoplayer = TkinterVideo(master= root, scaled = False)
-    videoplayer.load("./Images_Video/buffer.mp4")
+    videoplayer.load("./Images_Video/buffer1.mp4")
 
     videoplayer.pack(anchor=S, expand= True, fill= "both")
     # videoplayer.place(x = 100, y= 200)
