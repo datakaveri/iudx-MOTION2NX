@@ -5,13 +5,15 @@ import File_location
 import time
 import SMPC
 import NN
-import outputtable
+import two_layer
+import five_layer
 
 # window = Tk()
 
 
 def call():
     window = Tk()
+    window.title("SMPC")
     global xVelocity_yellow_1,yVelocity_yellow_1, xVelocity_yellow_2, yVelocity_yellow_2, xVelocity_red_1,yVelocity_red_1,  xVelocity_red_2,yVelocity_red_2, xVelocity_blue_1,yVelocity_blue_1,  xVelocity_blue_2,yVelocity_blue_2
 
     WIDTH = 800
@@ -40,7 +42,7 @@ def call():
 
     canvas_2 = Canvas(window, width= WIDTH*2, height=70)
     canvas_2.grid(row = 0 , column=0, columnspan=4)
-    canvas_2.option_add("*TCombobox*Listbox.font", "Times 20 bold")
+    canvas_2.option_add("*TCombobox*Listbox.font", "sans 20 bold")
     canvas_2.option_add("*TCombobox*Listbox.justify", "center")
 
 
@@ -52,7 +54,8 @@ def call():
         "Secure Multiparty Computation",
         "Neural Network Inferencing",
         "Neural Network Inferencing with helper node",
-        "Output Result Table"
+        "Setup: Two Layer Neural Network",
+        "Setup: Five Layer Neural Network"
     ]
 
 
@@ -64,13 +67,16 @@ def call():
         elif choice == "Neural Network Inferencing":
             window.destroy()
             NN.call()
-        elif choice == "Output Result Table":
+        elif choice == "Setup: Two Layer Neural Network":
             window.destroy()
-            outputtable.call()
+            two_layer.call()
+        elif choice == "Setup: Five Layer Neural Network":
+            window.destroy()
+            five_layer.call()
         
 
     clicked = StringVar()
-    my_combo = ttk.Combobox(canvas_2, values=options,font=('Times 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
+    my_combo = ttk.Combobox(canvas_2, values=options,font=('sans 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
     my_combo.grid(row = 0 , column=0, columnspan=4, ipadx=300,ipady=10, padx=10, pady=10)
     # my_combo.config(dropdown_font = ('Times 20 bold'))
     my_combo.set( "Neural Network Inferencing with helper node" )
@@ -89,7 +95,7 @@ def call():
     canvas.grid(row = 1 , column=1,columnspan=3)
 
 
-    details_smpc = "Secure Multiparty Computation\n\n   -> Compute servers to jointly compute a function\n      over the inputs of data providers\n\n   -> Data providers provide secret shares to compute\n      servers to preserve privacy.\n\n   -> Compute servers have no knowledge of inputs\n      and intermediate values and the final solution.\n"
+    details_smpc = "Neural Network Inferencing\n\n   In this context there are only 2 data providers, \n   image provider and model provider. \n\n   Image provider is the output owner, i.e., output \n   shares are received only by the image provider\n\nHow is helper node different: \n\n   • Helper node interacts only with the \n   compute servers.\n\n   • Helper node helps the compute servers \n   in the implementation of a secure matrix \n   multiplication function."
     canvas.create_text(700/2, 512/2,anchor= CENTER, text=details_smpc, fill="black", font=('sans 18 normal'))
 
 

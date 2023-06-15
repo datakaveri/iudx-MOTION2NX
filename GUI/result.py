@@ -1,3 +1,4 @@
+import os
 from tkinter import *
 from PIL import ImageTk, Image
 import cv2
@@ -11,8 +12,11 @@ def call(image):
     HEIGHT = 600
 
     window = Tk()
+    window.title("Neural Network Inferencing Result")
     window.geometry("1600x900") 
+
     base_dir = os.getenv("BASE_DIR")
+
     canvas_2 = Canvas(window, width= WIDTH*2, height=70)
     canvas_2.grid(row = 0 , column=0, columnspan=2)
     application_title = "Secure Multi-Party Computation"
@@ -27,7 +31,7 @@ def call(image):
 
     canvas = Canvas(window, width= WIDTH, height=HEIGHT)
     canvas.grid(row = 1 , column=1)
-    img = cv2.imread(base_dir+ "/data/ImageProvider/processed_images/" +image, cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(base_dir+"/data/ImageProvider/processed_images/" +image, cv2.IMREAD_UNCHANGED)
     width = int(back_image1.width())
     height = int(back_image1.height())
     dim = (width, height)
@@ -62,16 +66,16 @@ def call(image):
     def exit_app(window):
         window.destroy()
 
-    retry_button = Button(canvas_4, text="Draw your Number", padx=10,pady=10, command=lambda: retry(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'), anchor=CENTER)
-    exit_button = Button(canvas_4, text="Upload your Image", padx=10,pady=10, command=lambda: exit_app(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
+    retry_button = Button(canvas_4, text="Run Again", padx=10,pady=10, command=lambda: retry(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
+    exit_button = Button(canvas_4, text="Exit", padx=10,pady=10, command=lambda: exit_app(window),highlightthickness=3, highlightbackground="black", font=('Times 20 bold'))
 
-    retry_button.grid(row=0,column=0,ipadx=5, pady=20)
-    exit_button.grid(row=0,column=1,ipadx=5, pady=20)
+    retry_button.grid(row=0,column=0,ipadx=20, pady=20)
+    exit_button.grid(row=0,column=1,ipadx=20, pady=20)
 
     window.resizable(False , False)
     window.mainloop()
 
-#call("1111.png")
+# call("1111.png")
 
 
 
