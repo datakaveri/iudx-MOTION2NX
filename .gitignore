@@ -34,7 +34,6 @@ CTestTestfile.cmake
 *Config.cmake
 *Targets.cmake
 *.cbp
-
 # VS Code Directory
 .vscode/
 
@@ -43,4 +42,21 @@ docs/Doxyfile
 
 # All the result files, such as the intermediary output shares, etc.
 Dataprovider/image_provider/Final_Output_Shares/
-Dataprovider/image_provider/answer/
+Dataprovider/image_provider/answer
+
+# Docker 
+docker-compose.registry.yaml
+docker-compose.remote-registry.yaml
+
+# data
+/data/
+data/
+
+# config file
+config_files/smpc-helpernode-config.json
+config_files/smpc-split-config.json
+config_files/model_helpernode_config.json
+config_files/model_split_config.json
+config_files/image_config.json
+# log files
+logs/

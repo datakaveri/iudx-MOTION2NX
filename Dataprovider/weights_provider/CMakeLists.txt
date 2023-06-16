@@ -1,5 +1,6 @@
 
-add_executable(weights_provider weights_provider.cpp)
+add_executable(weights_provider_remote weights_provider_remote.cpp)
+add_executable(weights_provider_genr weights_provider_genr.cpp)
 
 set(REQUIRED_BOOST_VERSION "1.75.0")
 
@@ -9,25 +10,17 @@ json
 log 
 program_options 
 REQUIRED)
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/newB1.csv
-    ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/newB2.csv
-    ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+target_compile_features(weights_provider_remote PRIVATE cxx_std_20)
+target_compile_features(weights_provider_genr PRIVATE cxx_std_20)
 
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/newW1.csv
-    ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+target_link_libraries(weights_provider_remote
+    Boost::json
+    Boost::log
+    Boost::program_options
+)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/newW2.csv
-    ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-    
-    
-target_compile_features(weights_provider PRIVATE cxx_std_20)
-
-
-target_link_libraries(weights_provider
+target_link_libraries(weights_provider_genr
     Boost::json
     Boost::log
     Boost::program_options

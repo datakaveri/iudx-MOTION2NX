@@ -1,0 +1,78 @@
+.dockerignore
+docker/
+build_debwithrelinfo_gcc/
+README.md
+.git/
+extern/
+docker-compose.yaml
+Documentation2NX
+setup.sh
+LICENSE
+.travis.yml
+.gitignore
+.clang-format
+example-docker-compose.remote.yaml
+docker-compose.remote.yaml
+Dataprovider/image_provider/images/
+Dataprovider/weights_provider/*.csv
+## from .gitignore
+
+*.h~
+*.cpp~
+*.c~
+*.o
+*.exe
+*.log
+.metadata
+.cproject
+.project
+.settings
+*.db
+README.html
+*.dump
+.idea*
+*_generated.h
+
+src/motioncore/communication/fbs_headers/*
+src/motioncore/utility/config.h
+
+# build directory
+build*/
+cmake-build*
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+*Config.cmake
+*Targets.cmake
+*.cbp
+
+# VS Code Directory
+.vscode/
+
+# doxygen
+docs/Doxyfile
+
+# All the result files, such as the intermediary output shares, etc.
+Dataprovider/image_provider/Final_Output_Shares/
+Dataprovider/image_provider/answer
+
+# Docker
+*.yaml
+
+# data
+data/
+example-data/data
+
+# config files
+config_files/
+
+# logs 
+logs/

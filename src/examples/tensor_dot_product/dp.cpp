@@ -1,3 +1,7 @@
+//./bin/tensor_dot_product --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1
+//./bin/tensor_dot_product --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1
+
+
 #include <iostream>
 #include <type_traits>
 #include <cstdint>
@@ -11,8 +15,6 @@
 #include <boost/serialization/string.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
-#include "./fixed-point.h"
-
 using namespace boost::asio;
 namespace po = boost::program_options;
 using ip::tcp;
@@ -24,8 +26,6 @@ struct Options
 {
      int cs0_port;
      int cs1_port;
-     std::size_t fractional_bits;
-     std::string NameofImageFile;
      std::filesystem::path filename;
 };
 
@@ -38,9 +38,7 @@ std::optional<Options> parse_program_options(int argc, char *argv[])
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("compute-server0-port", po::value<int>()->required(), "Port number of compute server 0")
     ("compute-server1-port", po::value<int>()->required(), "Port number of compute server 1")
-    ("fractional-bits", po::value<size_t>()->required(), "Number of fractional bits")
     ("dp-id", po::value<int>()->required(), "Id of the data provider")
-     ("NameofImageFile", po::value<string>()->required(), "Name of the image file for which shares should be created")
     ;
      // clang-format on
 
@@ -55,31 +53,27 @@ std::optional<Options> parse_program_options(int argc, char *argv[])
 
      options.cs0_port = vm["compute-server0-port"].as<int>();
      options.cs1_port = vm["compute-server1-port"].as<int>();
-     options.NameofImageFile = vm["NameofImageFile"].as<std::string>();
-     options.fractional_bits = vm["fractional-bits"].as<size_t>();
 
      options.filename = std::filesystem::current_path();
-     std::cout << options.filename << std::endl;
      if (vm["dp-id"].as<int>() == 0)
      {
-          options.filename += "/images/" + options.NameofImageFile + ".csv";
-          std::cout << "path " << options.filename << "\n";
+          options.filename += "/input_dp0.txt";
      }
      else if (vm["dp-id"].as<int>() == 1)
      {
-          options.filename += "/images/" + options.NameofImageFile + ".csv";
-          std::cout << "path " << options.filename << "\n";
+          options.filename += "/input_dp1.txt";
      }
      else
      {
           std::cerr << "Invalid data provider ID\n";
           return std::nullopt;
      }
+
      return options;
 }
 
 template <typename E>
-std::uint64_t blah(E &engine)
+std::uint64_t RandomNumGenerator(E &engine)
 {
      std::uniform_int_distribution<unsigned long long> dis(
          std::numeric_limits<std::uint64_t>::min(),
@@ -92,15 +86,15 @@ struct Shares
      uint64_t Delta, delta;
 };
 
-void share_generation(std::ifstream &indata, int num_elements, Shares *cs0_data, Shares *cs1_data, size_t fractional_bits)
+void share_generation(std::ifstream &indata, int num_elements, Shares *cs0_data, Shares *cs1_data)
 {
      // get input data
-     std::vector<float> data;
+     std::vector<uint64_t> data;
 
      int count = 0;
 
-     float temp;
-     while (indata >> temp)
+     uint64_t temp;
+     while (indata >> temp)  //... 
      {
           data.push_back(temp);
           count++;
@@ -112,7 +106,7 @@ void share_generation(std::ifstream &indata, int num_elements, Shares *cs0_data,
 
      while (count < num_elements)
      {
-          data.push_back(0.0);
+          data.push_back(0);
      }
 
      for (int i = 0; i < data.size(); i++)
@@ -126,12 +120,10 @@ void share_generation(std::ifstream &indata, int num_elements, Shares *cs0_data,
      {
           std::random_device rd;
           std::mt19937 gen(rd());
-          std::uint64_t del0 = blah(gen);
-          std::uint64_t del1 = blah(gen);
-          auto t = MOTION::new_fixed_point::encode<uint64_t, long double>(data[i], fractional_bits);
-          // std::cout<<"Encoded value:"<<t<<std::endl;
+          std::uint64_t del0 = RandomNumGenerator(gen);
+          std::uint64_t del1 = RandomNumGenerator(gen);
 
-          std::uint64_t Del = del0 + del1 + t;
+          std::uint64_t Del = del0 + del1 + data[i];
 
           // For each data, creating 2 shares variables - 1 for CS0 and another for CS1
           Shares cs0, cs1;
@@ -144,56 +136,6 @@ void share_generation(std::ifstream &indata, int num_elements, Shares *cs0_data,
 
           cs0_data[i] = cs0;
           cs1_data[i] = cs1;
-
-          std::cout << "Data = " << data[i] << " Delta = " << cs0.Delta << " delta0 = " << cs0.delta << " delta1 = " << cs1.delta << "\n";
-     }
-
-     return;
-}
-
-void share_generation_csv(std::ifstream &indata, int num_elements, Shares *cs0_data, Shares *cs1_data, size_t fractional_bits)
-{
-     // get input data
-     std::vector<float> data;
-
-     std::string line;
-     while (std::getline(indata, line))
-     {
-
-          std::stringstream lineStream(line);
-          std::string cell;
-
-          while (std::getline(lineStream, cell, ','))
-          {
-               data.push_back(stold(cell));
-          }
-     }
-
-     // Now that we have data, need to generate the shares
-     for (int i = 1; i < 785; i++)
-     {
-          std::random_device rd;
-          std::mt19937 gen(rd());
-          std::uint64_t del0 = blah(gen);
-          std::uint64_t del1 = blah(gen);
-
-          auto tem = MOTION::new_fixed_point::encode<uint64_t, long double>(data[i], fractional_bits);
-          // std::cout<<tem<<",";
-          std::uint64_t Del = del0 + del1 + tem;
-
-          // For each data, creating 2 shares variables - 1 for CS0 and another for CS1
-          Shares cs0, cs1;
-
-          cs0.Delta = Del;
-          cs0.delta = del0;
-
-          cs1.Delta = Del;
-          cs1.delta = del1;
-
-          cs0_data[i - 1] = cs0;
-          cs1_data[i - 1] = cs1;
-
-          std::cout << "Data = " << data[i] << " Delta = " << cs0.Delta << " delta0 = " << cs0.delta << " delta1 = " << cs1.delta << "\n";
      }
 
      return;
@@ -201,7 +143,7 @@ void share_generation_csv(std::ifstream &indata, int num_elements, Shares *cs0_d
 
 void write_struct(tcp::socket &socket, Shares *data, int num_elements)
 {
-     for (int i = 0; i < 784; i++)
+     for (int i = 0; i < num_elements; i++)
      {
           uint64_t arr[2];
           arr[0] = data[i].Delta;
@@ -233,18 +175,15 @@ int main(int argc, char *argv[])
      // Reading contents from file
      std::ifstream indata;
      indata.open(options->filename);
-     int rows = 784, columns = 1;
-     // indata >> rows;
-     // indata >> columns;
-
-     int num_elements = rows * columns;
+     int num_elements;
+     indata >> num_elements;
 
      cout << num_elements << "\n";
 
      Shares cs0_data[num_elements];
      Shares cs1_data[num_elements];
 
-     share_generation_csv(indata, num_elements, cs0_data, cs1_data, options->fractional_bits);
+     share_generation(indata, num_elements, cs0_data, cs1_data);
 
      indata.close();
 
@@ -267,35 +206,10 @@ int main(int argc, char *argv[])
           // connection
           socket.connect(tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port));
 
-          // First send the number of fractional bits to the server
-          boost::system::error_code error_init;
-          boost::asio::write(socket, boost::asio::buffer(&options->fractional_bits, sizeof(options->fractional_bits)), error_init);
-          if (!error_init)
-          {
-               cout << "Not an error" << endl;
-          }
-          else
-          {
-               cout << "send failed: " << error_init.message() << endl;
-          }
+          // Send number of elements to compute server
 
-          // getting a response from the server
-          boost::asio::streambuf receive_buffer_init;
-          boost::asio::read_until(socket, receive_buffer_init, "\n");
-          if (error_init && error_init != boost::asio::error::eof)
-          {
-               cout << "receive failed: " << error_init.message() << endl;
-          }
-          else
-          {
-               const char *data = boost::asio::buffer_cast<const char *>(receive_buffer_init.data());
-               cout << data << endl;
-          }
-
-          // Send rows and columns to compute server
-          int arr[2] = {rows, columns};
           boost::system::error_code error;
-          boost::asio::write(socket, boost::asio::buffer(&arr, sizeof(arr)), error);
+          boost::asio::write(socket, boost::asio::buffer(&num_elements, sizeof(num_elements)), error);
           if (!error)
           {
                cout << "Not an error" << endl;
@@ -323,6 +237,10 @@ int main(int argc, char *argv[])
           if (i)
           {
                data = cs1_data;
+          }
+          for (int i = 0; i < num_elements; i++)
+          {
+               cout << data[i].Delta << " " << data[i].delta << "\n";
           }
           write_struct(socket, data, num_elements);
 

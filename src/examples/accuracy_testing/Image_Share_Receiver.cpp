@@ -1,28 +1,3 @@
-
-/*
-./bin/Image_Share_Receiver --my-id 0 --fractional-bits $fractional_bits --file-names $image_config
---index $i --current-path $build_path
-
-./bin/Image_Share_Receiver --my-id 1 --fractional-bits $fractional_bits --file-names $image_config
---index $i --current-path $build_path
-
-./bin/image_provider_iudx --compute-server0-port 1234 --compute-server1-port 1235 --fractional-bits
-$fractional_bits --NameofImageFile X$i --filepath $image_path
-
-*/
-
-/* This code generates shares files for image,w1,b1,w2,b2. Aditionally it generates the ActualAnswer
-of image in both the folders. The title of this file is read from the first line in the
-file_config.txt This function needs a config file as input sample file_config_image_1.txt is as
-follows
-X
-ip1
-
-
-I have modified the image provider code to send actual answer as the first number via socket.
-Also the imagefile eg.,X.csv should contain the first number as the actual answer.
-I also modified compute server.cpp to send the extra number to the main function.
-*/
 // MIT License
 //
 // Copyright (c) 2021 Lennart Braun
@@ -42,48 +17,30 @@ I also modified compute server.cpp to send the extra number to the main function
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// OUT OF OR I N CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
 #include <dirent.h>
-#include <algorithm>
+// #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <random>
-#include <regex>
+// #include <regex>
 #include <stdexcept>
 #include <thread>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/json/serialize.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
 
-#include "algorithm/circuit_loader.h"
-#include "base/gate_factory.h"
-#include "base/two_party_backend.h"
-#include "communication/communication_layer.h"
-#include "communication/tcp_transport.h"
 #include "compute_server/compute_server.h"
-#include "statistics/analysis.h"
 #include "utility/logger.h"
-
-#include "base/two_party_tensor_backend.h"
-#include "protocols/beavy/tensor.h"
-#include "tensor/tensor.h"
-#include "tensor/tensor_op.h"
-#include "tensor/tensor_op_factory.h"
 #include "utility/fixed_point.h"
 
 namespace po = boost::program_options;
-
-static std::vector<uint64_t> generate_inputs(const MOTION::tensor::TensorDimensions dims) {
-  return MOTION::Helpers::RandomVector<uint64_t>(dims.get_data_size());
-}
 
 struct Matrix {
   std::vector<uint64_t> Delta;
@@ -93,140 +50,123 @@ struct Matrix {
 };
 
 struct Options {
-  std::size_t threads;
-  bool json;
-  std::size_t num_simd;
-  bool sync_between_setup_and_online;
-  Matrix image;
+  // Matrix image;
   std::size_t fractional_bits;
   std::size_t my_id;
-  // MOTION::Communication::tcp_parties_config tcp_config;
-  bool no_run = false;
   std::string filenames;
   std::vector<std::string> data;
-  int actual_answer;
   std::vector<std::string> filepaths;
-  std::string index;
   std::string currentpath;
+  int port;
 };
 
-void read_filenames(Options* options) {
-  // read file_config.txt
-  // auto p = std::filesystem::current_path();
-  auto p = options->filenames;
-  std::cout << p << std::endl;
-
-  std::ifstream indata;
-  indata.open(p);
-  if (std::ifstream(p)) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+void read_filenames(Options& options) {
+  // read file_config 
+  auto config_path = options.filenames;
+  std::cout << "Config path for retrieving filenames: "<< config_path << std::endl;
+  std::ifstream image_config_file;
+  image_config_file.open(config_path);
+  if (!image_config_file) {
+    std::cerr << "Config file not found.\n";
+    throw std::runtime_error(" Image config file not found.\n");
+    // return EXIT_FAILURE;
   }
-  assert(indata);
-
-  std::string line;
-  while (std::getline(indata, line)) {
-    std::stringstream lineStream(line);
-    std::string cell;
-
-    while (std::getline(lineStream, cell, ' ')) {
-      options->data.push_back(cell);
-    }
-  }
-  std::cout << "\n";
-}
-
-void generate_filepaths(Options* options) {
-  // creation of  eg. server0
-  std::error_code err;
-  std::string dirname = "server" + std::to_string(options->my_id);
-  // std::filesystem::create_directories(dirname, err);
-
-  //.../server0/
-  // std::string temp = std::filesystem::current_path();
-  std::string dirname1 = options->currentpath + "/" + dirname + "/Actual_label/";
-  std::filesystem::create_directories(dirname1, err);
-  std::string dirname2 = options->currentpath + "/" + dirname + "/Image_shares/";
-  std::filesystem::create_directories(dirname2, err);
-  std::ofstream file;
-  std::string fullfilename;
-
-  //../server0/filenameshare_id0 / 1 only for image shares, for actual answer it is only X
-  std::cout << "Size of data: " << options->data.size() << "\n";
-  std::string n0 = options->data[0] + options->index;
-  fullfilename = dirname1 + n0;
-  options->filepaths.push_back(fullfilename);
-  // std::string n1 = options->data[1] + "_" + std::to_string(options->my_id);
-  std::string n1 = options->data[1] + options->index;
-  fullfilename = dirname2 + n1;
-  options->filepaths.push_back(fullfilename);
-}
-
-void retrieve_shares(int port_number, Options* options) {
-  std::ofstream file;
-  // options->actual_answer=COMPUTE_SERVER::get_actual_answer(port_number);
-
-  auto [p1, p2, p3] = COMPUTE_SERVER::get_provider_mat_mul_data_new(port_number);
-  options->actual_answer = p1;
-  std::cout << "actual answer in main:" << options->actual_answer << "\n";
-  auto temp0 = options->filepaths[0];
-  file.open(temp0, std::ios_base::out);
-  if (file) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
-  }
-  file << options->actual_answer;
-  file.close();
-
-  std::vector<COMPUTE_SERVER::Shares> input_values_dp0 = p3.first;
-
-  // std::ofstream file;
-  auto temp = options->filepaths[1];
-
-  file.open(temp, std::ios_base::out);
-  if (file) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
-  }
-  options->image.row = p3.second[0];
-  options->image.col = p3.second[1];
-  options->fractional_bits = p2;
-
-  file << options->image.row << " " << options->image.col << "\n";
-  std::cout << "Size:" << input_values_dp0.size() << "\n";
-  for (int i = 0; i < input_values_dp0.size(); i++) {
-    options->image.Delta.push_back(input_values_dp0[i].Delta);
-    options->image.delta.push_back(input_values_dp0[i].delta);
-    std::cout << "Share number:" << i << "\n";
-    file << input_values_dp0[i].Delta << " " << input_values_dp0[i].delta << "\n";
-  }
-
-  file.close();
-  int count = 0;
-  string ch;
-  string s1 = " ";
-  string s2 = "\n";
-  std::cout << "File path:" << temp << "\n";
-  std::ifstream mFile;
-  mFile.open(temp);
-  if (mFile.is_open()) {
-    while (mFile >> std::noskipws >> ch) {
-      if (ch != s1) {
-        std::cout << ch << "\n";
-        count++;
-      } else {
-        break;
+  // assert(image_config);
+  try{
+    std::string line;
+    while (std::getline(image_config_file, line)) {
+      std::stringstream lineStream(line);
+      std::string cell;
+      while (std::getline(lineStream, cell, ' ')) {
+        options.data.push_back(cell);
+        }
       }
     }
-
-    mFile.close();
-    std::cout << "Number of lines in the file are: " << count << std::endl;
-  } else
-    std::cout << "Couldn't open the file\n";
+  catch(std::exception& e)
+    {
+      std::cerr<<"Error while reading the config file. Error: "<<e.what()<<std::endl;
+      // return EXIT_FAILURE;
+    }
+  // return EXIT_SUCCESS;
 }
+
+void generate_filepaths(Options& options) {
+  std::error_code err;
+  std::string dirname = "server" + std::to_string(options.my_id);
+  std::string dirname1 = options.currentpath + "/" + dirname + "/Actual_label/";
+  std::filesystem::create_directories(dirname1, err);
+  if(err){
+      std::cerr<<"Error while creating directory "<<dirname1<<std::endl;
+      throw std::runtime_error("Error while creating directory "+dirname1+"\n");
+      // return EXIT_FAILURE;
+    }
+  std::string dirname2 = options.currentpath + "/" + dirname + "/Image_shares/";
+  std::filesystem::create_directories(dirname2, err);
+  if(err){
+      std::cerr<<"Error while creating directory "<<dirname2<<std::endl;
+      throw std::runtime_error("Error while creating directory "+dirname2+"\n");
+      // return EXIT_FAILURE;
+    }
+  std::ofstream file;
+  std::string fullfilename;
+  // std::string n0 = options.data[0];
+  fullfilename = dirname1 + options.data[0];
+  options.filepaths.push_back(fullfilename);
+  // std::string n1 = options.data[1];
+  fullfilename = dirname2 + options.data[1];
+  options.filepaths.push_back(fullfilename);
+  // return EXIT_SUCCESS;
+}
+
+
+void retrieve_shares(Options& options) {
+  std::ofstream shares_file;
+  auto [frac_bits, shares_and_sizes] = COMPUTE_SERVER::get_provider_mat_mul_data(options.port);
+  std::vector<COMPUTE_SERVER::Shares> image_shares_all = shares_and_sizes.first;
+  // options.image.row = shares_and_sizes.second[0];
+  // options.image.col = shares_and_sizes.second[1];
+  options.fractional_bits = frac_bits;
+
+  auto temp = options.filepaths[1];
+  shares_file.open(temp, std::ios_base::out);
+  if (!shares_file) {
+    std::cerr << "Unable to create/open file "<<temp<<"\n";
+    throw std::runtime_error("Unable to create file " + temp+"\n");
+    // return EXIT_FAILURE;
+  }
+  try{
+    shares_file << shares_and_sizes.second[0] << " " << shares_and_sizes.second[1] << "\n";
+    std::cout << "Number of image share pairs received:" << image_shares_all.size() << "\n";
+    for (int i = 0; i < image_shares_all.size(); i++) {
+      // options.image.Delta.push_back(image_shares_all[i].Delta);
+      // options.image.delta.push_back(image_shares_all[i].delta);
+      shares_file << image_shares_all[i].Delta << " " << image_shares_all[i].delta << "\n";
+    }
+  }
+  catch(std::exception& e)
+    {
+      std::cerr<<"Error while writing shares to file. Error: "<<e.what()<<std::endl;
+      // return EXIT_FAILURE;
+    }
+  shares_file.close();
+
+  // int count = 0;
+  // std::string line;
+  // std::ifstream mFile;
+  // mFile.open(temp);
+  // if(!mFile.is_open())
+  //   {
+  //     std::cerr<<"Unable to read the image shares file\n";
+  //     return;
+  //   }
+  // while(std::getline(mFile,line)) {
+  //     // std::cout << line << "\n";
+  //     count++; 
+  //   }
+  // mFile.close();
+  // std::cout << "Number of lines in the image shares file is " << count << std::endl;  
+}
+
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
   Options options;
@@ -234,19 +174,11 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
-    ("config-file", po::value<std::string>(), "config file containing options")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
-    ("threads", po::value<std::size_t>()->default_value(0), "number of threads to use for gate evaluation")
-    ("json", po::bool_switch()->default_value(false), "output data in JSON format")
-    ("fractional-bits", po::value<std::size_t>()->default_value(16),
-     "number of fractional bits for fixed-point arithmetic")
-    ("num-simd", po::value<std::size_t>()->default_value(1), "number of SIMD values")
+    ("port" , po::value<int>()->required(), "Port number on which to listen")
+    ("fractional-bits", po::value<std::size_t>()->default_value(16), "number of fractional bits for fixed-point arithmetic")
     ("file-names",po::value<std::string>()->required(), "filename")
-    ("index",po::value<std::string>()->default_value("0"), "index")
     ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
-    ("sync-between-setup-and-online", po::bool_switch()->default_value(false),
-     "run a synchronization protocol before the online phase starts")
-    ("no-run", po::bool_switch()->default_value(false), "just build the circuit, but not execute it")
     ;
   // clang-format on
 
@@ -257,63 +189,56 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << desc << "\n";
     return std::nullopt;
   }
-  if (vm.count("config-file")) {
-    std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
-    po::store(po::parse_config_file(ifs, desc), vm);
-  }
   try {
     po::notify(vm);
-  } catch (std::exception& e) {
-    std::cerr << "error:" << e.what() << "\n\n";
+  } 
+  catch (std::exception& e) {
+    std::cerr << "Error in the input arguments:" << e.what() << "\n\n";
     std::cerr << desc << "\n";
     return std::nullopt;
   }
 
   options.my_id = vm["my-id"].as<std::size_t>();
-  options.threads = vm["threads"].as<std::size_t>();
-  options.json = vm["json"].as<bool>();
-  options.num_simd = vm["num-simd"].as<std::size_t>();
-  options.sync_between_setup_and_online = vm["sync-between-setup-and-online"].as<bool>();
-  options.no_run = vm["no-run"].as<bool>();
+  options.port = vm["port"].as<int>();
   options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   options.filenames = vm["file-names"].as<std::string>();
-  options.index = vm["index"].as<std::string>();
   options.currentpath = vm["current-path"].as<std::string>();
-  std::cout << "index" << options.index << "\n";
+  // ----------------- Input Validation ----------------------------------------//
   if (options.my_id > 1) {
-    std::cerr << "my-id must be one of 0 and 1\n";
+    std::cerr << "my-id must be 0 or 1\n";
     return std::nullopt;
   }
-
-  read_filenames(&options);
-
-  if (options.my_id == 0) {
-    generate_filepaths(&options);
-  } else if (options.my_id == 1) {
-    generate_filepaths(&options);
+  // Check if the port numbers are within the valid range (1-65535)
+  if ((options.port < 1) || (options.port > std::numeric_limits<unsigned short>::max())) {
+      std::cerr<<"Invalid port "<<options.port<<".\n";
+      return std::nullopt;  // Out of range
   }
+  //Check if currentpath directory exists
+  if(!std::filesystem::is_directory(options.currentpath))
+    {
+      std::cerr<<"Directory ("<<options.currentpath<<") does not exist.\n";
+      return std::nullopt;
+    }
+  // ----------------------------------------------------------------------------------//
 
-  if (options.my_id == 0) {
-    retrieve_shares(1234, &options);
-  } else {
-    retrieve_shares(1235, &options);
-  }
   return options;
 }
+
 
 int main(int argc, char* argv[]) {
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
+    std::cerr<<"Error while parsing the given input options.\n";
     return EXIT_FAILURE;
   }
-
-  try {
-    auto logger = std::make_shared<MOTION::Logger>(options->my_id,
-                                                   boost::log::trivial::severity_level::trace);
-
-  } catch (std::runtime_error& e) {
-    std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
-    return EXIT_FAILURE;
+  try{
+      read_filenames(*options);
+      generate_filepaths(*options);
+      retrieve_shares(*options);
+  }
+  catch(std::exception& e){
+      std::cerr<<"Error:"<<e.what();
+      return EXIT_FAILURE;
   }
 
   return EXIT_SUCCESS;

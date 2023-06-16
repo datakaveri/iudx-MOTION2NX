@@ -31,68 +31,6 @@ The modular approach helps us to accomplish the following: \
 
 This code is provided as a experimental implementation for testing purposes and should not be used in a production environment. 
 
-## Prerequisites
-Make sure you have installed all of the following prerequisites on your development machine:
-* **Git** - [Download & Install Git](https://git-scm.com/downloads). OSX and Linux machines typically have this already installed. You can install it using 
-```sudo apt install git```
-
-* **g++ compiler** - OSX and Linux machines typically have this already installed. The latest version should ideally be above 9 for gcc or g++. To install g++ ,   install using ```sudo apt install g++```
-* **Boost libraries** - 
-
-    1. First uninstall the existing boost libraries present on the system. The following commands delete boost except its dependencies. 
-    	
-       ```sudo apt-get update ```  \
-       ```sudo apt-get -y --purge remove libboost-all-dev libboost-doc libboost-dev ``` \
-       ```sudo rm -f /usr/lib/libboost_* ``` 
- 
-       
-    2. Now install the latest version of boost and some additional dependencies, which can be done using:    
-    
-       ``` sudo apt-get -y install build-essential g++ python-dev autotools-dev libicu-dev libbz2-dev```
-    
-    3. Once the set up is ready, [ download boost](https://www.boost.org/users/history/version_1_79_0.html). Make sure to install the .tar.gz extension as it is easier to install.
-   
-    4. Go to the place where it is downloaded and use the following command to extract boost. \
-    ```tar -zxvf boost_1_79_0.tar.gz```
-    
-    5. Run the following commands before proceeding to the next step.
-
-		```cpuCores=`cat /proc/cpuinfo | grep "cpu cores" | uniq | awk '{print $NF}'```
-
-		```echo "Available CPU cores: "$cpuCores```
-   
-    6. Change directory to the folder where boost was extracted and run the following commands. 
-
-		``` ./bootstrap.sh --with-libraries=atomic,date_time,exception,filesystem,iostreams,locale,program_options,regex,signals,system,test,thread,timer,log```
-
-		``` sudo ./b2 --with=all -j $cpuCores install ```
-	
-		This might take upto an hour to setup the full boost library.
-    
-    7. To check if it is installed successfully, run the following commands.
-    
-       	```cat /usr/local/include/boost/version.hpp | grep "BOOST_LIB_VERSION" ``` 
-    
-       Good to go if boost version is greater than or equal to 1.75.
-    
-* **Eigen** - [Download Eigen](https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2)
-
-  1. After downloading, extract the above folder using ```tar -xvf eigen-3.4.0```. 
-  2. Run the following commands to install Eigen.
-		```
-		cd eigen-3.4.0
-		mkdir build_dir
-		cd build_dir
-		cmake ../../eigen-3.4.0
-		make install (or) sudo make install
-		```
-		
-  3. Check the Eigen version using the following instruction. 
-
- 		```grep "#define EIGEN_[^_]*_VERSION" /usr/local/include/eigen3/Eigen/src/Core/util/Macros.h```
-
- 
-
 ## Working Environment
 
 
@@ -111,24 +49,97 @@ This software was developed and tested in the following environment (it might no
 - [HyCC (optional, for the HyCCAdapter)](https://gitlab.com/securityengineering/HyCC)
 - [ONNX 1.10.2 (optional, for the ONNXAdapter)](https://github.com/onnx/onnx)
 
-The build system downloads and builds GoogleTest and Benchmark if required.
+
+Make sure you have installed all of the following prerequisites on your development machine (a machine with Ubuntu 22.04) to create above environment:
+* **Git** - [Download & Install Git](https://git-scm.com/downloads). OSX and Linux machines typically have this already installed. You can install it using 
+``sudo apt update && sudo apt install git``
+
+* **g++ compiler** - OSX and Linux machines typically have this already installed. The latest version should ideally be above 9 for gcc or g++. To install g++ ,   install using ``sudo apt update &&sudo apt install g++``
+* **Openssl** : Install openssl package and libraries need for motion2nx using 
+`` sudo apt update && sudo apt-get -y install --no-install-recommends openssl libssl-dev ``
+* **CMAKE and build tools** - Install cmake and other buiuld tools using ``sudo apt update &&   sudo apt-get -y install --no-install-recommends build-essential g++ python3-dev autotools-dev libicu-dev libbz2-dev cmake `` 
+
+* **Boost libraries** - 
+
+    1. First uninstall the existing boost libraries present on the system. The following commands delete boost except its dependencies. 
+    	
+       ```
+       sudo apt-get update && sudo apt-get -y --purge remove libboost-all-dev libboost-doc libboost-dev && sudo rm -f /usr/lib/libboost_* 
+       ```
+    
+    3. [Download boost](https://www.boost.org/users/history/version_1_79_0.html). Make sure to install the .tar.gz extension as it is easier to install.
+   
+    4. Go to the place where it is downloaded and use the following command to extract boost. \
+    ``tar -zxvf boost_1_79_0.tar.gz``
+    
+    5. Run the following commands before proceeding to the next step. `` NUM_JOBS=`nproc` ``
+       ```
+       echo "Number of parallel jobs that can be done on this machine: $NUM_JOBS"
+       ```
+   
+    6. Change directory to the folder where boost was extracted and run the following commands. 
+
+       ``` 
+       ./bootstrap.sh --with-libraries=atomic,date_time,exception,filesystem,iostreams,locale,program_options,regex,system,test,thread,timer,log,json,context,fiber
+       ```
+
+       ``` 
+       sudo ./b2 --with=all -j $NUM_JOBS install 
+       ```
+	
+       This might take upto an hour to setup the full boost library.
+    
+    7. To check if it is installed successfully, run the following commands.
+    
+       ```
+       cat /usr/local/include/boost/version.hpp | grep "BOOST_LIB_VERSION" 
+       ``` 
+    
+    Good to go if boost version is greater than or equal to 1.75.
+    
+* **Eigen** - 
+  1. [Download Eigen](https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2)
+  2. After downloading, extract the above folder using ``tar -xvf eigen-3.4.0``. 
+  2. Run the following commands to install Eigen.
+     ```
+     cd eigen-3.4.0
+     mkdir build_dir
+     cd build_dir
+     cmake ../../eigen-3.4.0
+     make install (or) sudo make install
+     ```
+		
+  3. Check the Eigen version using the following instruction. 
+
+     ```
+     grep "#define EIGEN_[^_]*_VERSION" /usr/local/include/eigen3/Eigen/src/Core/util/Macros.h
+     ```
+
+
+* **Other Packages/Libraries** :The build system downloads and builds GoogleTest and Benchmark if required.
 It also tries to download and build fmt, and flatbuffers if it cannot find these libraries in the system.
 
 
 
-## Steps for Installing the Repository
+## Steps for Building Motion2nx
 
  - Check whether gnome is installed using \
-   ```gnome-shell --version```\
+   ``gnome-shell --version``\
    If if is not installed, install it using\
-   ```sudo apt install ubuntu-gnome-desktop```
+   ```
+   sudo apt install ubuntu-gnome-desktop
+   ```
  - Clone the Repository\
-   ```git clone https://github.com/datakaveri/iudx-MOTION2NX.git ```
+   ```
+   git clone https://github.com/datakaveri/iudx-MOTION2NX.git
+   ```
    
    (or)
 	
    If you want to clone the modulartensor branch:\
-   ```git clone -b modulartensor https://github.com/datakaveri/iudx-MOTION2NX.git ```
+   ```
+   git clone -b modulartensor https://github.com/datakaveri/iudx-MOTION2NX.git 
+   ```
 - Now cd into the repository and build it using the following command
 
   ```
@@ -151,10 +162,13 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
 
 
 - Once that is done, execute the command to install the executables and their dependencies. This process can take upto an hour:\
-  ```cmake --build build_debwithrelinfo_gcc```
+  ```
+  cmake --build build_debwithrelinfo_gcc
+  ```
   
 - cd into the repository folder, and run the following ONCE\
-  ```source setup.sh ```\
+  ``source setup.sh``\
+  
   This sets the required environment variables in ~/.bashrc, ~/.profile.\
   Execute this command only once.
   
@@ -162,7 +176,7 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
   
     There are sample MNIST images in "[path to repository folder]/iudx-MOTION2NX/Dataprovider/image_provider/images". We use the   following convention $Xi, i\in \{0,1,2,...\}$. We provide images $X0$ to $X98$ in the images folder. Each image is a column     matrix of size $785 \times 1$. The first number of every column matrix is the actual label of the image. All the remaining     numbers are normalised pixel values ranging from 0 to 1.
     
-  The sharegenerator.sh script creates secret shares of the image and sends it to the compute servers. Set image_ids in the       script to create shares of the specified images. For example, to create shares of image X23 , put ```image_ids=(23)``` 
+  The sharegenerator.sh script creates secret shares of the image and sends it to the compute servers. Set image_ids in the       script to create shares of the specified images. For example, to create shares of image X23 , put ``image_ids=(23)`` 
   
 - To create shares for a given sample MNIST image, do the following.
 	- cd into the "[ path to repository folder ]/scripts" folder.
@@ -179,11 +193,11 @@ It also tries to download and build fmt, and flatbuffers if it cannot find these
 	- Flatten the image to a normalised (between 0 to 1) pixel vector (784 rows, 1 column). Use the "flatten_image.py"               python code given in "[path to repository folder ]/Dataprovider/image_provider" to flatten the image matrix.
 	-  To run flatten_image.py, run the following command.
 	
-		``` 
-		python3 flatten_image.py --input_image_path [path to image] --output_image_ID [image number] 
-		```
+	   ``` 
+	   python3 flatten_image.py --input_image_path [path to image] --output_image_ID [image number] 
+	   ```
 	
-	- Open "[ path to repository folder ]/scripts/sharegenerator.sh" and assign the image number to the image_ids list.               For example, to create shares of image X23 , put ```image_ids=(23)```
+	- Open "[ path to repository folder ]/scripts/sharegenerator.sh" and assign the image number to the image_ids list.               For example, to create shares of image X23 , put ``image_ids=(23)``
  
      	```
       	image_ids=([your_image_number])
@@ -211,5 +225,117 @@ The script inference.sh performs the inferencing task on the image index given b
   bash inference_split.sh
   ```
  The script inference_split.sh performs the inferencing task with splits on layer 1 matrix multiplication on the image index given by image_ids in the script.
-  This script reduces the average memory requirement by the number of splits specified in the inference_split script. To change the     number of splits, update the split variable in the script. For example, ```split=2```. User can change this number to be         1, 2, 4, 8, 16.  
+  This script reduces the average memory requirement by the number of splits specified in the inference_split script. To change the     number of splits, update the split variable in the script. For example, ``split=2``. User can change this number to be         1, 2, 4, 8, 16.  
 
+## Docker based deployment
+### Pre-requisite 
+- Install docker-ce, docker compose through following script for Ubuntu:
+  ```
+  curl -sL https://raw.githubusercontent.com/datakaveri/iudx-deployment/master/Docker-Swarm-deployment/single-node/infrastructure/files/packages-docker-install.sh | sudo bash
+  ```
+  <p align="center">	(or)	</p>
+  
+  refer official docs https://docs.docker.com/engine/install/  
+
+- For convenience, you can manage docker as non root user, ref: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
+  
+  * Note : Please do not manage docker as non-root user in production envrionment
+
+- Copy the config files 
+  ```
+  cp -r config_files/example-smpc-remote-config.json config_files/smpc-remote-config.json
+  ```
+- Copy the example data to use for inferencing
+  ```
+  cp -r example-data/data .
+  ```
+- To create a new MNIST image matrix for inferencing through SMPC , follow the steps mentioned above
+### Build docker image
+- Build docker image locally, this can be used for test/dev deployment
+  ```
+  ./docker/build.sh
+  ```
+- To build and push docker image to docker registry
+  ```
+  ./docker/build-push.sh
+  ```
+- To update Build cache in registry, 
+  ```
+  ./docker/build-cache.sh
+  ```
+### Local SMPC Deployment
+- Deploy all smpc servers in one container using local image
+  ```
+  docker compose -f docker-compose.local.yaml up -d
+  ```
+
+### 2 Party SMPC deployment
+- Deploy the two servers locally using local image
+
+  1. SMPC server 0 - SMPC compute server0, image provide
+  2. SMPC server 1 - SMPC compute server1, model provider
+
+  - without splits
+    ```
+    docker compose -f docker-compose.remote.yaml up -d
+    ```
+  - with splits
+    ```
+    docker compose -f docker-compose.remote_split.yaml up -d
+    ```
+- To run the two server locally using docker image from container registry, 
+copy example-docker-compose.remote.yaml to docker-compose.remote.yaml file and 
+replace with appropriate docker image tag you want to deploy
+
+  ```
+  cp example-docker-compose.remote-registry.yaml docker-compose.remote-registry.yaml
+  ```
+  - without splits
+
+    ```
+    docker compose -f docker-compose.remote.yaml -f docker-compose.remote-registry.yaml up -d
+    ```
+  - with splits 
+    ```
+    docker compose -f docker-compose.remote_split.yaml -f docker-compose.remote-registry.yaml up -d
+    ```
+- To run each server on different machine, git clone this repo on each of the machines and run following, : 
+  ```
+  # after copy, replace with appropriate image tag
+  cp example-docker-compose.remote-registry.yaml docker-compose.remote-registry.yaml
+  ```
+  - without splits
+
+    ```
+    # On SMPC server 0
+    docker compose -f docker-compose.remote.yaml -f docker-compose.remote-registry.yaml up -d smpc-server0
+    ```
+    ```
+    # On SMPC server 1
+    docker compose -f docker-compose.remote.yaml -f docker-compose.remote-registry.yaml up -d smpc-server1
+    ```
+  - with splits
+    ```
+    # On SMPC server 0
+    docker compose -f docker-compose.remote_split.yaml -f docker-compose.remote-registry.yaml up -d smpc-server0
+    ```
+    ```
+    # On SMPC server 1
+    docker compose -f docker-compose.remote_split.yaml -f docker-compose.remote-registry.yaml up -d smpc-server1
+    ```
+### Miscellaneous Docker commands
+- To get logs of container, use following commands
+  ```
+  # Get compose name
+  docker compose ls
+  ```
+  ```
+  # using compose name get logs
+  docker compose --project-name <compose-name> logs -f
+  ```
+- To bring down container use following command:
+
+  ```
+  # using compose name bring down
+  docker compose --project-name <compose-name> down
+  ```

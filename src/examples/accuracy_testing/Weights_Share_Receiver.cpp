@@ -1,23 +1,3 @@
-/*
-./bin/Weights_Share_Receiver --my-id 0 --file-names $model_config --current-path $build_path
-
-
-./bin/Weights_Share_Receiver --my-id 1--file-names $model_config --current-path $build_path
-
-./bin/weights_provider --compute-server0-port 1234 --compute-server1-port 1235 --dp-id 0
---fractional-bits $fractional_bits --filepath $build_path_model
-
-*/
-/* This code generates shares files for w1,b1,w2,b2.
-This function needs a config file as input sample file_config_weights_1.txt is as follows
-
-W1
-B1
-W2
-B2
-
-*/
-
 // MIT License
 //
 // Copyright (c) 2021 Lennart Braun
@@ -41,44 +21,28 @@ B2
 // SOFTWARE.
 
 #include <dirent.h>
-#include <algorithm>
+// #include <algorithm>
 #include <chrono>
+#include <optional>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
-#include <regex>
+// #include <regex>
 #include <stdexcept>
 #include <thread>
 
-#include <boost/algorithm/string.hpp>
+// #include <boost/algorithm/string.hpp>
 #include <boost/json/serialize.hpp>
-#include <boost/lexical_cast.hpp>
+// #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
-
-#include "algorithm/circuit_loader.h"
-#include "base/gate_factory.h"
-#include "base/two_party_backend.h"
-#include "communication/communication_layer.h"
-#include "communication/tcp_transport.h"
 #include "compute_server/compute_server.h"
-#include "statistics/analysis.h"
 #include "utility/logger.h"
-
-#include "base/two_party_tensor_backend.h"
-#include "protocols/beavy/tensor.h"
-#include "tensor/tensor.h"
-#include "tensor/tensor_op.h"
-#include "tensor/tensor_op_factory.h"
 #include "utility/fixed_point.h"
 
 namespace po = boost::program_options;
-
-static std::vector<uint64_t> generate_inputs(const MOTION::tensor::TensorDimensions dims) {
-  return MOTION::Helpers::RandomVector<uint64_t>(dims.get_data_size());
-}
 
 struct Matrix {
   std::vector<uint64_t> Delta;
@@ -88,20 +52,14 @@ struct Matrix {
 };
 
 struct Options {
-  std::size_t threads;
-  bool json;
-  std::size_t num_simd;
-  bool sync_between_setup_and_online;
   Matrix weights[2];
   Matrix biases[2];
   std::size_t my_id;
-  // MOTION::Communication::tcp_parties_config tcp_config;
-  bool no_run = false;
   std::string filenames;
   std::vector<std::string> data;
-  int actual_answer;
   std::vector<std::string> filepaths;
   std::string currentpath;
+  int port;
 };
 
 void read_filenames(Options* options) {
@@ -164,19 +122,21 @@ void generate_filepaths(Options* options) {
   }
 }
 
-void retrieve_shares(int port_number, Options* options) {
+void retrieve_shares(Options* options) {
   std::ofstream file;
 
   ////////////////////////////////////////////////////////////
 
-  for (auto i = 0; i < 4; i++) {
+  for (auto i = 0; i < 10; i++) {
     std::cout << "Reading shares from weights provider \n";
-    auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(port_number);
+    auto temp = options->filepaths[i];
+    std::cout << temp << "\n";
+    
+    auto pair2 = COMPUTE_SERVER::get_provider_mat_mul_data(options->port);
     // auto [q1,q2,q3] = COMPUTE_SERVER::get_provider_mat_mul_data_new(port_number);
     std::vector<COMPUTE_SERVER::Shares> input_values_dp1 = pair2.second.first;
     // std::vector<COMPUTE_SERVER::Shares> input_values_dp1 = q3.first;
-    auto temp = options->filepaths[i];
-    std::cout << temp << "\n";
+    
     if ((i + 2) % 2 == 0) {
       std::cout << "Weights \n";
       file.open(temp, std::ios_base::out);
@@ -192,6 +152,7 @@ void retrieve_shares(int port_number, Options* options) {
         options->weights[(i) / 2].delta.push_back(input_values_dp1[j].delta);
         file << input_values_dp1[j].Delta << " " << input_values_dp1[j].delta << "\n";
       }
+      std::cout << std::endl;
       file.close();
     } else {
       std::cout << "Bias \n";
@@ -202,13 +163,15 @@ void retrieve_shares(int port_number, Options* options) {
       // options->biases[i / 2].row = q3.second[0];
       // options->biases[i / 2].col = q3.second[1];
       file << options->biases[(i - 1) / 2].row << " " << options->biases[(i - 1) / 2].col << "\n";
-      std::cout << "Size:" << input_values_dp1.size() << "rows:" << options->biases[(i - 1) / 2].row
-                << "columns:" << options->biases[(i - 2) / 2].col << "\n";
+      // std::cout << "Size:" << input_values_dp1.size() << "rows:" << options->biases[(i - 1) / 2].row
+                // << "columns:" << options->biases[(i - 2) / 2].col << "\n";
+      
       for (int j = 0; j < input_values_dp1.size(); j++) {
         options->biases[(i - 1) / 2].Delta.push_back(input_values_dp1[j].Delta);
         options->biases[(i - 1) / 2].delta.push_back(input_values_dp1[j].delta);
         file << input_values_dp1[j].Delta << " " << input_values_dp1[j].delta << "\n";
       }
+      std::cout << std::endl;
       file.close();
     }
   }
@@ -222,14 +185,9 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("config-file", po::value<std::string>(), "config file containing options")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
-    ("threads", po::value<std::size_t>()->default_value(0), "number of threads to use for gate evaluation")
-    ("json", po::bool_switch()->default_value(false), "output data in JSON format")
-    ("num-simd", po::value<std::size_t>()->default_value(1), "number of SIMD values")
+    ("port" , po::value<int>()->required(), "Port number on which to listen")
     ("file-names",po::value<std::string>()->required(), "filename")
     ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
-    ("sync-between-setup-and-online", po::bool_switch()->default_value(false),
-     "run a synchronization protocol before the online phase starts")
-    ("no-run", po::bool_switch()->default_value(false), "just build the circuit, but not execute it")
     ;
   // clang-format on
 
@@ -246,44 +204,77 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   }
   try {
     po::notify(vm);
-  } catch (std::exception& e) {
-    std::cerr << "error:" << e.what() << "\n\n";
+  } 
+  catch (std::exception& e) {
+    std::cerr << "Error in the input arguments:" << e.what() << "\n\n";
     std::cerr << desc << "\n";
     return std::nullopt;
   }
-
   options.my_id = vm["my-id"].as<std::size_t>();
-  options.threads = vm["threads"].as<std::size_t>();
-  options.json = vm["json"].as<bool>();
-  options.num_simd = vm["num-simd"].as<std::size_t>();
-  options.sync_between_setup_and_online = vm["sync-between-setup-and-online"].as<bool>();
-  options.no_run = vm["no-run"].as<bool>();
+  options.port = vm["port"].as<int>();
   options.filenames = vm["file-names"].as<std::string>();
   options.currentpath = vm["current-path"].as<std::string>();
   if (options.my_id > 1) {
-    std::cerr << "my-id must be one of 0 and 1\n";
+    std::cerr << "my-id must be 0 or 1\n";
     return std::nullopt;
   }
-
+  // Check if the port numbers are within the valid range (1-65535)
+  if ((options.port < 1) || (options.port > std::numeric_limits<unsigned short>::max())) {
+      std::cerr<<"Invalid port "<<options.port<<".\n";
+      return std::nullopt;  // Out of range
+  }
+  //Check if currentpath directory exists
+  if(!std::filesystem::is_directory(options.currentpath))
+    {
+      std::cerr<<"Directory ("<<options.currentpath<<") does not exist.\n";
+      return std::nullopt;
+    }
   read_filenames(&options);
-
-  if (options.my_id == 0) {
-    generate_filepaths(&options);
-  } else if (options.my_id == 1) {
-    generate_filepaths(&options);
-  }
-
-  if (options.my_id == 0) {
-    retrieve_shares(1234, &options);
-  } else {
-    retrieve_shares(1235, &options);
-  }
+  generate_filepaths(&options);
+  retrieve_shares(&options);
 
   return options;
 }
 
+void get_confirmation(const Options& options) {
+  boost::asio::io_service io_service;
+  // listen for new connection
+  tcp::acceptor acceptor_(io_service, tcp::endpoint(tcp::v4(), options.port));
+
+  // socket creation
+  tcp::socket socket_(io_service);
+
+  // waiting for the connection
+  try {
+  acceptor_.accept(socket_);
+  std::cout<<"Accepted a connection at port "<<options.port<<"\n";
+  }
+  catch (const boost::system::system_error& error) {
+    std::cout << "Error accepting connection: " << error.what() << std::endl;
+    socket_.close();
+    return;
+  }
+  // Read and write the number of fractional bits
+  boost::system::error_code read_error;
+  int validation_bit;
+  read(socket_, boost::asio::buffer(&validation_bit, sizeof(validation_bit)), read_error);
+  if (read_error) {
+    std::cout << "Error while receiving validation bit: "<<read_error << "\n";
+    socket_.close();
+    return;
+  } 
+  std::cout << "Received validation bit\n";
+  socket_.close();
+
+}
+
 int main(int argc, char* argv[]) {
   auto options = parse_program_options(argc, argv);
+
+  if(options->my_id == 0) {
+  	get_confirmation(*options);
+  }
+
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }

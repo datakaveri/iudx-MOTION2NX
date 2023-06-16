@@ -1,0 +1,18 @@
+version: '2.4'
+
+networks:
+  overlay-net:
+    external: true      
+    driver: overlay
+
+services:
+  smpc-server0:
+    image: ghcr.io/datakaveri/motion2nx:<image-tag>
+
+
+  smpc-server1:
+    image: ghcr.io/datakaveri/motion2nx:<image-tag>
+  
+  
+  smpc-server2:
+    image: ghcr.io/datakaveri/motion2nx:<image-tag>

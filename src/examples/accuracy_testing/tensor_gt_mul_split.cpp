@@ -156,6 +156,8 @@ void testMemoryOccupied(bool WriteToFiles, int my_id, int layer_id, int p, std::
   }
 }
 
+bool is_empty(std::ifstream& file) { return file.peek() == std::ifstream::traits_type::eof(); }
+
 //////////////////New functions////////////////////////////////////////
 /// In read_file also include file not there error and file empty alerts
 std::uint64_t read_file(std::ifstream& pro) {
@@ -205,25 +207,42 @@ std::string read_filepath(std::ifstream& indata, int count) {
   return str;
 }
 
-void image_shares(Options* options, std::string p) {
+int image_shares(Options* options, std::string p) {
   std::ifstream temps;
-  temps.open(p);
-  std::cout << "p:" << p << "\n";
-  if (temps) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
-  }
-  assert(temps);
 
-  std::uint64_t rows = read_file(temps);
-  options->image_file.row = rows;
-  // options->image_file.row = options->row_end-options->row_start+1;
-  // std::cout << "Actual rows:" << rows << " ";
-  std::uint64_t cols = read_file(temps);
-  options->image_file.col = cols;
-  // options->image_file.col = 1;
-  // std::cout << "Actual columns:" << cols << "\n";
+  try {
+    temps.open(p);
+    if (temps) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the image share file.\n";
+    return EXIT_FAILURE;
+  }
+
+  try {
+    if (is_empty(temps)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Image share input file is empty.\n";
+    return EXIT_FAILURE;
+  }
+
+  std::uint64_t rows, cols;
+  try {
+    rows = read_file(temps);
+    options->image_file.row = rows;
+    std::cout << "r " << rows << " ";
+    cols = read_file(temps);
+    options->image_file.col = cols;
+    std::cout << "c " << cols << "\n";
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading columns from image shares.\n";
+    return EXIT_FAILURE;
+  }
 
   // ////////////////////////////Reading from specific rows////////////////////
   //    // t1 is the path of the file that is to be read
@@ -246,33 +265,56 @@ void image_shares(Options* options, std::string p) {
   //    //////////////////////////////////////////////////////////////////////////
 
   for (int i = 0; i < rows * cols; ++i) {
-    uint64_t m1 = read_file(temps);
-    // std::cout << m1 << " ";
-    options->image_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(temps);
-    // std::cout << m2 << "\n";
-    options->image_file.delta.push_back(m2);
+    try {
+      uint64_t m1 = read_file(temps);
+      options->image_file.Delta.push_back(m1);
+      uint64_t m2 = read_file(temps);
+      options->image_file.delta.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading columns from image shares.\n";
+      return EXIT_FAILURE;
+    }
   }
   temps.close();
 }
 
-void W_shares(Options* options, std::string p) {
+int W_shares(Options* options, std::string p) {
   std::ifstream indata;
-  indata.open(p);
-  if (std::ifstream(p)) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+  try {
+    indata.open(p);
+    if (std::ifstream(p)) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the input weight share file.\n";
+    return EXIT_FAILURE;
   }
-  assert(indata);
 
-  int rows = read_file(indata);
+  try {
+    if (is_empty(indata)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Weight share file is empty.\n";
+    return EXIT_FAILURE;
+  }
+
+  int rows, cols;
+  try {
+    rows = read_file(indata);
+    cols = read_file(indata);
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading rows and columns from weight shares.\n";
+    return EXIT_FAILURE;
+  }
+
   int effective_rows = (options->row_end - options->row_start) + 1;
   options->W_file.row = effective_rows;
   // options->W_file.row = rows;
   std::cout << "Effective rows: " << effective_rows << "\n ";
   std::cout << "Actual rows,r: " << rows << " ";
-  int cols = read_file(indata);
   options->W_file.col = cols;
   std::cout << "Actual columns,c: " << cols << "\n";
 
@@ -286,43 +328,56 @@ void W_shares(Options* options, std::string p) {
   }
 
   for (int i = ((options->row_start) * cols); i < ((options->row_end + 1) * cols); ++i) {
-    //  std::cout << "\n" << i << "\n";
-    uint64_t m1 = read_file(indata);
-    // std::cout << m1 << " ";
-    options->W_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(indata);
-    // std::cout << m2 << "\n";
-    options->W_file.delta.push_back(m2);
-    // std::cout << "\n" << i << "\n";
+    try {
+      uint64_t m1 = read_file(indata);
+      options->W_file.Delta.push_back(m1);
+      uint64_t m2 = read_file(indata);
+      options->W_file.delta.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading input weight shares from file.\n";
+      return EXIT_FAILURE;
+    }
   }
-  //////////////////////////////////////////////////////////////////////////
-
-  // for (int i = 0; i < rows * cols; ++i) {
-  //   uint64_t m1 = read_file(indata);
-  //   options->W_file.Delta.push_back(m1);
-  //   uint64_t m2 = read_file(indata);
-  //   options->W_file.delta.push_back(m2);
-  // }
   indata.close();
 }
 
-void B_shares(Options* options, std::string p) {
+int B_shares(Options* options, std::string p) {
   std::ifstream indata;
-  indata.open(p);
+  try {
+    if (std::ifstream(p)) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
 
-  if (std::ifstream(p)) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+    indata.open(p);
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the input bias share file.\n";
+    return EXIT_FAILURE;
   }
-  assert(indata);
 
-  int rows = read_file(indata);
+  try {
+    if (is_empty(indata)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Bias share file is empty.\n";
+    return EXIT_FAILURE;
+  }
+
+  int rows, cols;
+  try {
+    rows = read_file(indata);
+    cols = read_file(indata);
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading rows and columns from input bias share file.\n";
+    return EXIT_FAILURE;
+  }
+
   int effective_rows = (options->row_end - options->row_start) + 1;
   options->B_file.row = effective_rows;
   // options->B_file.row = rows;
   std::cout << "r " << rows << " ";
-  int cols = read_file(indata);
   options->B_file.col = cols;
   std::cout << "c " << cols << "\n";
   ////////////////////////////Reading from specific rows////////////////////
@@ -335,14 +390,15 @@ void B_shares(Options* options, std::string p) {
   }
 
   for (int i = ((options->row_start)); i < ((options->row_end + 1)); ++i) {
-    //  std::cout << "\n" << i << "\n";
-    uint64_t m1 = read_file(indata);
-    // std::cout << m1 << " ";
-    options->B_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(indata);
-    // std::cout << m2 << "\n";
-    options->B_file.delta.push_back(m2);
-    // std::cout << "\n" << i << "\n";
+    try {
+      uint64_t m1 = read_file(indata);
+      options->B_file.Delta.push_back(m1);
+      uint64_t m2 = read_file(indata);
+      options->B_file.delta.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the input bias share file.\n";
+      return EXIT_FAILURE;
+    }
   }
   //////////////////////////////////////////////////////////////////////////
 
@@ -356,54 +412,47 @@ void B_shares(Options* options, std::string p) {
 }
 
 // changes made in this function
-void file_read(Options* options) {
+int file_read(Options* options) {
   std::string path = options->currentpath;
   // std::string path = std::filesystem::current_path();
   std::string t1, i;
   // if layer_id=1 then read filename inside server
   // else read file_config_input (id is appended)
   if (options->layer_id == 1) {
-    std::cout << "hello\n";
     t1 = path + "/server" + std::to_string(options->my_id) + "/Image_shares/" +
          options->imageprovider;
   } else if (options->layer_id > 1) {
-    t1 = path + "/" + options->imageprovider + std::to_string(options->my_id);
+    t1 = path + "/server" + std::to_string(options->my_id) + "/" + options->imageprovider + "_" +
+         std::to_string(options->my_id);
   }
+  std::cout << "\nt1: " << t1 << std::endl;
+  image_shares(options, t1);
 
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // model path --> builddebwithrelinfo_gcc/file_config_model0/1
   std::string t2 = path + "/" + options->modelpath;
-  std::cout << "t2:" << t2 << "\n";
-
-  std::ifstream file1, file2;
-
-  // open file_config_input and file_config_model if layer id>1
-
-  if (options->layer_id > 1) {
-    file1.open(t1);
-    file2.open(t2);
-    if (file2 && file1) {
-      std::cout << "File found\n";
-
-      i = read_filepath(file1, 0);
-      std::cout << "i:" << i << "\n";
-      image_shares(options, i);
-    } else {
-      std::cout << "File not found\n";
-    }
-  }  // else open only file_config_model and
-     // send filepath of ip directly to image_shares directly w/o going into read_filepath
-     // rest of the function and file remains same
-  else {
+  std::cout << "t2: " << t2 << std::endl;
+  std::ifstream file2;
+  try {
     file2.open(t2);
     if (file2) {
       std::cout << "File found\n";
-      std::cout << "i:" << t1 << "\n";
-      image_shares(options, t1);
     } else {
       std::cout << "File not found\n";
     }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening config_model file.\n";
+    return EXIT_FAILURE;
   }
 
-  // file1.close();
+  try {
+    if (is_empty(file2)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "file_config_model is empty.\n";
+    return EXIT_FAILURE;
+  }
 
   j = 0;
 
@@ -524,7 +573,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << "\n Either row start or row end is not a feasible number.\n";
     return std::nullopt;
   }
-  if ((options.row_end > 256)) {
+  if ((options.row_end > 784)) {
     std::cerr << "\n Row end is not a feasible number it should be less than 784.\n";
     return std::nullopt;
   }
@@ -679,13 +728,11 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
 
 int main(int argc, char* argv[]) {
   // testMemoryOccupied();
-  std::cout << "Inside main";
   bool WriteToFiles = 1;
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
     return EXIT_FAILURE;
   }
-
   try {
     auto comm_layer = setup_communication(*options);
     auto logger = std::make_shared<MOTION::Logger>(options->my_id,

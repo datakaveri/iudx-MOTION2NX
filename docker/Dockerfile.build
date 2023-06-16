@@ -1,0 +1,58 @@
+FROM ubuntu:jammy-20230425 as build
+SHELL ["/bin/bash", "-c"]
+ARG BOOST_VERSION=1.79.0
+ARG NUM_JOBS=8
+ARG EIGEN_VERSION=3.4.0
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Install package dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        g++ \
+        autotools-dev \
+        libicu-dev \
+        libbz2-dev  \
+        build-essential \
+        cmake \
+        python3-dev \
+        openssl \
+        libssl-dev \
+        ca-certificates \
+        wget \
+        git \
+        language-pack-en \
+        locales \
+        locales-all \
+        vim && \
+    apt-get clean
+
+# System locale
+# Important for UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+
+
+# Install Boost
+# https://www.boost.org/doc/libs/1_80_0/more/getting_started/unix-variants.html
+RUN cd /tmp && \
+    BOOST_VERSION_MOD=$(echo $BOOST_VERSION | tr . _) && \
+    wget --progress=bar:force  https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_MOD}.tar.bz2 && \
+    tar --bzip2 -xf boost_${BOOST_VERSION_MOD}.tar.bz2 && \
+    cd boost_${BOOST_VERSION_MOD} && \
+    ./bootstrap.sh --prefix=/usr/local --with-libraries=atomic,date_time,exception,filesystem,iostreams,locale,program_options,regex,system,test,thread,timer,log,json,context,fiber && \
+    ./b2 --with=all -j ${NUM_JOBS} install && \
+    rm -rf /tmp/*
+
+# Install Eigen
+# https://eigen.tuxfamily.org/
+RUN cd /tmp && \
+    wget --progress=bar:force https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VERSION}/eigen-${EIGEN_VERSION}.tar.bz2 && \
+    tar --bzip2 -xf eigen-${EIGEN_VERSION}.tar.bz2 && \
+    cd eigen-${EIGEN_VERSION} && \
+    mkdir build_dir && \
+    cd build_dir && \
+    cmake ../../eigen-${EIGEN_VERSION} && \
+    make install  && \
+    rm -rf /tmp/*

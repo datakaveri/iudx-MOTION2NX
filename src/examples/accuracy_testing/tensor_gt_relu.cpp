@@ -84,7 +84,6 @@ void testMemoryOccupied(bool WriteToFiles, int my_id, std::string path) {
   std::cout << std::endl;
   if (WriteToFiles == 1) {
     /////// Generate path for the AverageMemoryDetails file and MemoryDetails file
-    // std::string path = std::filesystem::current_path();
     std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
     std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
 
@@ -139,6 +138,8 @@ struct Options {
   bool no_run = false;
 };
 
+bool is_empty(std::ifstream& file) { return file.peek() == std::ifstream::traits_type::eof(); }
+
 //////////////////New functions////////////////////////////////////////
 /// In read_file also include file not there error and file empty alerts
 std::uint64_t read_file(std::ifstream& indata) {
@@ -167,49 +168,97 @@ std::string read_filepath(std::ifstream& indata) {
   return str;
 }
 
-void input_shares(Options* options, std::string p) {
+int input_shares(Options* options, std::string p) {
   std::ifstream indata1, indata2;
-  indata1.open(p);
-  assert(indata1);
-  std::uint64_t rows = read_file(indata1);
-  std::uint64_t col = read_file(indata1);
+
+  try {
+    indata1.open(p);
+    if (indata1) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the input share file.\n";
+    return EXIT_FAILURE;
+  }
+
+  try {
+    if (is_empty(indata1)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Image share input file is empty.\n";
+    return EXIT_FAILURE;
+  }
+
+  int num_elements, column_size;
+  try {
+    num_elements = read_file(indata1);
+    column_size = read_file(indata1);
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while reading columns from image shares.\n";
+    return EXIT_FAILURE;
+  }
+
+  options->num_elements = num_elements;
+  options->column_size = column_size;
+
   auto k = 0;
-  while (k < rows * col * 2) {
+  while (k < options->num_elements * options->column_size * 2) {
     std::uint64_t num = read_file(indata1);
     if (indata1.eof()) {
       std::cerr << "File contains less number of elements" << std::endl;
-      exit(1);
+      return EXIT_FAILURE;
     }
     k++;
   }
+
   indata1.close();
   indata2.open(p);
-  assert(indata2);
 
   options->num_elements = read_file(indata2);
   options->column_size = read_file(indata2);
-  std::cout << options->num_elements << " " << options->column_size << "\n";
+  // std::cout << options->num_elements << " " << options->column_size << "\n";
   for (int i = 0; i < options->num_elements; ++i) {
-    std::uint64_t m1 = read_file(indata2);
-    options->input.Delta.push_back(m1);
-    std::uint64_t m2 = read_file(indata2);
-    options->input.delta.push_back(m2);
+    try {
+      uint64_t m1 = read_file(indata2);
+      options->input.Delta.push_back(m1);
+      uint64_t m2 = read_file(indata2);
+      options->input.delta.push_back(m2);
+    } catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading columns from image shares.\n";
+      return EXIT_FAILURE;
+    }
   }
-  // std::cout << "Helllo\n";
   indata2.close();
 }
 
-void file_read(Options* options) {
+int file_read(Options* options) {
   std::string path = options->currentpath;
   // std::string path = std::filesystem::current_path();
   std::string t1 = path + "/" + options->filepath_frombuild;
 
   std::ifstream file1;
-  file1.open(t1);
-  if (file1) {
-    std::cout << "File found\n";
-  } else {
-    std::cout << "File not found\n";
+  try {
+    file1.open(t1);
+    if (file1) {
+      std::cout << "File found\n";
+    } else {
+      std::cout << "File not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening config_model file.\n";
+    return EXIT_FAILURE;
+  }
+
+  try {
+    if (is_empty(file1)) {
+      // file is empty
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "config_file_model is empty.\n";
+    return EXIT_FAILURE;
   }
 
   std::string i = read_filepath(file1);
@@ -361,7 +410,7 @@ void print_stats(const Options& options,
     obj.emplace("simd", options.num_simd);
     obj.emplace("threads", options.threads);
     obj.emplace("sync_between_setup_and_online", options.sync_between_setup_and_online);
-    std::cout << obj << "\n";
+    // std::cout << obj << "\n";
   } else {
     std::cout << MOTION::Statistics::print_stats("tensor_gt_relu", run_time_stats, comm_stats);
   }
@@ -371,27 +420,26 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   // retrieve the gate factories for the chosen protocols
   auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
+  auto& boolean_tof2 = backend.get_tensor_op_factory(MOTION::MPCProtocol::BooleanBEAVY);
 
-  ////////////////Using below to set size of input tensor/////////////////////
-  ////////Looks clumsy but could not fix it
-  const MOTION::tensor::GemmOp gemm_op1 = {.input_A_shape_ = {784, 256},
-                                           .input_B_shape_ = {options.num_elements, 1},
-                                           .output_shape_ = {784, 1}};
+  MOTION::tensor::TensorDimensions tensor_dims;
+  tensor_dims.batch_size_ = 1;
+  tensor_dims.num_channels_ = 1;
+  tensor_dims.height_ = options.num_elements;
+  tensor_dims.width_ = 1;
 
   /*const MOTION::tensor::GemmOp gemm_op1 = {
       .input_A_shape_ = {options.W_file.row, options.W_file.col},
       .input_B_shape_ = {options.image_file.row, options.image_file.col},
       .output_shape_ = {options.W_file.row, options.image_file.col}};
       */
-
-  const auto input_dims = gemm_op1.get_input_B_tensor_dims();
   /////////////////////////////////////////////////////////////////////////
   MOTION::tensor::TensorCP tensor_input;
-  auto pair_input = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_dims);
+  auto pair_input = arithmetic_tof.make_arithmetic_64_tensor_input_shares(tensor_dims);
   std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_vector =
       std::move(pair_input.first);
   tensor_input = pair_input.second;
-  // assert(tensor_input);
+  assert(tensor_input);
 
   ///////////////////////////////////////////////////////////////
   input_vector[0].set_value(options.input.Delta);
@@ -409,6 +457,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
         boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
     return arithmetic_tof.make_tensor_negate(finBoolean_tensor);
   };
+
   auto relu_output = make_activation(tensor_input);
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future, main_output_future,
@@ -476,7 +525,7 @@ int main(int argc, char* argv[]) {
       file2.open(t2, std::ios_base::app);
       std::string time_str =
           MOTION::Statistics::print_stats_short("tensor_gt_relu", run_time_stats, comm_stats);
-      std::cout << "Execution time string:" << time_str << "\n";
+      // std::cout << "Execution time string:" << time_str << "\n";
       double exec_time = std::stod(time_str);
       std::cout << "Execution time:" << exec_time << "\n";
       file2 << "Execution time - " << exec_time << "msec\n";

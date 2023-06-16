@@ -1,9 +1,3 @@
-/*
-./bin/final_output_provider --my-id 0 --connection-port 1234 --config-input X1 --current-path
-path_upto_build_deb..
-./bin/final_output_provider --my-id 1 --connection-port 1235 --config-input X1 --current-path
-path_upto_build_deb..
-*/
 // MIT License
 //
 // Copyright (c) 2021 Lennart Braun
@@ -37,105 +31,90 @@ path_upto_build_deb..
 
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
+#include <boost/chrono.hpp>
+#include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 
-#include "communication/communication_layer.h"
-#include "communication/tcp_transport.h"
 #include "utility/logger.h"
+
+#define MAX_CONNECT_RETRIES 50
+// #include "communication/communication_layer.h"
+// #include "communication/tcp_transport.h"
 
 using namespace boost::asio;
 using ip::tcp;
-using std::cout;
-using std::endl;
-using std::string;
 namespace po = boost::program_options;
 
 struct Options {
   std::size_t my_id;
-  // std::string current-path ;
-  // std::string filepath;
   std::string inputfilename;
   int port_number;
   int x;
   std::string fullfilepath;
   std::string currentpath;
+  std::string ip;
 };
 
-// struct Shares {
-//     int Delta, delta;
-// };
+bool is_valid_IP(const std::string& ip) {
+  ip::address ipAddress;
+  try 
+  {
+      ipAddress = boost::asio::ip::make_address(ip);
+  } 
+  catch (const boost::system::system_error&) {
+      return false;  // Failed to create boost::asio::ip::address
+  }
+  return ipAddress.is_v4() || ipAddress.is_v6();
+}
 
-std::uint64_t read_file(std::ifstream& indata) {
-  std::string str;
-  char num;
-  while (indata >> std::noskipws >> num) {
-    if (num != ' ' && num != '\n') {
-      str.push_back(num);
-    } else {
-      break;
+bool establishConnection(ip::tcp::socket& socket, std::string& host, int& port)
+{
+    for (int retry = 0; retry < MAX_CONNECT_RETRIES; ++retry)
+    {
+        try
+        {
+            socket.connect(tcp::endpoint(ip::address::from_string(host), port));
+            std::cout << "Connected to " << host << ":" << port << std::endl;
+            return true; // Connection successful
+        }
+        catch (const boost::system::system_error& e)
+        {
+            std::cout << "Connection attempt " << retry + 1 << " failed: " << e.what() << std::endl;
+            boost::this_thread::sleep_for(boost::chrono::milliseconds(500));   
+        }     
     }
-  }
-  std::string::size_type sz = 0;
-  std::uint64_t ret = (uint64_t)std::stoull(str, &sz, 0);
-  return ret;
+    std::cout << "Failed to establish connection after " << MAX_CONNECT_RETRIES << " retries." << std::endl;
+    return false; // Connection unsuccessful
 }
 
-void read_message(tcp::socket& socket) {
-  boost::asio::streambuf buf;
-  boost::system::error_code ec;
 
-  boost::asio::read_until(socket, buf, "\n");
-  if (ec && ec != boost::asio::error::eof) {
-    cout << "Server: receive failed: " << ec.message() << endl;
-  } else {
-    string data = boost::asio::buffer_cast<const char*>(buf.data());
-    std::cout << data << std::endl;
-  }
-}
-
-// std::string read_filepath(std::ifstream& indata) {
-//     std::string str;
-
-//     char num;
-//     while (indata) {
-//         std::getline(indata, str);
+// std::uint64_t read_file(std::ifstream& indata) {
+//   std::string str;
+//   char num;
+//   while (indata >> std::noskipws >> num) {
+//     if (num != ' ' && num != '\n') {
+//       str.push_back(num);
+//     } else {
+//       break;
 //     }
-//     std::cout << str << std::endl;
-//     return str;
+//   }
+//   std::string::size_type sz = 0;
+//   std::uint64_t ret = (uint64_t)std::stoull(str, &sz, 0);
+//   return ret;
 // }
 
-// void file_read(Options* options) {
-//     std::string path = options->currentpath  ;
-//     // std::string path = std::filesystem::current_path();
-//     std::string t1 = path + "/" + options->filepath;
+// void read_message(tcp::socket& socket) {
+//   boost::asio::streambuf buf;
+//   boost::system::error_code ec;
 
-//     std::string t2 =
-//         path + "/" + "server" + std::to_string(options->my_id) + "/" + options->inputfilename;
-
-//     std::ifstream file1;
-//     file1.open(t1);
-//     if (file1) {
-//         std::cout << "File found\n";
-//     } else {
-//         std::cout << "File not found\n";
-//     }
-
-//     std::string i = read_filepath(file1);
-//     std::cout << "i:" << i << "\n";
-
-//     file1.close();
-
-//     // reading input number for test case
-
-//     file1.open(t2);
-//     if (file1) {
-//         std::cout << "File found\n";
-//     } else {
-//         std::cout << "File not found\n";
-//     }
-//     options->x = read_file(file1);
-//     file1.close();
+//   boost::asio::read_until(socket, buf, "\n");
+//   if (ec && ec != boost::asio::error::eof) {
+//     std::cout << "Server: receive failed: " << ec.message() << std::endl;
+//   } else {
+//     std::string data = boost::asio::buffer_cast<const char*>(buf.data());
+//     std::cout << data << std::endl;
+//   }
 // }
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -145,12 +124,12 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
     desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
-    // ("config-file", po::value<std::string>(), "config file containing options")
-    // ("config-filename", po::value<std::string>()->required(), "Path of the shares file from build_debwithrelinfo folder")
-    ("config-input", po::value<std::string>()->required(), "Path of the input from build_debwithrelinfo folder")
+    ("config-input", po::value<std::string>()->required(), "Path of the input from the build folder")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
     ("connection-port", po::value<int>()->required(), "Port number on which to send request for connection")
-     ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
+    ("current-path",po::value<std::string>()->required(), "current path build_debwithrelinfo")
+    ("connection-ip",po::value<std::string>()->default_value("127.0.0.1"), "current path build_debwithrelinfo")
+
     ;
   // clang-format on
 
@@ -161,15 +140,11 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << desc << "\n";
     return std::nullopt;
   }
-  if (vm.count("config-file")) {
-    std::ifstream ifs(vm["config-file"].as<std::string>().c_str());
-    po::store(po::parse_config_file(ifs, desc), vm);
-  }
   try {
     po::notify(vm);
-  } catch (std::exception& e) {
-    std::cerr << "error:" << e.what() << "\n\n";
-    std::cerr << desc << "\n";
+  } 
+  catch (std::exception& e) {
+    std::cerr << "Input parse error:" << e.what() << std::endl;
     return std::nullopt;
   }
 
@@ -178,36 +153,37 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.currentpath = vm["current-path"].as<std::string>();
   // options.filepath = vm["config-filename"].as<std::string>();
   options.inputfilename = vm["config-input"].as<std::string>();
+  options.ip = vm["connection-ip"].as<std::string>();
   if (options.my_id > 1) {
-    std::cerr << "my-id must be one of 0 and 1\n";
+    std::cerr << "my-id must be 0 or 1\n";
     return std::nullopt;
   }
-  //  options.fullfilepath = vm["filepath"].as<std::string>();
 
-  // options.fractional_bits = vm["fractional-bits"].as<size_t>();
-
-  // if (options.my_id == 0) {
-  //  string name = "/X4_n.csv";
   std::string path = options.currentpath;
 
   options.fullfilepath = path + "/server" + std::to_string(options.my_id) +
                          "/Boolean_Output_Shares/Final_Boolean_Shares_server" +
                          std::to_string(options.my_id) + "_" + options.inputfilename + ".txt";
-  std::cout << "path " << options.fullfilepath << "\n";
-  //} else if (options.my_id == 1) {
-  // hardcoded
-  //  options.fullfilepath =
-  //  "/home/ramya/iudx-MOTION2NX/build_debwithrelinfo_gcc/server1/Boolean_Output_Shares/Final_Boolean_Shares_server1_"+options.inputfilename+".txt";
-  //  std::cout << "path " << options.fullfilepath << "\n";
-  //} else {
-  //  std::cerr << "Invalid data provider ID\n";
-  // return std::nullopt;
-  // }
+  std::cout << "Output shares path: " << options.fullfilepath << "\n";
+  //----------------------------------- Input Validation -----------------------------------//
   if (std::ifstream(options.fullfilepath)) {
-    cout << "File found";
-  } else
-    cout << "File not found";
-
+    std::cout << "Found the final output shares file.";
+  } 
+  else{
+      std::cout << "Final output shares file not found at "<<options.fullfilepath<<std::endl;
+      return std::nullopt;
+  }
+  // Check whether IP addresses are valid
+  if (!is_valid_IP(options.ip)) {
+    std::cerr << "Invalid IP address." << std::endl;
+    return std::nullopt;
+  } 
+  
+  // Check if the port numbers are within the valid range (1-65535)
+  if ((options.port_number < 1) || (options.port_number > std::numeric_limits<unsigned short>::max())) {
+      return std::nullopt;  // Out of range
+  }
+  //--------------------------------------------------------------------------------------------//
   return options;
 }
 struct Shares {
@@ -216,16 +192,15 @@ struct Shares {
 
 // sends the shares stored in a data structure to the image provider.
 void write_struct(tcp::socket& socket, std::vector<Shares>& data, int num_elements) {
-  for (int i = 0; i < num_elements; i++) {
-    boost::system::error_code error;
+  boost::system::error_code error;
+  for (int i = 0; i < num_elements; i++) 
+  {  
     boost::asio::write(socket, boost::asio::buffer(&data[i], sizeof(data[i])), error);
-
-    if (!error) {
-      cout << "successfully sent\n";
-    } else {
-      cout << "send failed: " << error.message() << endl;
-    }
-    sleep(1);
+    if (error) 
+      {
+      std::cerr << "Unable to send share "<< i+1<<".\nError: " << error.message() << std::endl;
+      }
+    // sleep(1); //Commented on 19/5/23 by Rashmi
   }
 }
 
@@ -243,48 +218,74 @@ void write_struct(tcp::socket& socket, Shares* data, int num_elements) {
     if (!error) {
       continue;
     } else {
-      cout << "send of shares failed: " << error.message() << endl;
+      std::cout << "send of shares failed: " << error.message() << std::endl;
     }
   }
 }
+
 int main(int argc, char* argv[]) {
-  std::cout << "inside main\n";
   auto options = parse_program_options(argc, argv);
+  if (!options.has_value()) {
+    return EXIT_FAILURE;
+  }
   // Reading contents from file
-  std::ifstream indata;
-  indata.open(options->fullfilepath);
-  if ((std::ifstream(options->fullfilepath)))
-    cout << "File found";
-  else
-    cout << "File not found";
-  Shares shares_data[10];
-  // get input data
-  // std::vector<float> data;
-  int i = 0;
-  int number_of_elements;
-  std::string line;
-  indata >> number_of_elements;
-  for (i = 0; i < number_of_elements; i++) {
-    indata >> shares_data[i].Delta;
-    indata >> shares_data[i].delta;
-  }
-  for (i = 0; i < number_of_elements; i++) {
-    std::cout << shares_data[i].Delta << " " << shares_data[i].delta << "\n";
-  }
-  cout << "\nStart of send \n";
+  Shares shares_data[10]; //hardcoded
+  int i, number_of_elements;
+  std::ifstream output_shares_file;
+  
+  try{
+    output_shares_file.open(options->fullfilepath);
+    if (!output_shares_file)
+      {
+        std::cerr<<"Unable to open the output shares file.\n";
+        throw std::ifstream::failure("Error opening the output shares file.");  
+      }
+    
+    std::string line;
+    output_shares_file >> number_of_elements;
+    for (i = 0; i < number_of_elements; i++) {
+      output_shares_file >> shares_data[i].Delta;
+      output_shares_file >> shares_data[i].delta;
+      }
+    }
+  catch(const std::ifstream::failure& e){
+    std::cerr << e.what() << std::endl;
+    output_shares_file.close();
+    return EXIT_FAILURE;  
+    }
+  output_shares_file.close();
 
+  // for (i = 0; i < number_of_elements; i++) {
+  //   std::cout << shares_data[i].Delta << " " << shares_data[i].delta << "\n";
+  // }
+  
   boost::asio::io_service io_service;
-
-  // socket creation
   tcp::socket socket(io_service);
+  
+  if(establishConnection(socket,options->ip,options->port_number))
+      {
+        std::cout<<"Connection established successfully\n";
+      }
+    else
+      {
+        std::cerr<<"Connection could not be established with the receiver"<<std::endl;
+        socket.close();
+        return EXIT_FAILURE;
+      }
+  
+  // socket.connect(tcp::endpoint(boost::asio::ip::address::from_string(options->ip), options->port_number));
 
-  auto port = options->port_number;
-
-  socket.connect(tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port));
-
-  //////////Send data///////////////////////
-  boost::system::error_code error;
-  write_struct(socket, shares_data, number_of_elements);
-
+  //----------------Send data---------------------------//
+  std::cout<<"Sending the final output shares.\n";
+  try{
+    write_struct(socket, shares_data, number_of_elements);
+  }
+  catch(std::exception& e)
+      {
+        std::cerr<<"Error while sending final output shares: "<<e.what()<<std::endl;
+        socket.close();
+        return EXIT_FAILURE;
+      }
   socket.close();
+  return EXIT_SUCCESS;
 }
