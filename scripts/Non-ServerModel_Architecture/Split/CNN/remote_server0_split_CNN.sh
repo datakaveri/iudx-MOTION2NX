@@ -1,7 +1,16 @@
 #! /bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/file_config_model
+model_config=${BASE_DIR}/config_files/model_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
 image_provider_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
@@ -45,15 +54,12 @@ cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
 relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
 relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 
-
+number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
 image_id=`echo $smpc_config | jq -r .image_id`
-
-
-#number of splits
-splits=`echo "$smpc_config" | jq -r .splits`
+image_share="remote_image_shares"
 
 # echo all input variables
 #echo "cs0_host $cs0_host"
@@ -110,7 +116,7 @@ fi
 
 #########################Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"
-$build_path/bin/Weights_Share_Receiver_CNN --my-id 0 --port $cs0_port_model_receiver --file-names $model_config --current-path $build_path > $debug_0/Weights_Share_Receiver.txt &
+$build_path/bin/Weights_Share_Receiver_CNN --my-id 0 --port $cs0_port_model_receiver --current-path $build_path > $debug_0/Weights_Share_Receiver.txt &
 pid2=$!
 wait $pid2
 echo "Weight shares received"
@@ -134,143 +140,74 @@ echo "Image shares received"
 
 ########################Inferencing task starts ###############################################################################################
 echo "Inferencing task of the image shared starts"
-
 start=$(date +%s)
 
 layer_id=1
-input_config=" "
-image_share="remote_image_shares"
-if [ $layer_id -eq 1 ];
-then
-   input_config="remote_image_shares"
-fi
+cp server0/Image_shares/remote_image_shares server0/outputshare_0
+cp server0/Image_shares/remote_image_shares server0/cnn_outputshare_0
+#sed -i "1s/^[^ ]* //" server0/outputshare_0
 
-$build_path/bin/cnn --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/cnn_0.txt &
+layer_types=($(cat layer_types0))
 
-pid1=$!
-wait $pid1 
+for ((; layer_id<$number_of_layers; layer_id++)); do
+   # echo $layer_id
+   # echo ${layer_types[layer_id-1]}
+   if [ ${layer_types[layer_id-1]} -eq 0 ];
+   then
+      input_config="outputshare"
 
-$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu0_layer0.txt &
-pid1=$!
-
-wait $pid1 
-echo "Layer 0: ReLU is done"
-
-# echo "image_id $image_id" > MemoryDetails0
-echo "Number of splits for layer 1 matrix multiplication: $splits"
-x=$((100/splits))
-
-((layer_id++))
-
-cp ${BASE_DIR}/build_debwithrelinfo_gcc/server0/outputshare_0 ${BASE_DIR}/build_debwithrelinfo_gcc/server0/cnn_0
-
-# #Updating the config file for layers 2 and above. 
-if [ $layer_id -gt 1 ];
-then
-    input_config="cnn"
-fi
-
-############################Inputs for inferencing tasks #######################################################################################
-echo $layer_id
-for  (( m = 1; m <= $splits; m++ )) 
-  do 
-
-	let l=$((m-1)) 
-	let a=$((l*x+1)) 
-	let b=$((m*x)) 
-	let r=$((l*x))
-
-   #-------------------------------Matrix multiplication layer 1 --------------------------------#
-   #Layer 1
-   $build_path/bin/tensor_gt_mul_split --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --row_start $a --row_end $b --split $splits --current-path $build_path > $debug_0/tensor_gt_mul0_layer${layer_id}_split.txt &
-   pid1=$!
-   wait $pid1 
-
-   
-   echo "Layer $layer_id, split $m: Matrix multiplication and addition is done."
-   
-   if [ $m -eq 1 ];then
-      touch finaloutput_0
-      printf "$x 1\n" >> finaloutput_0
-      $build_path/bin/appendfile 0
+      $build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/tensor_gt_mul0_layer${layer_id}.txt &
       pid1=$!
       wait $pid1 
-   else 
-      $build_path/bin/appendfile 0
+      check_exit_statuses $?
+      echo "Layer $layer_id: Matrix multiplication and addition is done"
+      
+      $build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu0_layer${layer_id}.txt &
       pid1=$!
-      wait $pid1 
+      wait $pid1
+      check_exit_statuses $?
+      echo "Layer $layer_id: ReLU is done"
+   
+   elif [ ${layer_types[layer_id-1]} -eq 1 ];
+   then
+      input_config="cnn_outputshare"
+      
+      $build_path/bin/cnn --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/cnn0_layer${layer_id}.txt &
+      pid1=$!
+      wait $pid1
+      check_exit_statuses $?
+      echo "Layer $layer_id: Convolution is done"
+
+      $build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu0_layer${layer_id}.txt &
+      pid1=$!
+      wait $pid1
+      check_exit_statuses $?
+      echo "Layer $layer_id: ReLU is done"
+      cat server0/outputshare_0 >> server0/cnn_outputshare_0
    fi
-
-	sed -i "1s/${r} 1/100 1/" finaloutput_0
-
 done
 
-cp finaloutput_0  $build_path/server0/outputshare_0
-  
-# #######################################Matrix multiplication layer 1 ###########################################################################
-# echo $layer_id
-# #Layer 1
-# $build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/tensor_gt_mul0_layer0.txt&
-# pid1=$!
+input_config="outputshare"
 
-# wait $pid1 
-
-# echo "Layer 1: Matrix multiplication and addition is done"
-
-   
-######################################Output share receivers ###########################################################################
-$build_path/bin/output_shares_receiver --my-id 0 --listening-port $cs0_port_cs0_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver0.txt &
-pid5=$!
-
-$build_path/bin/output_shares_receiver --my-id 1 --listening-port $cs0_port_cs1_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver1.txt &
-pid6=$!
-
-echo "Image Provider listening for the inferencing result"
-
-if [ $layer_id -gt 1 ];
-then
-    input_config="outputshare"
-fi
-
-#######################################ReLu layer 1 ####################################################################################
-$build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu0_layer1.txt &
+$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/tensor_gt_mul0_layer${layer_id}.txt &
 pid1=$!
-
-wait $pid1 
-
-echo "Layer 1: ReLU is done"
-
-#######################Next layer, layer 2, inputs for layer 2 ###################################################################################################
-((layer_id++))
-
-# #Updating the config file for layers 2 and above. 
-if [ $layer_id -gt 1 ];
-then
-    input_config="outputshare"
-fi
-
-#######################################Matrix multiplication layer 2 ###########################################################################
-$build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/tensor_gt_mul0_layer2.txt &
-pid1=$!
-
-wait $pid1 
-
-echo "Layer 2: Matrix multiplication and addition is done"
+wait $pid1
+check_exit_statuses $?
+echo "Layer $layer_id: Matrix multiplication and addition is done"
 
 ####################################### Argmax  ###########################################################################
-$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path  > $debug_0/argmax0_layer2.txt &
+$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --config-filename file_config_input0 --config-input $image_share --current-path $build_path > $debug_0/argmax0_layer${layer_id}.txt &
 pid1=$!
-
-wait $pid1 
+wait $pid1
+check_exit_statuses $?
+echo "Layer $layer_id: Argmax is done"
 
 end=$(date +%s)
-
-echo "Layer 2: Argmax is done"
-
 ####################################### Final output provider  ###########################################################################
+
 $build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider.txt &
 pid3=$!
-
+wait $pid3
 echo "Output shares of server 0 sent to the image provider"
 
 

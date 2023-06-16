@@ -165,8 +165,9 @@ struct Options {
   Matrix image_file;
   Matrix W_file;
   Matrix B_file;
-  Matrix row;
-  Matrix col;
+  Matrix output;
+  int strides[2];
+  int pads[4];
 };
 
 // this function reads all lines but takes into consideration only the required input
@@ -213,8 +214,12 @@ int image_shares(Options* options, std::string p) {
     return EXIT_FAILURE;
   }
 
-  std::uint64_t rows, cols;
+  std::uint64_t chnls, rows, cols;
   try {
+    if (options->layer_id == 1) {
+      chnls = 1;
+    }
+    options->image_file.chnl = chnls;
     rows = read_file(temps);
     options->image_file.row = rows;
     std::cout << "r " << rows << " ";
@@ -226,7 +231,7 @@ int image_shares(Options* options, std::string p) {
     return EXIT_FAILURE;
   }
 
-  for (int i = 0; i < rows * cols; ++i) {
+  for (int i = 0; i < chnls * rows * cols; ++i) {
     try {
       uint64_t m1 = read_file(temps);
       options->image_file.Delta.push_back(m1);
@@ -273,10 +278,20 @@ int W_shares(Options* options, std::string p) {
     options->W_file.chnl = channels;
     rows = read_file(indata);
     options->W_file.row = rows;
-    std::cout << "k " << kernels << " c " << channels << " r " << rows;
     cols = read_file(indata);
     options->W_file.col = cols;
-    std::cout << " c " << cols << "\n";
+    std::cout << "k " << kernels << " c " << channels << " r " << rows << " c " << cols << "\n";
+
+    for (int i=0; i<4; i++)
+      (options->pads)[i] = read_file(indata);  
+    for (int i=0; i<2; i++)
+      (options->strides)[i] = read_file(indata);
+    std::cout << "pads " << (options->strides)[0] << " " << options->strides[1] << "\n";
+
+    options->output.chnl = kernels;
+    options->output.row = (options->image_file.row - options->W_file.row + options->pads[0] + options->pads[2] + options->strides[0]) / options->strides[0];
+    options->output.col = (options->image_file.col - options->W_file.col + options->pads[1] + options->pads[3] + options->strides[1]) / options->strides[1];
+
   } catch (std::ifstream::failure e) {
     std::cerr << "Error while reading rows and columns from weight shares.\n";
     return EXIT_FAILURE;
@@ -364,15 +379,15 @@ int file_read(Options* options) {
   std::string t1, i;
   // if layer_id=1 then read filename inside server
   // else read file_config_input (id is appended)
-  if (options->layer_id == 1) {
-    // std::cout << "hello\n";
-    t1 = path + "/server" + std::to_string(options->my_id) + "/Image_shares/" +
-         options->imageprovider;
-  } else if (options->layer_id > 1) {
+  // if (options->layer_id == 1) {
+  //   // std::cout << "hello\n";
+  //   t1 = path + "/server" + std::to_string(options->my_id) + "/Image_shares/" +
+  //        options->imageprovider;
+  // } else if (options->layer_id > 1) {
     // outputshare_0/1 inside server 1/0
     t1 = path + "/server" + std::to_string(options->my_id) + "/" + options->imageprovider + "_" +
          std::to_string(options->my_id);
-  }
+  // }
 
   image_shares(options, t1);
 
@@ -589,11 +604,15 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
                                                               options.W_file.chnl,
                                                               options.W_file.row,
                                                               options.W_file.col},
-                                            .input_shape_ = {1, 28, 28},
-                                            .output_shape_ = {5, 13, 13},
+                                            .input_shape_ = {options.image_file.chnl,
+                                                             options.image_file.row,
+                                                             options.image_file.col},
+                                            .output_shape_ = {options.output.chnl,
+                                                              options.output.row,
+                                                              options.output.col},
                                             .dilations_ = {1, 1},
-                                            .pads_ = {1, 1, 0, 0},
-                                            .strides_ = {2, 2}};
+                                            .pads_ = {options.pads[0], options.pads[1], options.pads[2], options.pads[3]},
+                                            .strides_ = {options.strides[0], options.strides[1]}};
 
 
   std::cout << "----------------------------------" << std::endl << "Input Dimensions:" << std::endl;
@@ -672,10 +691,38 @@ MOTION::tensor::TensorCP gemm_output1, add_output1;
 
 }
 
+void genrt_cnn_outputshare(const Options& options) {
+  std::string my_id = std::to_string(options.my_id);
+  std::string path = options.currentpath;
+  std::string i_path = path + "/server" + my_id + "/outputshare_" + my_id;
+  std::string o_path = path + "/server" + my_id + "/cnn_outputshare_" + my_id;
+  std::ifstream i_file;
+  std::ofstream o_file;
+  uint64_t temp;
+  i_file.open(i_path);
+  temp = read_file(i_file);
+  temp = read_file(i_file);
+  o_file.open(o_path);
+  o_file << options.output.chnl << " " ;
+  //           options.output.row << " " <<
+  //           options.output.col << "\n";
+  
+  // for (int i=0; i<options.output.chnl * options.output.row * options.output.col; ++i) {
+  //   temp = read_file(i_file);
+  //   o_file << temp << ' ';
+  //   temp = read_file(i_file);
+  //   o_file << temp << '\n';
+  // }
+  
+  i_file.close();
+  o_file.close();
+  return;
+}
+
 void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
   auto output_future = create_composite_circuit(options, backend);
   backend.run();
-  if (options.my_id == 1) {
+    //  if (options.my_id == 1) {
     // auto main = output_future.get();
     //   std::vector<long double> mod_x;
     //   // std::string path = std::filesystem::current_path();
@@ -717,12 +764,7 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
       
     //       std::cṭout << temp << ",";
 
-    //       }
-    //       std::cout<<std::endl;
-    //   }
-    //   std::cout<<"*****************************************************"<<std::endl;
-    // }
-  }
+  return;
 }
 
 int main(int argc, char* argv[]) {
@@ -744,6 +786,7 @@ int main(int argc, char* argv[]) {
     MOTION::TwoPartyTensorBackend backend(*comm_layer, options->threads,
                                           options->sync_between_setup_and_online, logger);
     run_composite_circuit(*options, backend);
+    genrt_cnn_outputshare(*options);
     comm_layer->sync();
     comm_stats.add(comm_layer->get_transport_statistics());
     comm_layer->reset_transport_statistics();
