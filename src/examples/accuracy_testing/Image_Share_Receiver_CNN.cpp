@@ -135,7 +135,7 @@ void retrieve_shares(Options& options) {
     // return EXIT_FAILURE;
   }
   try{
-    shares_file << shares_and_sizes.second[0] << " " << shares_and_sizes.second[1] << "\n";
+    shares_file << shares_and_sizes.second[0] << " " << shares_and_sizes.second[1] << " " << shares_and_sizes.second[2] << "\n";
     std::cout << "Number of image share pairs received:" << image_shares_all.size() << "\n";
     for (int i = 0; i < image_shares_all.size(); i++) {
       // options.image.Delta.push_back(image_shares_all[i].Delta);

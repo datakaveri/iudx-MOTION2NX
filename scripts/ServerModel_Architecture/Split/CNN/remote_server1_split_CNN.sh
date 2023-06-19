@@ -102,7 +102,7 @@ pid1=$!
 
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
-$build_path/bin/Image_Share_Receiver --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver.txt &
+$build_path/bin/Image_Share_Receiver_CNN --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver.txt &
 pid2=$!
 wait $pid1 $pid2
 
@@ -118,7 +118,7 @@ start=$(date +%s)
 layer_id=1
 cp server1/Image_shares/remote_image_shares server1/outputshare_1
 cp server1/Image_shares/remote_image_shares server1/cnn_outputshare_1
-#sed -i "1s/^[^ ]* //" server1/outputshare_1
+sed -i "1s/^[^ ]* //" server1/outputshare_1
 
 layer_types=($(cat layer_types1))
 number_of_layers=${layer_types[0]}
