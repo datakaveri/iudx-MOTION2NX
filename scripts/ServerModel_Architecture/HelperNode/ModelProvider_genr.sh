@@ -11,7 +11,7 @@ check_exit_statuses() {
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_config=${BASE_DIR}/config_files/model_helpernode_config.json
 model_provider_path=${BASE_DIR}/data/ModelProvider
-debug_ModelProv=${BASE_DIR}/logs/ModelProvider_logs/
+debug_ModelProv=${BASE_DIR}/logs/ModelProvider_logs
 smpc_config_path=${BASE_DIR}/config_files/smpc-helpernode-config.json
 smpc_config=`cat $smpc_config_path`
 #--------------------------------- Inputs ------------------------------------------------------------------#

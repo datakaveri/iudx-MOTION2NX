@@ -1,10 +1,19 @@
 #!/bin/bash
+check_exit_statuses() {
+   for status in "$@";
+   do
+      if [ $status -ne 0 ]; then
+         echo "Exiting due to error."
+         exit 1  # Exit the script with a non-zero exit code
+      fi
+   done
+}
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
 image_provider_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
-debug_0=${BASE_DIR}/logs/server0/
+debug_0=${BASE_DIR}/logs/server0
 scripts_path=${BASE_DIR}/scripts
 smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
 smpc_config=`cat $smpc_config_path`
@@ -116,7 +125,7 @@ fi
 
 #########################Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"
-$build_path/bin/weight_share_receiver_genr --my-id 0 --port $cs0_port_model_receiver --current-path $build_path >> $debug_0/Weights_Share_Receiver0.txt &
+$build_path/bin/weight_share_receiver_genr --my-id 0 --port $cs0_port_model_receiver --current-path $build_path > $debug_0/Weights_Share_Receiver.txt &
 pid1=$!
 
 #########################Image Share Receiver ############################################################################################
@@ -124,7 +133,10 @@ echo "Image shares receiver starts"
 $build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_0/Image_Share_Receiver.txt &
 pid2=$!
 
-wait $pid1 $pid2
+wait $pid1
+check_exit_statuses $? 
+wait $pid2
+check_exit_statuses $?
 
 echo "Weight shares received"
 echo "Image shares received"
@@ -136,11 +148,11 @@ echo "Inferencing task of the image shared starts"
 layer_id=1
 
 input_config=" "
-   image_share="remote_image_shares"
-   if [ $layer_id -eq 1 ];
-   then
-      input_config="remote_image_shares"
-   fi
+image_share="remote_image_shares"
+if [ $layer_id -eq 1 ];
+then
+   input_config="remote_image_shares"
+fi
 
 for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64'); do
    rows=$(echo ${split_layer} | base64 --decode | jq -r '.rows')
@@ -173,6 +185,7 @@ for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64
     pid1=$!
    
     wait $pid1 
+    check_exit_statuses $?
     echo "Layer $layer_id, split $m: Matrix multiplication and addition is done."
     if [ $m -eq 1 ];then
       touch finaloutput_0
@@ -180,12 +193,15 @@ for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64
       $build_path/bin/appendfile 0
       pid1=$!
       wait $pid1 
-      
+      check_exit_statuses $?
+
     else 
       
       $build_path/bin/appendfile 0
       pid1=$!
       wait $pid1 
+      check_exit_statuses $?
+
     fi
 
 	sed -i "1s/${r} 1/${b} 1/" finaloutput_0
@@ -193,12 +209,14 @@ for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64
 done
 
 cp finaloutput_0  $build_path/server0/outputshare_0 
+check_exit_statuses $?
 
 ####################################### ReLu layer 1 ####################################################################################
 $build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu1_layer0.txt &
 pid1=$!
 
 wait $pid1
+check_exit_statuses $?
 
 echo "Layer $layer_id: ReLU is done"
 
@@ -208,6 +226,7 @@ if [ -f finaloutput_0 ]; then
 fi
 
 cp $build_path/server0/outputshare_0  $build_path/server0/mult_output_0
+check_exit_statuses $?
 
 # #Updating the config file for layers 2 and above. 
 
@@ -233,6 +252,7 @@ $build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_infer
 pid1=$!
 
 wait $pid1 
+check_exit_statuses $?
 
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
@@ -241,6 +261,7 @@ $build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$cs0_port_inference
 pid1=$!
 
 wait $pid1 
+check_exit_statuses $?
 
 echo "Layer $layer_id: ReLU is done"
 
@@ -252,6 +273,7 @@ $build_path/bin/tensor_gt_mul_test --my-id 0 --party 0,$cs0_host,$cs0_port_infer
 pid1=$!
 
 wait $pid1 
+check_exit_statuses $?
 
 echo "Layer $layer_id: Matrix multiplication and addition is done"
 
@@ -260,6 +282,7 @@ $build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_infer
 pid1=$!
 
 wait $pid1 
+check_exit_statuses $?
 
 end=$(date +%s)
 
@@ -268,7 +291,8 @@ echo "Layer $layer_id: Argmax is done"
 ####################################### Final output provider  ###########################################################################
 $build_path/bin/final_output_provider --my-id 0 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider.txt &
 pid3=$!
-
+wait $pid3
+check_exit_statuses $?
 echo "Output shares of server 0 sent to the image provider"
 
 wait 

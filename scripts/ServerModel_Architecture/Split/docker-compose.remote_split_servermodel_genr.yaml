@@ -9,9 +9,7 @@ services:
   smpc-server0:
     image: ghcr.io/datakaveri/motion2nx:local
     volumes:
-      - type: volume
-        source: smpc-server0-volume
-        target: /usr/share/app/logs
+      - ../../../logs:/usr/share/app/logs:rw
       - ../../../config_files:/usr/share/app/config_files:ro
       - ../../../scripts:/usr/share/app/scripts:rw
 
@@ -43,9 +41,7 @@ services:
     volumes:
       - ../../../config_files:/usr/share/app/config_files:ro
       - ../../../scripts:/usr/share/app/scripts:rw
-      - type: volume
-        source: smpc-server1-volume
-        target: /usr/share/app/logs
+      - ../../../logs:/usr/share/app/logs
     restart: no
     network_mode:
       "host"

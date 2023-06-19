@@ -12,7 +12,7 @@ check_exit_statuses() {
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
 output_shares_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
-debug_ImageProv=${BASE_DIR}/logs/ImageProvider_logs/
+debug_ImageProv=${BASE_DIR}/logs/ImageProvider_logs
 smpc_config_path=${BASE_DIR}/config_files/image_config.json
 smpc_config=`cat $smpc_config_path`
 #------------------------------------ Inputs -------------------------------------------------#
