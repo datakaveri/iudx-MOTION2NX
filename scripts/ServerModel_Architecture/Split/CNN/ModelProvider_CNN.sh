@@ -1,10 +1,9 @@
 #! /bin/bash
-image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/file_config_model
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
+model_config=${BASE_DIR}/config_files/model_split_config.json
 model_provider_path=${BASE_DIR}/data/ModelProvider
-debug_ModelProv=${BASE_DIR}/logs/ModelProvider_logs/
-smpc_config_path=${BASE_DIR}/config_files/smpc-remote-config.json
+debug_ModelProv=${BASE_DIR}/logs/ModelProvider_logs
+smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
 smpc_config=`cat $smpc_config_path`
 # #####################Inputs##########################################################################################################
 # Do dns resolution or not 
@@ -45,7 +44,7 @@ fi
 # Creates the weights and bias shares and sends it to server 0 and server 1
 echo "Weight Provider starts."
 
-$build_path/bin/CNN_weights_provider_remote --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path > $debug_ModelProv/weights_provider.txt &
+$build_path/bin/CNN_weights_provider_genr --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path --config-file-path $model_config> $debug_ModelProv/weights_provider.txt &
 pid1=$!
 wait $pid1 
 echo "Weight shares sent."

@@ -162,6 +162,7 @@ void store_types(Options& options, std::vector<int> types) {
     throw std::runtime_error("Unable to open file "+ types_file_path + "\n");
   }
 
+  types_file << options.number_of_layers << "\n";
   for (int i=0; i<options.number_of_layers; i++) {
     types_file << types[2*i] << "\n";
     try {

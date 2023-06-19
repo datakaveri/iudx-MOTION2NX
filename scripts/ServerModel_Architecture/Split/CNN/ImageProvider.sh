@@ -12,8 +12,8 @@ check_exit_statuses() {
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
 output_shares_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
-debug_ImageProv=${BASE_DIR}/logs/ImageProvider_logs/
-smpc_config_path=${BASE_DIR}/config_files/smpc-remote-config.json
+debug_ImageProv=${BASE_DIR}/logs/ImageProvider_logs
+smpc_config_path=${BASE_DIR}/config_files/image_config.json
 smpc_config=`cat $smpc_config_path`
 #--------------------------- Inputs ------------------------------------------------------------#
 # Do dns resolution or not 
@@ -45,8 +45,6 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
 image_id=`echo $smpc_config | jq -r .image_id`
-#number of splits
-splits=`echo "$smpc_config" | jq -r .splits`
 
 if [ ! -d "$debug_ImageProv" ];
 then
@@ -54,7 +52,7 @@ then
 	mkdir -p $debug_ImageProv
 fi
 
-#----------------------------------------------- Image Share Provider -------------------------------------------------------#
+#--------------------------------------------- Image Share Provider -------------------------------------------------------#
 # Create Image shares and send it to server 0 and server 1
 echo "Image Provider starts"
 $build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path > $debug_ImageProv/image_provider.txt &
@@ -74,9 +72,10 @@ pid6=$!
 
 echo "Image Provider is waiting for the inferencing result"
 wait $pid5
-check_exit_statuses $?
+check_exit_statuses $? 
 wait $pid6
 check_exit_statuses $?
+
 #-----------------------------------------     Reconstruction     -------------------------------------------------------#
 
 echo "Reconstruction Starts"

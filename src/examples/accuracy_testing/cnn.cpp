@@ -216,9 +216,7 @@ int image_shares(Options* options, std::string p) {
 
   std::uint64_t chnls, rows, cols;
   try {
-    if (options->layer_id == 1) {
-      chnls = 1;
-    }
+      chnls = read_file(temps);
     options->image_file.chnl = chnls;
     rows = read_file(temps);
     options->image_file.row = rows;
@@ -286,7 +284,7 @@ int W_shares(Options* options, std::string p) {
       (options->pads)[i] = read_file(indata);  
     for (int i=0; i<2; i++)
       (options->strides)[i] = read_file(indata);
-    std::cout << "pads " << (options->strides)[0] << " " << options->strides[1] << "\n";
+    std::cout << "strides " << (options->strides)[0] << " " << options->strides[1] << "\n";
 
     options->output.chnl = kernels;
     options->output.row = (options->image_file.row - options->W_file.row + options->pads[0] + options->pads[2] + options->strides[0]) / options->strides[0];
@@ -594,7 +592,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   std::cout << "Inside Build CNN" << std::endl;
   
   const MOTION::tensor::TensorDimensions input_dims{
-      .batch_size_ = 1, .num_channels_ = 1, .height_ = 28, .width_ = 28};
+      .batch_size_ = 1, .num_channels_ = options.image_file.chnl, .height_ = options.image_file.row, .width_ = options.image_file.col};
   const MOTION::tensor::TensorDimensions conv_weights_dims{
       .batch_size_ = options.W_file.ker, .num_channels_ = options.W_file.chnl, .height_ = options.W_file.row, .width_ = options.W_file.col};
   const MOTION::tensor::TensorDimensions CBias1_dims{
@@ -703,9 +701,9 @@ void genrt_cnn_outputshare(const Options& options) {
   temp = read_file(i_file);
   temp = read_file(i_file);
   o_file.open(o_path);
-  o_file << options.output.chnl << " " ;
-  //           options.output.row << " " <<
-  //           options.output.col << "\n";
+  o_file <<  options.output.chnl << " " <<
+             options.output.row  << " " <<
+             options.output.col  << "\n";
   
   // for (int i=0; i<options.output.chnl * options.output.row * options.output.col; ++i) {
   //   temp = read_file(i_file);

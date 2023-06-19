@@ -10,13 +10,13 @@ check_exit_statuses() {
 }
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/model_config.json
+model_config=${BASE_DIR}/config_files/model_split_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
 image_provider_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
 debug_0=${BASE_DIR}/logs/server0/
 scripts_path=${BASE_DIR}/scripts
-smpc_config_path=${BASE_DIR}/config_files/smpc-remote-config.json
+smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
 smpc_config=`cat $smpc_config_path`
 # #####################Inputs##########################################################################################################
 # Do dns reolution or not 
@@ -54,7 +54,6 @@ cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
 relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
 relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 
-number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
@@ -124,12 +123,12 @@ echo "Weight shares received"
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
 
-$build_path/bin/Image_Share_Receiver --my-id 0 --port $cs0_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_0/Image_Share_Receiver.txt &
+$build_path/bin/Image_Share_Receiver_CNN --my-id 0 --port $cs0_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_0/Image_Share_Receiver.txt &
 pid1=$!
 
 #########################Image Share Provider ############################################################################################
 echo "Image Provider starts"
-$build_path/bin/image_provider_iudx --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path > $debug_0/image_provider.txt &
+$build_path/bin/image_provider_CNN --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --fractional-bits $fractional_bits --index $image_id --filepath $image_path > $debug_0/image_provider.txt &
 pid3=$!
 
 wait $pid3 $pid1
@@ -145,14 +144,30 @@ start=$(date +%s)
 layer_id=1
 cp server0/Image_shares/remote_image_shares server0/outputshare_0
 cp server0/Image_shares/remote_image_shares server0/cnn_outputshare_0
-#sed -i "1s/^[^ ]* //" server0/outputshare_0
+sed -i "1s/^[^ ]* //" server0/outputshare_0
 
 layer_types=($(cat layer_types0))
+number_of_layers=${layer_types[0]}
+
+split_info=$(echo "$smpc_config" | jq -r '.split_layers_genr[]')
+split_info_index=0
+split_info_length=${#split_info[@]}
 
 for ((; layer_id<$number_of_layers; layer_id++)); do
-   # echo $layer_id
-   # echo ${layer_types[layer_id-1]}
-   if [ ${layer_types[layer_id-1]} -eq 0 ];
+   num_splits=1
+
+   # Check for information in split info
+   if [ $split_info_index -lt $split_info_length ];
+   then
+      if [ $layer_id -eq $(echo ${split_info[split_info_index]} | jq -r '.layer_id') ];
+      then
+         num_rows=$(echo ${split_info[split_info_index]} | jq -r '.rows')
+         num_splits=$(echo ${split_info[split_info_index]} | jq -r '.splits')
+         ((split_info_index++))
+      fi
+   fi
+
+   if [ ${layer_types[layer_id]} -eq 0 ] && [ $num_splits -eq 1 ];
    then
       input_config="outputshare"
 
@@ -168,11 +183,58 @@ for ((; layer_id<$number_of_layers; layer_id++)); do
       check_exit_statuses $?
       echo "Layer $layer_id: ReLU is done"
    
-   elif [ ${layer_types[layer_id-1]} -eq 1 ];
+   elif [ ${layer_types[layer_id]} -eq 0 ] && [ $num_splits -gt 1 ];
+   then
+      cp $build_path/server0/outputshare_0  $build_path/server0/split_input_0
+      input_config="split_input"
+
+      echo "Number of splits for layer $layer_id matrix multiplication: $num_rows::$num_splits"
+      x=$(($num_rows/$num_splits))
+      for(( m = 1; m <= $num_splits; m++ )); do 
+         let l=$((m-1)) 
+         let a=$((l*x+1)) 
+         let b=$((m*x)) 
+         let r=$((l*x))
+         
+         $build_path/bin/tensor_gt_mul_split --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --row_start $a --row_end $b --split $num_splits --current-path $build_path > $debug_0/tensor_gt_mul0_layer${layer_id}_split.txt &
+         pid1=$!
+         wait $pid1
+         check_exit_statuses $? 
+         echo "Layer $layer_id, split $m: Matrix multiplication and addition is done."
+         if [ $m -eq 1 ]; then
+            touch finaloutput_0
+            printf "$r 1\n" > finaloutput_0
+            $build_path/bin/appendfile 0
+            pid1=$!
+            wait $pid1 
+            check_exit_statuses $?
+         else 
+            $build_path/bin/appendfile 0
+            pid1=$!
+            wait $pid1 
+            check_exit_statuses $?
+         fi
+
+         sed -i "1s/${r} 1/${b} 1/" finaloutput_0
+      done
+
+      cp finaloutput_0  $build_path/server0/outputshare_0 
+      if [ -f finaloutput_0 ]; then
+         rm finaloutput_0
+      fi
+      check_exit_statuses $?
+      
+      $build_path/bin/tensor_gt_relu --my-id 0 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input0 --current-path $build_path > $debug_0/tensor_gt_relu0_layer${layer_id}.txt &
+      pid1=$!
+      wait $pid1
+      check_exit_statuses $?
+      echo "Layer $layer_id: ReLU is done"
+   
+   elif [ ${layer_types[layer_id]} -eq 1 ];
    then
       input_config="cnn_outputshare"
-      
-      $build_path/bin/cnn --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path > $debug_0/cnn0_layer${layer_id}.txt &
+
+      $build_path/bin/cnn --my-id 0 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model0 --layer-id $layer_id --current-path $build_path & #> $debug_0/cnn0_layer${layer_id}.txt &
       pid1=$!
       wait $pid1
       check_exit_statuses $?
@@ -183,9 +245,20 @@ for ((; layer_id<$number_of_layers; layer_id++)); do
       wait $pid1
       check_exit_statuses $?
       echo "Layer $layer_id: ReLU is done"
-      cat server0/outputshare_0 >> server0/cnn_outputshare_0
+      tail -n +2 server0/outputshare_0 >> server0/cnn_outputshare_0
    fi
 done
+
+####################################### Output share receivers ###########################################################################
+$build_path/bin/output_shares_receiver --my-id 0 --listening-port $cs0_port_cs0_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver0.txt &
+pid5=$!
+
+$build_path/bin/output_shares_receiver --my-id 1 --listening-port $cs0_port_cs1_output_receiver --current-path $image_provider_path > $debug_0/output_shares_receiver1.txt &
+pid6=$!
+
+echo "Image Provider listening for the inferencing result"
+
+###################################### Last Layer #########################################################################
 
 input_config="outputshare"
 
