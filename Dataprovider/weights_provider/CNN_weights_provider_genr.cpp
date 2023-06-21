@@ -357,6 +357,8 @@ std::vector<Matrix> read_Data(Options& options) {
                       type = 0;
                     else if (property.second.data() == "CN")
                       type = 1;
+                    else if (property.second.data() == "MP")
+                      type = 2;
                     else
                       throw std::runtime_error("There is an error in the type of layer given inside the json file.");
                   }
