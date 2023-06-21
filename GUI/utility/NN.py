@@ -28,7 +28,7 @@ def call():
 
     canvas_2 = Canvas(window, width= WIDTH*2, height=70)
     canvas_2.grid(row = 0 , column=0, columnspan=4)
-    canvas_2.option_add("*TCombobox*Listbox.font", "sans 20 normal")
+    canvas_2.option_add("*TCombobox*Listbox.font", "sans 20 bold")
     canvas_2.option_add("*TCombobox*Listbox.justify", "center")
 
 
@@ -61,7 +61,7 @@ def call():
             five_layer.call()
 
     clicked = StringVar()
-    my_combo = ttk.Combobox(canvas_2, values=options,font=('sans 20 normal'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
+    my_combo = ttk.Combobox(canvas_2, values=options,font=('sans 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
     my_combo.grid(row = 0 , column=0, columnspan=4, ipadx=300,ipady=10, padx=10, pady=10)
     # my_combo.config(dropdown_font = ('Times 20 bold'))
     my_combo.set( "Neural Network Inferencing" )

@@ -87,7 +87,7 @@ def call(fileLocation):
 
             
 
-        e = Entry(root, width=75,borderwidth=5,font=('calibre',18,'normal'))
+        e = Entry(root, width=58,borderwidth=5,font=('calibre',18,'normal'))
         e.grid(row=1,column=0,  padx=10,pady=10)
         # e.pack()
         e.insert(0,str(fileLocation))
