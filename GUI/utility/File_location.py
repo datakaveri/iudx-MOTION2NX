@@ -76,11 +76,11 @@ def call(fileLocation):
                 base_dir = os.getenv("BASE_DIR")
                 # subprocess.call("chmod u+r+x " + file_path_list[-1], shell=True)
                 # print("cp " + filepath +" /home/daksh1115/iudx-MOTION2NX-public/data/ImageProvider/raw_images")
-                subprocess.call("cp -r " + filepath +" " +base_dir+"/data/ImageProvider/raw_images/1111.png" , shell=True)
+                subprocess.call("cp -r " + filepath +" " +base_dir+"/data/ImageProvider/raw_images/2.png" , shell=True)
 
                 # subprocess.call("")
                 # print(file_path_list[-1])
-                loading.call("1111.png")
+                loading.call("2.png")
             except:
                 call(fileLocation)
 
