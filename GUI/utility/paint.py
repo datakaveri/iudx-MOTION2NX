@@ -3,9 +3,9 @@ from tkinter import colorchooser
 import pyscreenshot as ImageGrab
 from tkinter import filedialog
 from tkinter import messagebox
-import File_location
-import SMPC
-import NN
+from utility import File_location
+from utility import SMPC
+from utility import NN
 
 
 
@@ -164,13 +164,13 @@ def call():
 
     
 
-    pen_image = PhotoImage(file="Images_Video/pen.png") 
-    eraser_image = PhotoImage(file="Images_Video/eraser.png") 
-    save_image = PhotoImage(file="./Images_Video/save.png") 
-    new_image = PhotoImage(file="./Images_Video/new.png") 
-    clear_image = PhotoImage(file="./Images_Video/clear.png") 
-    back_image = PhotoImage(file="./Images_Video/back.png") 
-    upload_image = PhotoImage(file="./Images_Video/upload.png")
+    pen_image = PhotoImage(file="./utility/Images_Video/pen.png") 
+    eraser_image = PhotoImage(file="./utility/Images_Video/eraser.png") 
+    save_image = PhotoImage(file="./utility/Images_Video/save.png") 
+    new_image = PhotoImage(file="./utility/Images_Video/new.png") 
+    clear_image = PhotoImage(file="./utility/Images_Video/clear.png") 
+    back_image = PhotoImage(file="./utility/Images_Video/back.png") 
+    upload_image = PhotoImage(file="./utility/Images_Video/upload.png")
 
     
     

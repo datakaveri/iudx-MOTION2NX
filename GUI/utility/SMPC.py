@@ -1,13 +1,13 @@
 
 from tkinter import *
 from tkinter import ttk
-import paint 
-import File_location
+from utility import paint 
+from utility import File_location
 import time
-import NN
-import NN_helper
-import two_layer
-import five_layer
+from utility import NN
+from utility import NN_helper
+from utility import two_layer
+from utility import five_layer
 
 def call():
 
@@ -94,7 +94,7 @@ def call():
     canvas_1 = Canvas(window, width= WIDTH, height=HEIGHT, highlightthickness=2, highlightbackground="black")
     canvas_1.grid(row = 1 , column=0,padx=20, rowspan=2)
 
-    back_image2 = PhotoImage(file="./Images_Video/SMPC.png") 
+    back_image2 = PhotoImage(file="./utility/Images_Video/SMPC.png") 
     my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image2)
 
 
@@ -127,23 +127,23 @@ def call():
         xVelocity_blue_2 = 1.05*0.5
         yVelocity_blue_2 = 0.3*0.5
         
-        red_file_1 = PhotoImage(file="./Images_Video/red.png") 
+        red_file_1 = PhotoImage(file="./utility/Images_Video/red.png") 
         my_red_image_1 = canvas_1.create_image(285,110,anchor=CENTER,image = red_file_1)
 
-        red_file_2 = PhotoImage(file="./Images_Video/red.png") 
+        red_file_2 = PhotoImage(file="./utility/Images_Video/red.png") 
         my_red_image_2 = canvas_1.create_image(285,110,anchor=CENTER,image = red_file_2)
         
-        yellow_file_1 = PhotoImage(file="./Images_Video/yellow.png") 
+        yellow_file_1 = PhotoImage(file="./utility/Images_Video/yellow.png") 
         my_yellow_image_1 = canvas_1.create_image(285,250,anchor=CENTER,image = yellow_file_1)
 
-        yellow_file_2 = PhotoImage(file="./Images_Video/yellow.png") 
+        yellow_file_2 = PhotoImage(file="./utility/Images_Video/yellow.png") 
         my_yellow_image_2 = canvas_1.create_image(285,250,anchor=CENTER,image = yellow_file_2)
 
 
-        blue_file_1 = PhotoImage(file="./Images_Video/blue.png") 
+        blue_file_1 = PhotoImage(file="./utility/Images_Video/blue.png") 
         my_blue_image_1 = canvas_1.create_image(285,490,anchor=CENTER,image = blue_file_1)
 
-        blue_file_2 = PhotoImage(file="./Images_Video/blue.png") 
+        blue_file_2 = PhotoImage(file="./utility/Images_Video/blue.png") 
         my_blue_image_2 = canvas_1.create_image(285,490,anchor=CENTER,image = blue_file_2)
 
 
@@ -256,7 +256,7 @@ def call():
 
     def server():
 
-        yellow_file_4 = PhotoImage(file="./Images_Video/grey.png") 
+        yellow_file_4 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_yellow_image_4 = canvas_1.create_image(530,140,anchor=CENTER,image = yellow_file_4)
         xVelocity_yellow_4 = -0.25*0.5
         yVelocity_yellow_4 = 1.55*0.5
@@ -302,16 +302,16 @@ def call():
     # my_grey_image_1 = canvas_1.create_image(770,295,anchor=CENTER,image = grey_file_1)
 
 
-    # yellow_file_1 = PhotoImage(file="./Images_Video/yellow.png") 
+    # yellow_file_1 = PhotoImage(file="./utility/Images_Video/yellow.png") 
     # my_yellow_image_1 = canvas_1.create_image(220,130,anchor=CENTER,image = yellow_file_1)
 
     def result():
 
-        grey_file_1 = PhotoImage(file="./Images_Video/grey.png") 
+        grey_file_1 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_grey_image_1 = canvas_1.create_image(530,140,anchor=CENTER,image = grey_file_1)
         xVelocity_grey_1 = 1.5*0.5
         yVelocity_grey_1 = 0
-        grey_file_2 = PhotoImage(file="./Images_Video/grey.png") 
+        grey_file_2 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_grey_image_2 = canvas_1.create_image(530,450,anchor=CENTER,image = grey_file_2)
         xVelocity_grey_2 = 1.3*0.5
         yVelocity_grey_2 = 0
@@ -376,9 +376,9 @@ def call():
 
     def result2(my_grey_image_1,my_grey_image_2):
 
-        grey_file_3 = PhotoImage(file="./Images_Video/grey.png") 
+        grey_file_3 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_grey_image_3 = canvas_1.create_image(120,570,anchor=CENTER,image = grey_file_3)
-        grey_file_4 = PhotoImage(file="./Images_Video/grey.png") 
+        grey_file_4 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_grey_image_4 = canvas_1.create_image(140,550,anchor=CENTER,image = grey_file_4)
         
 

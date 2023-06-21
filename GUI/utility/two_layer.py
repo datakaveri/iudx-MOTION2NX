@@ -1,12 +1,12 @@
 from tkinter import *
 from tkinter import ttk
-import paint 
-import File_location
+from utility import paint 
+from utility import File_location
 import time
-import SMPC
-import NN
-import NN_helper
-import five_layer
+from utility import SMPC
+from utility import NN
+from utility import NN_helper
+from utility import five_layer
 
 
 # window = Tk()
@@ -70,7 +70,7 @@ def call():
     canvas_1 = Canvas(window, width= WIDTH, height=260)
     canvas_1.grid(row = 1 , column=0,padx=20)
 
-    # back_image2 = PhotoImage(file="./Images_Video/NN.png") 
+    # back_image2 = PhotoImage(file="./utility/Images_Video/NN.png") 
     # my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image2)
 
     text_1 = "Cloud VM specification"

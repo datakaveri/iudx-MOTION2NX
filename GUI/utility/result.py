@@ -2,8 +2,8 @@ import os
 from tkinter import *
 from PIL import ImageTk, Image
 import cv2
-import SMPC
-import File_location
+from utility import SMPC
+from utility import File_location
 
 
 def call(image):

@@ -1,12 +1,12 @@
 from tkinter import *
 from tkinter import ttk
-import paint 
-import File_location
+from utility import paint 
+from utility import File_location
 import time
-import SMPC
-import NN
-import two_layer
-import five_layer
+from utility import SMPC
+from utility import NN
+from utility import two_layer
+from utility import five_layer
 
 # window = Tk()
 
@@ -83,7 +83,7 @@ def call():
     canvas_1 = Canvas(window, width= WIDTH, height=HEIGHT, highlightthickness=2, highlightbackground="black")
     canvas_1.grid(row = 1 , column=0,padx=20, rowspan=2)
 
-    back_image2 = PhotoImage(file="./Images_Video/NN_helper.png") 
+    back_image2 = PhotoImage(file="./utility/Images_Video/NN_helper.png") 
     my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image2)
 
 
@@ -111,16 +111,16 @@ def call():
         yVelocity_red_2 = 0.2*0.5
 
 
-        red_file_1 = PhotoImage(file="./Images_Video/red.png") 
+        red_file_1 = PhotoImage(file="./utility/Images_Video/red.png") 
         my_red_image_1 = canvas_1.create_image(220,155,anchor=CENTER,image = red_file_1)
 
-        red_file_2 = PhotoImage(file="./Images_Video/red.png") 
+        red_file_2 = PhotoImage(file="./utility/Images_Video/red.png") 
         my_red_image_2 = canvas_1.create_image(220,155,anchor=CENTER,image = red_file_2)
         
-        yellow_file_1 = PhotoImage(file="./Images_Video/yellow.png") 
+        yellow_file_1 = PhotoImage(file="./utility/Images_Video/yellow.png") 
         my_yellow_image_1 = canvas_1.create_image(220,440,anchor=CENTER,image = yellow_file_1)
 
-        yellow_file_2 = PhotoImage(file="./Images_Video/yellow.png") 
+        yellow_file_2 = PhotoImage(file="./utility/Images_Video/yellow.png") 
         my_yellow_image_2 = canvas_1.create_image(220,440,anchor=CENTER,image = yellow_file_2)
 
         while True:
@@ -205,13 +205,13 @@ def call():
 
     def server():
 
-        yellow_file_4 = PhotoImage(file="./Images_Video/grey.png") 
+        yellow_file_4 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_yellow_image_4 = canvas_1.create_image(450,145,anchor=CENTER,image = yellow_file_4)
 
-        blue_file_1 = PhotoImage(file="./Images_Video/blue.png") 
+        blue_file_1 = PhotoImage(file="./utility/Images_Video/blue.png") 
         my_blue_image_1 = canvas_1.create_image(450,145,anchor=CENTER,image = blue_file_1)
 
-        blue_file_2 = PhotoImage(file="./Images_Video/blue.png") 
+        blue_file_2 = PhotoImage(file="./utility/Images_Video/blue.png") 
         my_blue_image_2 = canvas_1.create_image(450,430,anchor=CENTER,image = blue_file_2)
 
 
@@ -301,11 +301,11 @@ def call():
 
 
     def result():
-        grey_file_1 = PhotoImage(file="./Images_Video/grey.png") 
+        grey_file_1 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_grey_image_1 = canvas_1.create_image(450,150,anchor=CENTER,image = grey_file_1)
         xVelocity_grey_1 = 2.9*0.5
         yVelocity_grey_1 = 0
-        grey_file_2 = PhotoImage(file="./Images_Video/grey.png") 
+        grey_file_2 = PhotoImage(file="./utility/Images_Video/grey.png") 
         my_grey_image_2 = canvas_1.create_image(450,430,anchor=CENTER,image = grey_file_2)
         xVelocity_grey_2 = 1.4*0.5
         yVelocity_grey_2 = 0

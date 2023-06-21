@@ -1,12 +1,12 @@
 from tkinter import *
 from tkinter import ttk
-import paint 
-import File_location
+from utility import paint 
+from utility import File_location
 import time
-import SMPC
-import NN
-import NN_helper
-import two_layer
+from utility import SMPC
+from utility import NN
+from utility import NN_helper
+from utility import two_layer
 
 
 # window = Tk()

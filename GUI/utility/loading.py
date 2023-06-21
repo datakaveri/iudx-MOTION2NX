@@ -10,7 +10,7 @@ from tkinter import ttk
 import time
 from tkinter import *
 from tkVideoPlayer import TkinterVideo
-import result
+from utility import result
 import subprocess
 import os
 
@@ -41,7 +41,7 @@ def call(image):
                 base_dir = os.getenv("BASE_DIR")
                 f = open("output.txt", "w")
                 iter = subprocess.call("python3 " + base_dir + "/Dataprovider/image_provider/preprocess_image.py -f "+image, shell=True)
-                subprocess.call(base_dir + "/scripts/ServerModel_Architecture/HelperNode/general/ImageProvider_genr.sh", stdout=f)
+                subprocess.call(base_dir + "/scripts/ServerModel_Architecture/HelperNode/ImageProvider_genr.sh", stdout=f)
                 temp = False
                 time.sleep(1)
 
@@ -54,7 +54,7 @@ def call(image):
     print('Main thread is carrying on...')
 
     videoplayer = TkinterVideo(master= root, scaled = False)
-    videoplayer.load("./Images_Video/buffer1.mp4")
+    videoplayer.load("./utility/Images_Video/buffer1.mp4")
 
     videoplayer.pack(anchor=S, expand= True, fill= "both")
     

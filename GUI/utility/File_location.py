@@ -2,9 +2,9 @@ from tkinter import *
 from tkinter import filedialog, PhotoImage
 from PIL import ImageTk, Image
 from tkinter.filedialog import askopenfile
-import SMPC
-import NN
-import loading
+from utility import SMPC
+from utility import NN
+from utility import loading
 import subprocess
 import os
 
@@ -113,7 +113,7 @@ def call(fileLocation):
         App_title = Label(root, text= "Upload your Image", command= None,font=('Times 20 bold'))
         App_title.grid(row=0,column=0,columnspan=2, padx=10,pady=10)
 
-        back_Image = PhotoImage(file="./Images_Video/back.png")
+        back_Image = PhotoImage(file="./utility/Images_Video/back.png")
         backButton = Button(root, image = back_Image, command=lambda: back(root), width=50, height=50)
         backButton.grid(row=0,column=0,columnspan=2, padx=10,pady=10, sticky=W)
 
