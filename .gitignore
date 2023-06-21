@@ -65,4 +65,9 @@ logs/
 *__pycache__/
 
 #output file for GUI
-GUI/utility/output.txt
+GUI/output.txt
+
+#Input Images
+GUI/Input_Images/*png
+
+
