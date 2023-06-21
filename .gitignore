@@ -53,9 +53,11 @@ docker-compose.remote-registry.yaml
 data/
 
 # config file
-config_files/smpc-remote-config.json
-config_files/model_config.json
-
+config_files/smpc-helpernode-config.json
+config_files/smpc-split-config.json
+config_files/model_helpernode_config.json
+config_files/model_split_config.json
+config_files/image_config.json
 # log files
 logs/
 
