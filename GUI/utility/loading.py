@@ -23,9 +23,9 @@ def call(image):
     root.title("Output share Receiver")
     root.geometry("300x300")
 
-    root.title("Application")
+    # root.title("Application")
 
-    root.geometry("300x300")
+    # root.geometry("300x300")
     root.configure(bg='white')
 
     temp = True

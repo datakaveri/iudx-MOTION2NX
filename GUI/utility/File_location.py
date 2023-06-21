@@ -30,7 +30,7 @@ def call(fileLocation):
 
         def FilePath():
             global filepath
-            filepath = filedialog.askopenfilename()
+            filepath = filedialog.askopenfilename(filetypes=[("images",".jpeg"),("images",".jpg"),("images",".png")])
             e.delete(0,END)
             e.insert(0,str(filepath))    
             # print(filepath)
@@ -87,7 +87,7 @@ def call(fileLocation):
 
             
 
-        e = Entry(root, width=59,borderwidth=5,font=('calibre',18,'normal'))
+        e = Entry(root, width=75,borderwidth=5,font=('calibre',18,'normal'))
         e.grid(row=1,column=0,  padx=10,pady=10)
         # e.pack()
         e.insert(0,str(fileLocation))
