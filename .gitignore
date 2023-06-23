@@ -4,6 +4,7 @@
 *.o
 *.exe
 *.log
+*.pyc
 .metadata
 .cproject
 .project
@@ -60,3 +61,14 @@ config_files/model_split_config.json
 config_files/image_config.json
 # log files
 logs/
+
+#pycache
+GUI/__pycache__/
+
+#output file for GUI
+GUI/output.txt
+
+#Input Images
+GUI/Input_Images/*png
+
+
