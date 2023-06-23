@@ -106,7 +106,11 @@ pid1=$!
 echo "Image shares receiver starts"
 $build_path/bin/Image_Share_Receiver_CNN --my-id 1 --port $cs1_port_image_receiver --fractional-bits $fractional_bits --file-names $image_config --current-path $build_path > $debug_1/Image_Share_Receiver.txt &
 pid2=$!
-wait $pid1 $pid2
+
+wait $pid1
+check_exit_statuses $? 
+wait $pid2
+check_exit_statuses $?
 
 echo "Weight shares received"
 echo "Image shares received"
