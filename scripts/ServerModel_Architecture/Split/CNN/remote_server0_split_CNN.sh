@@ -60,6 +60,7 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
 image_id=`echo $smpc_config | jq -r .image_id`
+image_share="remote_image_shares"
 
 # #number of splits
 # splits=`echo "$smpc_config" | jq -r .splits`
@@ -105,7 +106,7 @@ fi
 
 ######################### Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"
-$build_path/bin/Weights_Share_Receiver_CNN --my-id 0 --port $cs0_port_model_receiver --file-names $model_config --current-path $build_path > $debug_0/Weights_Share_Receiver0.txt &
+$build_path/bin/Weights_Share_Receiver_CNN --my-id 0 --port $cs0_port_model_receiver --current-path $build_path > $debug_0/Weights_Share_Receiver0.txt &
 pid1=$!
 
 #########################Image Share Receiver ############################################################################################
@@ -291,9 +292,10 @@ echo "Layer $layer_id: Argmax is done"
 end=$(date +%s)
 ####################################### Final output provider  ###########################################################################
 
-$build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider.txt &
+$build_path/bin/final_output_provider --my-id 0 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider.txt &
 pid3=$!
 wait $pid3
+check_exit_statuses $?
 echo "Output shares of server 0 sent to the image provider"
 
 

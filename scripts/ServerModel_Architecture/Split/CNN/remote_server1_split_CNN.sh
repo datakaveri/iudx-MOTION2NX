@@ -55,6 +55,8 @@ relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
 relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
+image_share="remote_image_shares"
+
 # #number of splits
 # splits=`echo "$smpc_config" | jq -r .splits`
 
@@ -97,7 +99,7 @@ fi
 
 #########################Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"
-$build_path/bin/Weights_Share_Receiver_CNN --my-id 1 --port $cs1_port_model_receiver --file-names $model_config --current-path $build_path > $debug_1/Weights_Share_Receiver0.txt &
+$build_path/bin/Weights_Share_Receiver_CNN --my-id 1 --port $cs1_port_model_receiver --current-path $build_path > $debug_1/Weights_Share_Receiver0.txt &
 pid1=$!
 
 #########################Image Share Receiver ############################################################################################
@@ -282,9 +284,10 @@ echo "Layer $layer_id: Argmax is done"
 end=$(date +%s)
 ####################################### Final output provider  ###########################################################################
 
-$build_path/bin/final_output_provider --my-id 1 --connection-port $cs0_port_cs1_output_receiver --connection-ip $cs0_host --config-input $image_share --current-path $build_path > $debug_1/final_output_provider.txt &
+$build_path/bin/final_output_provider --my-id 1 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs1_output_receiver --config-input $image_share --current-path $build_path > $debug_1/final_output_provider.txt &
 pid4=$!
 wait $pid4 
+check_exit_statuses $?  
 echo "Output shares of server 1 sent to the Image provider"
 
 wait 

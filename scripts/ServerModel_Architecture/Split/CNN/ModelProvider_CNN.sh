@@ -44,7 +44,7 @@ fi
 # Creates the weights and bias shares and sends it to server 0 and server 1
 echo "Weight Provider starts."
 
-$build_path/bin/CNN_weights_provider_genr --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --dp-id 0 --fractional-bits $fractional_bits --filepath $model_provider_path --config-file-path $model_config> $debug_ModelProv/weights_provider.txt &
+$build_path/bin/CNN_weights_provider_genr --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --fractional-bits $fractional_bits --filepath $model_provider_path --config-file-path $model_config> $debug_ModelProv/weights_provider.txt &
 pid1=$!
 wait $pid1 
 echo "Weight shares sent."
