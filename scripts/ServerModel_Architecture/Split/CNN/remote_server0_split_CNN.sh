@@ -305,15 +305,6 @@ echo "Output shares of server 0 sent to the image provider"
 
 wait $pid5 $pid6 
 
-echo "Output shares of server 0 received by the Image provider"
-echo "Output shares of server 1 received by the Image provider"
-
-############################            Reconstruction       ##################################################################################
-echo "Reconstruction Starts"
-$build_path/bin/Reconstruct --current-path $image_provider_path 
-wait 
-
-
 awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0
 #  > AverageTimeDetails0 #clearing the contents of the file
 
