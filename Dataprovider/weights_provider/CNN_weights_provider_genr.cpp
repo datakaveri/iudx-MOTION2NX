@@ -150,7 +150,12 @@ struct Shares {
 
 //----------------------------------Sending shares------------------------------------------//
 void write_struct_vector(tcp::socket& socket, Shares* data, int num_elements) {
-  uint64_t arr[2 * num_elements];
+  std::cout << "here" << std::endl;
+  uint64_t *arr = (uint64_t *) malloc(2 * num_elements * sizeof(uint64_t));
+  if (!arr) {
+    throw std::runtime_error("Error while allocating memory.\n");
+  }
+  // std::cout << sizeof(arr) << std::endl;
   int j = 0;
   for (int i = 0; i < num_elements; i++) {
     // uint64_t arr[2];
@@ -161,12 +166,13 @@ void write_struct_vector(tcp::socket& socket, Shares* data, int num_elements) {
   }
   boost::system::error_code error;
   std::cout << "Started sending the weight shares." <<std::endl;
-  boost::asio::write(socket, boost::asio::buffer(&arr, sizeof(arr)), error);
+  boost::asio::write(socket, boost::asio::buffer(arr, (2*num_elements*sizeof(uint64_t))), error);
   if (error) 
       {
       throw std::runtime_error("Unable to send shares.\nError:"+ error.message() + "\n");
       }
   std::cout<<"Sent successfully\n";
+  free(arr);
 }
 
 void write_struct(tcp::socket& socket, Shares* data, int num_elements) {
@@ -206,8 +212,12 @@ class Matrix {
 
     fullFileName = fileName;
     std::cout << fullFileName << std::endl;
-    cs0_data = (struct Shares*)malloc(sizeof(struct Shares) * num_elements);
-    cs1_data = (struct Shares*)malloc(sizeof(struct Shares) * num_elements);
+    std::cout << "No. of elements: " << num_elements << std::endl;
+    cs0_data = (struct Shares*) malloc(num_elements * sizeof(struct Shares));
+    cs1_data = (struct Shares*) malloc(num_elements * sizeof(struct Shares));
+    if (!cs0_data || !cs1_data) {
+      std::cout << "Error while allocating memory" << std::endl;
+    }
   }
 
    // Constructor for CNN Vectors
@@ -225,8 +235,20 @@ class Matrix {
 
     fullFileName = fileName;
     std::cout << fullFileName << std::endl;
-    cs0_data = (struct Shares*)malloc(sizeof(struct Shares) * num_elements);
-    cs1_data = (struct Shares*)malloc(sizeof(struct Shares) * num_elements);
+    std::cout << "No. of elements: " << num_elements << std::endl;
+    cs0_data = (struct Shares*) malloc(num_elements * sizeof(struct Shares));
+    cs1_data = (struct Shares*) malloc(num_elements * sizeof(struct Shares));
+    if (!cs0_data || !cs1_data) {
+      std::cout << "Error while allocating memory" << std::endl;
+    } 
+  }
+
+  void free_csdata(int i) {
+    if (i==0)
+      free(cs0_data);
+    else if (i==1)
+      free(cs1_data);
+    return;
   }
   
   int getType() { return type; }
@@ -267,18 +289,21 @@ class Matrix {
     std::ifstream indata;
     indata.open(fullFileName);
     if(!indata) {
-      // std::cout << "Error: There was an issue in opening the weights and bias csv file\n";
       throw std::ifstream::failure("Error opening the weights and bias csv file: " + fullFileName);      
     }
-    std::string line;
+
+    std::string line, cell;
     while (std::getline(indata, line)) {
       std::stringstream lineStream(line);
       std::string cell;
       while (std::getline(lineStream, cell, ',')) {
-        data.push_back(stold(cell));
+        data.push_back(stof(cell));
       }
     }
-    
+    if (data.size() != num_elements) {
+      throw std::range_error("No. of elements in file (" + std::to_string(data.size()) + ") do not match with config file ((" + std::to_string(num_elements) + ")\n");
+    }
+
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     std::cout << "Time taken to read the file:" << duration.count() << "msec" << std::endl;
@@ -317,6 +342,7 @@ class Matrix {
           // std::cout << "Data = " << data[i] << " Delta = " << cs0.Delta << " delta0 = " << cs0.delta
           // << " delta1 = " << cs1.delta << "\n";
         }
+        data.clear();
       }
     catch(std::exception& e){
       std::string err = e.what();
@@ -401,13 +427,13 @@ std::vector<Matrix> read_Data(Options& options) {
                   if (type == 1) {
                     std::cout << "Convolution Layer recognised" << std::endl;
                     Matrix vector_data = Matrix(num_kernels, num_channels, num_rows, num_columns, num_pads, num_strides, data_file_path, options.fractional_bits, options);
-                    vector_data.readMatrixCSV();                
+                    vector_data.readMatrixCSV();
                     vector_data.generateShares();
                     allData.push_back(vector_data);
                   }
                   else if (type == 0) {
                     Matrix vector_data = Matrix(num_rows, num_columns, data_file_path, options.fractional_bits, options);
-                    vector_data.readMatrixCSV();                
+                    vector_data.readMatrixCSV();
                     vector_data.generateShares();
                     allData.push_back(vector_data);
                   }
@@ -528,7 +554,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
     std::cout << "Received response: "<< data << std::endl;
     // ------------------------------------ Sending shares ------------------------------------------------
     std::cout<<"Start sending all the weight and bias shares\n";
-    for (auto data_array : data_shares) {
+    for (auto &data_array : data_shares) {
       std::cout << "File name:" << data_array.getFileName() << "\n";
       // ----Send rows and columns to compute server----
       int rows, columns;
@@ -621,6 +647,9 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
       }
       data = boost::asio::buffer_cast<const char*>(receive_buff.data());
       std::cout << "Received response: " << data << std::endl;
+
+      data_array.free_csdata(i);
+    
       auto stop = high_resolution_clock::now();
       auto duration = duration_cast<milliseconds>(stop - start);
       std::cout << "Time taken to send the shares:" << duration.count() << "msec" << std::endl;

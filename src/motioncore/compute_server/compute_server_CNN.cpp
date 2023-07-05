@@ -101,8 +101,12 @@ std::vector<Shares> read_struct_vector(tcp::socket& socket, int num_elements) {
   std::cout << "Before reading of data\n";
   std::vector<Shares> data;
   boost::system::error_code ec;
-  uint64_t arr[2 * num_elements];
-  read(socket, boost::asio::buffer(&arr, sizeof(arr)), ec);
+  uint64_t *arr = (uint64_t *) malloc(2 * num_elements * sizeof(uint64_t));
+  if (!arr) {
+    std::cout << "error" << std::endl;
+  }
+  // uint64_t arr[2 * num_elements];
+  read(socket, boost::asio::buffer(arr, (2*num_elements*sizeof(uint64_t))), ec);
   if (ec) {
     std::cout << "Error:" << ec.message() << "\n";
   } else {
@@ -121,7 +125,7 @@ std::vector<Shares> read_struct_vector(tcp::socket& socket, int num_elements) {
     // std::cout << temp.delta << "\n";
     data.push_back(temp);
   }
-
+  free(arr);
   // socket.close();
   return data;
 }
