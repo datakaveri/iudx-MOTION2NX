@@ -12,5 +12,5 @@ Run docker containers in cloud for each of the server/provider, using the corres
 
 (For Eg.) In the Split folder, run the below command to start the docker container for nonserver split version.
 
-    docker compose -f docker-compose.remote_split_genr.yaml -f ../../../docker-compose.remote-registry.yaml up -d smpc-server0
+    docker compose -f docker-compose.remote_split.yaml -f ../../../docker-compose.remote-registry.yaml up -d smpc-server0
 

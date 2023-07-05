@@ -19,7 +19,7 @@ def call(fileLocation):
         # root.attributes('-fullscreen', True)
 
 
-        root.geometry("1080x720")
+        root.geometry("1080x800")
 
         myLabel = Label(root)
 

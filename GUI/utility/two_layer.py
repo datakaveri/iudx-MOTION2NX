@@ -21,7 +21,7 @@ def call():
 
     
 
-    window.geometry("930x775") 
+    window.geometry("970x850") 
 
     canvas_2 = Canvas(window, width= WIDTH, height=70)
     canvas_2.grid(row = 0 , column=0)
@@ -60,7 +60,7 @@ def call():
 
     clicked = StringVar()
     my_combo = ttk.Combobox(canvas_2, values=options,font=('sans 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
-    my_combo.grid(row = 0 , column=0, ipadx=300,ipady=10, padx=10, pady=10)
+    my_combo.grid(row = 0 , column=0, ipadx=270,ipady=10, padx=10, pady=10)
     # my_combo.config(dropdown_font = ('Times 20 bold'))
     my_combo.set( "Setup: Two Layer Neural Network" )
     my_combo.bind("<<ComboboxSelected>>", display_selected)

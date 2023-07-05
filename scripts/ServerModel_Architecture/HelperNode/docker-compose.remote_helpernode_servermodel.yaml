@@ -32,7 +32,7 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/ServerModel_Architecture/HelperNode/ && ./helpernode_server0_genr.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/ServerModel_Architecture/HelperNode/ && ./helpernode_server0.sh && while (true);  do  sleep 10; done"
 
   # SMPC server 1
   smpc-server1:
@@ -61,7 +61,7 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/ServerModel_Architecture/HelperNode/ && ./helpernode_server1_genr.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/ServerModel_Architecture/HelperNode/ && ./helpernode_server1.sh && while (true);  do  sleep 10; done"
 
   # SMPC server 2 - helpernode server
   smpc-server2:
@@ -84,7 +84,7 @@ services:
       options:
         max-file: "5"
         max-size: "10m"
-    command: bash -c "cd scripts/ServerModel_Architecture/HelperNode/ && ./helpernode_server2_genr.sh && while (true);  do  sleep 10; done"
+    command: bash -c "cd scripts/ServerModel_Architecture/HelperNode/ && ./helpernode_server2.sh && while (true);  do  sleep 10; done"
 volumes:
   smpc-server1-volume:
   smpc-server0-volume:
