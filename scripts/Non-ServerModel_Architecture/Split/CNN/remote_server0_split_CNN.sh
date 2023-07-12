@@ -10,13 +10,13 @@ check_exit_statuses() {
 }
 # paths required to run cpp files
 image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/model_split_config.json
+model_config=${BASE_DIR}/config_files/model_cnn_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
 image_provider_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
 debug_0=${BASE_DIR}/logs/server0/
 scripts_path=${BASE_DIR}/scripts
-smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
+smpc_config_path=${BASE_DIR}/config_files/smpc-cnn-config.json
 smpc_config=`cat $smpc_config_path`
 # #####################Inputs##########################################################################################################
 # Do dns reolution or not 

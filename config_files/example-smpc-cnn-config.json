@@ -1,0 +1,26 @@
+{
+      "cs0_host": "smpc-server0",
+      "cs1_host": "smpc-server1",
+      "reverse_ssh_host": "tunnel-host",
+      "cs0_dns_resolve": false,
+      "cs1_dns_resolve": false,
+      "reverse_ssh_dns_resolve": false,
+      "cs0_port_model_receiver": 4005,
+      "cs1_port_model_receiver": 4006,
+      "cs0_port_cs0_output_receiver": 4007,
+      "cs0_port_cs1_output_receiver": 4008,
+      "cs0_port_inference": 4009,
+      "cs1_port_inference":4010,
+      "relu0_port_inference": 4012,
+      "relu1_port_inference": 4013,
+      "cs0_port_image_receiver": 4014,
+      "cs1_port_image_receiver": 4015,
+      "fractional_bits": 13,
+      "image_id": 100,
+
+      "split_layers_genr": [{"layer_id":1, "kernels":32, "splits":4},
+                            {"layer_id":2, "kernels":32, "splits":32},
+                            {"layer_id":3, "kernels":64, "splits":16},
+                            {"layer_id":4, "kernels":64, "splits":8},
+                            {"layer_id":5, "rows":512, "splits":32}]
+}
