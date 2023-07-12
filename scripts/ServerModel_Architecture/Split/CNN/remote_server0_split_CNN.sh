@@ -15,7 +15,7 @@ image_path=${BASE_DIR}/data/ImageProvider
 image_provider_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
 debug_0=${BASE_DIR}/logs/server0
 scripts_path=${BASE_DIR}/scripts
-smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
+smpc_config_path=${BASE_DIR}/config_files/smpc-cnn-config.json
 smpc_config=`cat $smpc_config_path`
 #####################Inputs#########################################################################################################
 # Do dns resolution or not 
