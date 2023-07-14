@@ -691,28 +691,21 @@ MOTION::tensor::TensorCP gemm_output1, add_output1;
 
 void genrt_cnn_outputshare(const Options& options) {
   std::string my_id = std::to_string(options.my_id);
-  std::string path = options.currentpath;
-  std::string i_path = path + "/server" + my_id + "/outputshare_" + my_id;
-  std::string o_path = path + "/server" + my_id + "/cnn_outputshare_" + my_id;
-  std::ifstream i_file;
+  std::string o_path = options.currentpath + "/server" + my_id + "/cnn_outputshare_" + my_id;
   std::ofstream o_file;
-  uint64_t temp;
-  i_file.open(i_path);
-  temp = read_file(i_file);
-  temp = read_file(i_file);
-  o_file.open(o_path);
+  try {
+    o_file.open(o_path);
+    if (!o_file) {
+        std::cout << "File not created at "+ o_path +"\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening cnn_outputshare file.\n";
+    return;
+  }
   o_file <<  options.output.chnl << " " <<
              options.output.row  << " " <<
              options.output.col  << "\n";
   
-  // for (int i=0; i<options.output.chnl * options.output.row * options.output.col; ++i) {
-  //   temp = read_file(i_file);
-  //   o_file << temp << ' ';
-  //   temp = read_file(i_file);
-  //   o_file << temp << '\n';
-  // }
-  
-  i_file.close();
   o_file.close();
   return;
 }

@@ -704,17 +704,18 @@ void genrt_cnn_outputshare(const Options& options) {
   std::string my_id = std::to_string(options.my_id);
   std::string o_path = options.currentpath + "/server" + my_id + "/cnn_outputshare_" + my_id;
   std::ofstream o_file;
-  o_file.open(o_path);
+  try {
+    o_file.open(o_path);
+    if (!o_file) {
+        std::cout << "File not created at "+ o_path +"\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening cnn_outputshare file.\n";
+    return;
+  }
   o_file <<  options.kernels_original << " " <<
              options.output.row  << " " <<
              options.output.col  << "\n";
-  
-  // for (int i=0; i<options.output.chnl * options.output.row * options.output.col; ++i) {
-  //   temp = read_file(i_file);
-  //   o_file << temp << ' ';
-  //   temp = read_file(i_file);
-  //   o_file << temp << '\n';
-  // }
   
   o_file.close();
   return;
@@ -725,17 +726,17 @@ void genrt_outputshare(const Options& options) {
   std::string path = options.currentpath;
   std::string o_path = path + "/server" + my_id + "/final_outputshare_" + my_id;
   std::ofstream o_file;
-  uint64_t temp;
-  o_file.open(o_path);
+  try {
+    o_file.open(o_path);
+    if (!o_file) {
+      std::cout << "File not created at "+ o_path +"\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening outputshare file.\n";
+    return;
+  }
+
   o_file << options.kernels_original * options.output.row * options.output.col << " " << 1 << "\n";
-  
-  // for (int i=0; i<options.output.chnl * options.output.row * options.output.col; ++i) {
-  //   temp = read_file(i_file);
-  //   o_file << temp << ' ';
-  //   temp = read_file(i_file);
-  //   o_file << temp << '\n';
-  // }
-  
   o_file.close();
   return;
 }
