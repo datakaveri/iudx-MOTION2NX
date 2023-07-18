@@ -301,7 +301,7 @@ class Matrix {
       }
     }
     if (data.size() != num_elements) {
-      throw std::range_error("No. of elements in file (" + std::to_string(data.size()) + ") do not match with config file ((" + std::to_string(num_elements) + ")\n");
+      throw std::range_error("No. of elements in file (" + std::to_string(data.size()) + ") do not match with config file (" + std::to_string(num_elements) + ")\n");
     }
 
     auto stop = high_resolution_clock::now();
