@@ -632,6 +632,9 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
     << conv_weights_dims.num_channels_ << "\nHeight of Matrix: " << conv_weights_dims.height_ << "\nWidth of Matrix: "
     << conv_weights_dims.width_ << std::endl;
   std::cout << "----------------------------------" << std::endl;
+  std::cout << "Output Dimensions:\n"<< "Number of Channels: " << options.output.chnl <<
+  "\nHeight of Matrix: " << options.output.row << "\nWidth of Matrix: " << options.output.col << std::endl;
+  std::cout << "----------------------------------" << std::endl;
 
 //   MOTION::tensor::TensorCP input_tensor;
 //   MOTION::tensor::TensorCP conv_weights_tensor;
