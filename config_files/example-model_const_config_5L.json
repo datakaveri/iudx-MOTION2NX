@@ -1,0 +1,11 @@
+{
+    "no_of_layers" : 2,
+    "Layers" : {
+        "1" : { 
+            "Weights" : {"rows" : 256, "columns" : 784, "file_name" : "newW1.csv"}, 
+            "Bias" : {"rows" : 256, "columns" : 1, "file_name" : "newB1.csv"}},
+        "2" : { 
+            "Weights" : {"rows" : 10, "columns" : 256, "file_name" : "newW2.csv"}, 
+            "Bias" : {"rows" : 10, "columns" : 1, "file_name" : "newB2.csv"}}
+    }
+}

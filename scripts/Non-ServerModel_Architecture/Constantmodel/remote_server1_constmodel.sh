@@ -9,11 +9,10 @@ check_exit_statuses() {
    done
 }
 image_config=${BASE_DIR}/config_files/file_config_input_remote
-model_config=${BASE_DIR}/config_files/model_split_config.json
 build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 model_provider_path=${BASE_DIR}/data/ModelProvider
 debug_1=${BASE_DIR}/logs/server1
-smpc_config_path=${BASE_DIR}/config_files/smpc-split-config.json
+smpc_config_path=${BASE_DIR}/config_files/smpc-constant-config.json
 smpc_config=`cat $smpc_config_path`
 # #####################Inputs##########################################################################################################
 # Do dns resolution or not 
@@ -54,6 +53,13 @@ relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
+
+if [ $number_of_layers -eq 2 ]; then
+   model_config=${BASE_DIR}/config_files/model_const_config_2L.json
+elif [ $number_of_layers -eq 5 ]; then
+   model_config=${BASE_DIR}/config_files/model_const_config_5L.json
+fi
+
 # echo all input variables
 # echo "cs0_host $cs0_host"
 # echo "cs1_host $cs1_host"
@@ -63,7 +69,6 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 # echo "cs0_port_inference $cs0_port_inference"
 # echo "cs1_port_inference $cs1_port_inference"
 # echo "fractional bits: $fractional_bits"
-# echo "no. of splits: $splits"
 ##########################################################################################################################################
 
 if [ ! -d "$debug_1" ];
@@ -104,24 +109,6 @@ if [ -f AverageTime1 ]; then
 fi
 
 
-#########################Weights Share Receiver ############################################################################################
-echo "Weight shares receiver starts"
-$build_path/bin/weight_share_receiver_genr --my-id 1 --port $cs1_port_model_receiver --current-path $build_path > $debug_1/Weights_Share_Receiver.txt &
-pid2=$!
-
-#########################Weights Provider ############################################################################################
-echo "Weight Provider starts"
-$build_path/bin/weights_provider_genr --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_model_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_model_receiver --fractional-bits $fractional_bits --filepath $model_provider_path --config-file-path $model_config > $debug_1/weights_provider.txt &
-
-pid3=$!
-wait $pid3
-check_exit_statuses $?
-
-wait $pid2 
-check_exit_statuses $?
-
-echo "Weight shares received"
-
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
 
@@ -141,93 +128,81 @@ layer_id=1
 
 input_config=" "
 image_share="remote_image_shares"
-if [ $layer_id -eq 1 ];
-then
-   input_config="remote_image_shares"
+weight_config=" "
+bias_config=" "
+# if [ $layer_id -eq 1 ];
+# then
+#    input_config="remote_image_shares"
+#    weight_config="newW$layer_id"
+#    bias_config="newB$layer_id"
+# fi
+
+# echo $number_of_layers
+
+if [ $number_of_layers -eq 5 ]; then
+    if [ $layer_id -eq 1 ]; then 
+      input_config="remote_image_shares"
+      weight_config="5L_W$layer_id"
+      bias_config="5L_B$layer_id"
+   fi
+elif [ $number_of_layers -eq 2 ]; then 
+   if [ $layer_id -eq 1 ]; then
+      input_config="remote_image_shares"
+      weight_config="newW$layer_id"
+      bias_config="newB$layer_id"
+   fi
 fi
 
-for split_layer in $(echo "$smpc_config" | jq -r '.split_layers_genr[] | @base64'); do
-   rows=$(echo ${split_layer} | base64 --decode | jq -r '.rows')
-   num_splits=$(echo ${split_layer} | base64 --decode | jq -r '.splits')
-
-   # echo "image_id $image_id" >> MemoryDetails0
-   echo "Number of splits for layer $layer_id matrix multiplication: $rows::$num_splits"
-
-   x=$(($rows/$num_splits))
-   # echo "split value: $x"
-
-   start=$(date +%s)
-   for((m=1; m <= $num_splits; m++ )); do 
-
-      if [ $layer_id -gt 1 ]; then
-         input_config="mult_output"
-      fi
-
-      let l=$((m-1)) 
-      let a=$(((m-1)*x+1)) 
-      let b=$((m*x)) 
-      let r=$((l*x)) 
-
+# echo $bias_config
+# echo $weight_config
+start=$(date +%s)
 #######################################Matrix multiplication layer 1 #########################################################
+#Layer 1   
+$build_path/bin/constant_mult_model --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --fractional-bits $fractional_bits --config-file-input $input_config --layer-id $layer_id --current-path $build_path --weights-file $weight_config --bias-file $bias_config > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
 
-      #Layer 1   
-      $build_path/bin/tensor_gt_mul_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --row_start $a --row_end $b --split $num_splits --current-path $build_path  > $debug_1/tensor_gt_mul1_layer${layer_id}_split.txt &
-      pid1=$!
-      wait $pid1  
-      check_exit_statuses $?
-      echo "Layer $layer_id, split $m: Matrix multiplication and addition is done"
-   
-      if [ $m -eq 1 ]; then
-         touch finaloutput_1
-         printf "$x 1\n" >> finaloutput_1
+pid1=$!
+wait $pid1
+# check_exit_statuses $?
+echo "Layer $layer_id: Matrix multiplication and addition is done."
 
-         $build_path/bin/appendfile 1
-         pid1=$!
-         wait $pid1 
-         check_exit_statuses $?
-      else 
-         $build_path/bin/appendfile 1
-         pid1=$!
-         wait $pid1 
-         check_exit_statuses $?
-      fi
 
-		sed -i "1s/${r} 1/${b} 1/" finaloutput_1
-
-   done
-
-   cp finaloutput_1  $build_path/server1/outputshare_1
-   check_exit_statuses $?
+# cat $build_path/server1/outputshare_1
 #######################################ReLu layer 1 ####################################################################################
-   $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer${layer_id}.txt &
-   pid1=$!
-   wait $pid1
-   check_exit_statuses $? 
-   echo "Layer $layer_id: ReLU is done"
+$build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$relu0_port_inference --party 1,$cs1_host,$relu1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer${layer_id}.txt &
+pid1=$!
+wait $pid1
+   # check_exit_statuses $? 
+echo "Layer $layer_id: ReLU is done"
 
    if [ -f finaloutput_1 ]; then
       rm finaloutput_1
       # echo "final output 1 is removed"
    fi
 
-   cp $build_path/server1/outputshare_1  $build_path/server1/mult_output_1
-   check_exit_statuses $?
-   ((layer_id++))
 
-done
+   # cp $build_path/server1/outputshare_1  $build_path/server1/mult_output_1
+   # check_exit_statuses $?
+   ((layer_id++))
 
 ####################################### Matrix multiplication layer ###########################################################################
 for((; layer_id<$number_of_layers; layer_id++)); do
+    
+   #  echo "Inside for loop"
 
-   if [ $layer_id -gt 1 ]; then
-      input_config="outputshare"
+if [ $number_of_layers -eq 5 ]; then
+   if [ $layer_id -gt 1 ]; then 
+   input_config="outputshare"
+   weight_config="5L_W$layer_id"
+   bias_config="5L_B$layer_id"
    fi
+fi
 
-   $build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
-   pid1=$!
-   wait $pid1
-   check_exit_statuses $? 
-   echo "Layer $layer_id: Matrix multiplication and addition is done"
+   $build_path/bin/constant_mult_model --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --fractional-bits $fractional_bits --config-file-input $input_config --layer-id $layer_id --current-path $build_path --weights-file $weight_config --bias-file $bias_config > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
+
+      pid1=$!
+      wait $pid1
+      check_exit_statuses $?
+      echo "Layer $layer_id: Matrix multiplication and addition is done."
 
 ####################################### ReLu layer 1 ####################################################################################
    $build_path/bin/tensor_gt_relu --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --filepath file_config_input1 --current-path $build_path > $debug_1/tensor_gt_relu1_layer1.txt &
@@ -239,19 +214,36 @@ for((; layer_id<$number_of_layers; layer_id++)); do
 done
 
 ####################################### final Matrix multiplication layer ###########################################################################
-if [ $layer_id -gt 1 ]; then
-   input_config="outputshare"
-fi
 
-$build_path/bin/tensor_gt_mul_test --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
+if [ $number_of_layers -eq 5 ]; then
+    if [ $layer_id -gt 1 ]; then 
+      input_config="outputshare"
+      weight_config="5L_W$layer_id"
+      bias_config="5L_B$layer_id"
+   fi
+elif [ $number_of_layers -eq 2 ]; then 
+   if [ $layer_id -gt 1 ]; then
+      input_config="outputshare"
+      weight_config="newW2"
+      bias_config="newB2"
+   fi
+fi
+   
+
+# echo $bias_config
+# echo $weight_config
+
+$build_path/bin/constant_mult_model --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --fractional-bits $fractional_bits --config-file-input $input_config --layer-id $layer_id --current-path $build_path --weights-file $weight_config --bias-file $bias_config > $debug_1/tensor_gt_mul1_layer${layer_id}.txt &
+
 pid1=$!
 wait $pid1
-check_exit_statuses $? 
-echo "Layer $layer_id: Matrix multiplication and addition is done"
-
+check_exit_statuses $?
+echo "Layer $layer_id: Matrix multiplication and addition is done."
+      
+      
 ####################################### Argmax  ###########################################################################
 
-$build_path/bin/argmax --my-id 1 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path  > $debug_1/argmax1_layer${layer_id}.txt &
+$build_path/bin/argmax --my-id 1 --threads 1 --party 0,$cs0_host,7000 --party 1,$cs1_host,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input1 --config-input $image_share --current-path $build_path > $debug_1/argmax1_layer${layer_id}.txt &
 pid1=$!
 wait $pid1
 check_exit_statuses $? 

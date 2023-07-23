@@ -59,6 +59,9 @@ config_files/smpc-split-config.json
 config_files/model_helpernode_config.json
 config_files/model_split_config.json
 config_files/image_config.json
+config_files/smpc-constant-config.json
+config_files/model_const_config_2L.json
+config_files/model_const_config_5L.json
 # log files
 logs/
 
