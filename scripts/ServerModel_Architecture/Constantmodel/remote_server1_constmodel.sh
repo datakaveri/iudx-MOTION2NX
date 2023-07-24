@@ -19,6 +19,8 @@ smpc_config=`cat $smpc_config_path`
 cs0_dns_resolve=`echo $smpc_config | jq -r .cs0_dns_resolve`
 cs1_dns_resolve=`echo $smpc_config | jq -r .cs1_dns_resolve`
 reverse_ssh_host=`echo $smpc_config | jq -r .reverse_ssh_host`
+
+echo $reverse_ssh_host
 # cs0_host is the ip/domain of server0, cs1_host is the ip/domain of server1
 cs0_host=`echo $smpc_config | jq -r .cs0_host`
 cs1_host=`echo $smpc_config | jq -r .cs1_host`

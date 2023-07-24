@@ -251,7 +251,7 @@ wait $pid1
 check_exit_statuses $?
 echo "Layer $layer_id: Matrix multiplication and addition is done."
 ####################################### Argmax  ###########################################################################
-$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,7000 --party 1,$cs1_host,7001 --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path > $debug_0/argmax0_layer2.txt &
+$build_path/bin/argmax --my-id 0 --threads 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol beavy --repetitions 1 --config-filename file_config_input0 --config-input $image_share --current-path $build_path > $debug_0/argmax0_layer2.txt &
 pid1=$!
 wait $pid1 
 check_exit_statuses $?
@@ -266,13 +266,7 @@ wait $pid3
 check_exit_statuses $?
 echo "Output shares of server 0 sent to the image provider"
 
-wait $pid5 
-check_exit_statuses $?
-wait $pid6 
-check_exit_statuses $?
-
-echo "Output shares of server 0 received by the Image provider"
-echo "Output shares of server 1 received by the Image provider"
+wait 
 
 awk '{ sum += $1 } END { print sum }' AverageTimeDetails0 >> AverageTime0
 #  > AverageTimeDetails0 #clearing the contents of the file
