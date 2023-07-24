@@ -21,7 +21,7 @@ smpc_config=`cat $smpc_config_path`
 # Do dns resolution or not 
 cs0_dns_resolve=`echo $smpc_config | jq -r .cs0_dns_resolve`
 cs1_dns_resolve=`echo $smpc_config | jq -r .cs1_dns_resolve`
-
+reverse_ssh_host=`echo $smpc_config | jq -r .reverse_ssh_host`
 # cs0_host is the ip/domain of server0, cs1_host is the ip/domain of server1
 cs0_host=`echo $smpc_config | jq -r .cs0_host`
 cs1_host=`echo $smpc_config | jq -r .cs1_host`
@@ -34,6 +34,12 @@ if [[ $cs1_dns_resolve == "true" ]];
 then 
 cs1_host=`dig +short $cs1_host | grep '^[.0-9]*$' | head -n 1`
 fi
+
+if [[ $reverse_ssh_dns_resolve == "true" ]];
+then 
+reverse_ssh_host=`dig +short $reverse_ssh_host | grep '^[.0-9]*$' | head -n 1`
+fi
+
 
 
 # Ports on which weights provider  receiver listens/talks
@@ -254,7 +260,7 @@ end=$(date +%s)
 echo "Layer $layer_id: Argmax is done"
 
 ####################################### Final output provider  ###########################################################################
-$build_path/bin/final_output_provider --my-id 0 --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider.txt &
+$build_path/bin/final_output_provider --my-id 0 --connection-ip $reverse_ssh_host --connection-port $cs0_port_cs0_output_receiver --config-input $image_share --current-path $build_path > $debug_0/final_output_provider.txt &
 pid3=$!
 wait $pid3
 check_exit_statuses $?
