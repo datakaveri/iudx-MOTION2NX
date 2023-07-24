@@ -517,11 +517,6 @@ int read_shares(const Options& options,
   auto frac_bits = options.fractional_bits;
   auto my_id = options.my_id;
 
-  if(options.W_col!=options.image_file.row)
-  {
-
-  }
-
   try {
       if(options.W_col!=options.image_file.row)
   {
@@ -535,13 +530,6 @@ int read_shares(const Options& options,
   int size_of_weights = options.W_col * options.W_row;
   std::vector<uint64_t> W_encoded(size_of_weights, 0);
   std::transform(std::begin(options.W_data), std::end(options.W_data), std::begin(W_encoded),
-                 [frac_bits](auto j) {
-                   return MOTION::new_fixed_point::encode<std::uint64_t, float>(j, frac_bits);
-                 });
-
-  int size_of_bias = options.B_col * options.B_row;
-  std::vector<uint64_t> B_encoded(size_of_bias, 0);
-  std::transform(std::begin(options.B_data), std::end(options.B_data), std::begin(B_encoded),
                  [frac_bits](auto j) {
                    return MOTION::new_fixed_point::encode<std::uint64_t, float>(j, frac_bits);
                  });
@@ -640,11 +628,6 @@ int compute_arithmetic_shares(
   std::vector<std::uint64_t> delta_myid = myshares.second;
   auto frac_bits = options.fractional_bits;
   // //global variables : Delta_otherid , Delta
-  std::cout << "Delta of other party:"
-            << "\n";
-  // for (int i = 0; i < Delta_otherid.size(); i++) {
-  //    std::cout << Delta_otherid[i] << "\n";
-  // }
   options.finalDelta = Delta_myid;
   // // Delta of both the parties
   __gnu_parallel::transform(Delta_myid.begin(), Delta_myid.end(), Delta_otherid.begin(),
