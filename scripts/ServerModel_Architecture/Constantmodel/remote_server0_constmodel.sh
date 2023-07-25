@@ -64,7 +64,7 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
 image_id=`echo $smpc_config | jq -r .image_id`
-
+number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 # echo all input variables
 
 # echo "cs0_host $cs0_host"

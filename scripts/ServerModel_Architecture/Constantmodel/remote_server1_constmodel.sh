@@ -59,6 +59,7 @@ relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
 relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
+number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 
 
 if [ $number_of_layers -eq 2 ]; then
