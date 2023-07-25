@@ -60,9 +60,6 @@ cs1_port_inference=`echo $smpc_config | jq -r .cs1_port_inference`
 relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
 relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 
-number_of_layers=`echo $image_config | jq -r .number_of_layers`
-echo "number of layers : $number_of_layers"
-
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
