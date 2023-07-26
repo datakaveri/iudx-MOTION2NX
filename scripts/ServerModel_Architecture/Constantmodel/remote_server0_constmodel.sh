@@ -131,7 +131,8 @@ wait $pid2
 check_exit_statuses $?
 echo "Layer number received"
 
-number_of_layers=`cat $build_path/server0/no_of_layers.txt`
+number_of_layers=`cat $build_path/no_of_layers.txt`
+echo "Number of layers : $number_of_layers"
 
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"

@@ -65,18 +65,29 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
 return options;
 }
 
-void retrive_layer_number(Options& options)
+int retrive_layer_number(Options& options)
 {
   int number_of_layers=COMPUTE_SERVER::read_number_of_layers_constmodel(options.port);
   
+  std::cout<<"number_of_layers:"<<number_of_layers<<"\n";
 
-  std::string path= options.currentpath+"/server"+std::to_string(options.my_id)+"/no_of_layers.txt";
-
+  std::string path= options.currentpath+"/no_of_layers.txt";
+  std::cout<<path<<"\n";
   std::ofstream file;
+  try{
   file.open(path,std::ios_base::out);
+      if (file) {
+      std::cout << "output (no_of_layers) file found\n";
+    } else {
+      std::cout << "outputshare (no_of_layers) file not found\n";
+    }
+  } catch (std::ifstream::failure e) {
+    std::cerr << "Error while opening the no_of_layers.txt file.\n";
+    return EXIT_FAILURE;
+  }
 
   file<<number_of_layers<<"\n";
-
+  file.close();
 }
 
 int main(int argc, char* argv[])
