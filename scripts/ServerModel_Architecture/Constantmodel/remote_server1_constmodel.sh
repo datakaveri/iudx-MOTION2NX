@@ -20,7 +20,7 @@ cs0_dns_resolve=`echo $smpc_config | jq -r .cs0_dns_resolve`
 cs1_dns_resolve=`echo $smpc_config | jq -r .cs1_dns_resolve`
 reverse_ssh_host=`echo $smpc_config | jq -r .reverse_ssh_host`
 
-echo $reverse_ssh_host
+# echo $reverse_ssh_host
 # cs0_host is the ip/domain of server0, cs1_host is the ip/domain of server1
 cs0_host=`echo $smpc_config | jq -r .cs0_host`
 cs1_host=`echo $smpc_config | jq -r .cs1_host`
@@ -59,14 +59,7 @@ relu0_port_inference=`echo $smpc_config | jq -r .relu0_port_inference`
 relu1_port_inference=`echo $smpc_config | jq -r .relu1_port_inference`
 
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
-number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
-
-
-if [ $number_of_layers -eq 2 ]; then
-   model_config=${BASE_DIR}/config_files/model_const_config_2L.json
-elif [ $number_of_layers -eq 5 ]; then
-   model_config=${BASE_DIR}/config_files/model_const_config_5L.json
-fi
+# number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 
 # echo all input variables
 # echo "cs0_host $cs0_host"
@@ -116,6 +109,17 @@ if [ -f AverageTime1 ]; then
    # echo "AverageTime1 is removed"
 fi
 
+################################  Layer number Receiver  ###################################################################################
+echo "Layer number receiver starts"
+$build_path/bin/layer_number_receiver --my-id 1 --port $cs1_port_image_receiver --current-path $build_path > $debug_1/Layer_number_Receiver.txt &
+pid2=$!
+
+wait $pid2
+check_exit_statuses $?
+echo "Layer number received"
+
+number_of_layers=`cat $build_path/server1/no_of_layers.txt`
+# echo $number_of_layers
 
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"

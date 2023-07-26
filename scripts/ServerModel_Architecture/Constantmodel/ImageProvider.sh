@@ -13,7 +13,8 @@ build_path=${BASE_DIR}/build_debwithrelinfo_gcc
 image_path=${BASE_DIR}/data/ImageProvider
 output_shares_path=${BASE_DIR}/data/ImageProvider/Final_Output_Shares
 debug_ImageProv=${BASE_DIR}/logs/ImageProvider_logs
-smpc_config_path=${BASE_DIR}/config_files/image_config.json
+smpc_config_path=${BASE_DIR}/config_files/image_config_constmodel.json
+
 smpc_config=`cat $smpc_config_path`
 #--------------------------- Inputs ------------------------------------------------------------#
 # Do dns resolution or not 
@@ -46,11 +47,22 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 # Index of the image for which inferencing task is run
 image_id=`echo $smpc_config | jq -r .image_id`
 
+number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
+# echo "number of layers:$number_of_layers"
+
 if [ ! -d "$debug_ImageProv" ];
 then
 	# Recursively create the required directories
 	mkdir -p $debug_ImageProv
 fi
+
+#--------------------------------------------- Layer number Provider -------------------------------------------------------#
+echo "Layer number provider starts"
+$build_path/bin/layerno_provider --compute-server0-ip $cs0_host --compute-server0-port $cs0_port_image_receiver --compute-server1-ip $cs1_host --compute-server1-port $cs1_port_image_receiver --number_of_layer $number_of_layers > $debug_ImageProv/layerno_provider.txt &
+pid1=$!
+wait $pid1
+check_exit_statuses $?
+echo "Layer number sent."
 
 #--------------------------------------------- Image Share Provider -------------------------------------------------------#
 # Create Image shares and send it to server 0 and server 1

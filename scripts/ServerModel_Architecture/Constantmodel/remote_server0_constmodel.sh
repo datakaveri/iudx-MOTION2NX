@@ -64,7 +64,7 @@ fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # Index of the image for which inferencing task is run
 image_id=`echo $smpc_config | jq -r .image_id`
-number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
+# number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 # echo all input variables
 
 # echo "cs0_host $cs0_host"
@@ -121,6 +121,17 @@ if [ -f AverageTime0 ]; then
    rm AverageTime0
    # echo "AverageTime0 is removed"
 fi
+
+################################  Layer number Receiver  ###################################################################################
+echo "Layer number receiver starts"
+$build_path/bin/layer_number_receiver --my-id 0 --port $cs0_port_image_receiver --current-path $build_path > $debug_0/Layer_number_Receiver.txt &
+pid2=$!
+
+wait $pid2
+check_exit_statuses $?
+echo "Layer number received"
+
+number_of_layers=`cat $build_path/server0/no_of_layers.txt`
 
 #########################Image Share Receiver ############################################################################################
 echo "Image shares receiver starts"
