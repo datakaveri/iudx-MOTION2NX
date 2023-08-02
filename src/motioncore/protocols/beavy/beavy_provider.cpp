@@ -1267,7 +1267,17 @@ tensor::TensorCP BEAVYProvider::make_tensor_negate(const tensor::TensorCP in) {
 }
 
 //(addnl)
-tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP in,const uint64_t k) {
+tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP in,const std::vector<uint64_t> k) {
+  //std::cout<<"The constant inside the function:" <<k<<"\n";
+  for_each(k.begin(),
+             k.end(),
+             [](const auto& elem) {
+ 
+                 // printing one by one element
+                 // separated with space
+                 std::cout << elem << " ";
+             });
+ 
   auto bit_size = in->get_bit_size();
   std::unique_ptr<NewGate> gate;
   auto gate_id = gate_register_.get_next_gate_id();
@@ -1276,6 +1286,37 @@ tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP i
                         &output](auto dummy_arg) {
     using T = decltype(dummy_arg);
     auto tensor_op = std::make_unique<ArithmeticBEAVYTensorConstMul<T>>(
+        gate_id, *this, k, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+
+}
+
+
+//New function added by Ramya, July 19
+//(addnl)
+tensor::TensorCP BEAVYProvider::make_tensor_constAdd_op(const tensor::TensorCP in,const uint64_t k) {
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, in, gate_id, k,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorConstAdd<T>>(
         gate_id, *this, k, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
     output = tensor_op->get_output_tensor();
     return tensor_op;
