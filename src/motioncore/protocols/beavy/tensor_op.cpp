@@ -1586,7 +1586,16 @@ std::cout << "The decoded small delta \n";
    std::cout<< output_share_decoded[i] << " ";
    }
    std::cout <<" \n";
-this->output_->get_secret_share() = std::move(output_share_decoded);
+
+   // //generation of delta shares
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  auto& final_delta = constant_vector;
+  
+  __gnu_parallel::transform(final_delta.begin(), final_delta.end(), final_delta.begin(),
+                 [&gen](auto j) { return RandomNumDistribution(gen); });
+
+this->output_->get_secret_share() = std::move(final_delta);
  // output_->get_secret_share() = std::move(delta_y_share_);
   output_->set_setup_ready();
 
@@ -1613,12 +1622,13 @@ void ArithmeticBEAVYTensorConstMul<T>::evaluate_online() {
   input_->wait_online();
   const auto& Delta_ = input_->get_public_share();
   const auto& delta_a_share_ = input_->get_secret_share();
+  const auto& final_delta = output_->get_secret_share(); 
   //const auto& delta_y_share_ = output_->get_secret_share();
 
   std::vector<T> constant_vector(constant_.begin(), constant_.end());
 
-  std::vector<T> delta_y_share_;
-  //auto& delta_y_share_ = constant_vector;
+  //std::vector<T> delta_y_share_;
+  auto& delta_y_share_ = constant_vector;
   std::cout << "Constant vector1:\n";
      for (auto i = 0; i < constant_vector.size(); i++) {
    std::cout<< constant_vector[i] << " ";
@@ -1711,14 +1721,7 @@ for (auto i = 0; i < delta_.size(); i++) {
     }
     std::cout <<" \n";
     
-  // //generation of delta shares
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  auto& final_delta = constant_vector;
   
-  __gnu_parallel::transform(final_delta.begin(), final_delta.end(), final_delta.begin(),
-                 [&gen](auto j) { return RandomNumDistribution(gen); });
-
   auto Delta_partial= gmw_x_encoded;
   __gnu_parallel::transform(gmw_x_decoded.begin(), gmw_x_decoded.end(), final_delta.begin(),
                             Delta_partial.begin(), std::plus{});
@@ -1746,8 +1749,9 @@ for (auto i = 0; i < delta_.size(); i++) {
     std::cout <<" \n";
     
     this->output_->get_public_share() = std::move(final_Delta);
-    this->output_->get_secret_share() = std::move(final_delta);
+    
   //output_->get_public_share() = std::move(Delta_y_);
+ 
   output_->set_online_ready();
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
