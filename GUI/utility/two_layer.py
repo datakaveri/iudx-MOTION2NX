@@ -1,12 +1,12 @@
 from tkinter import *
 from tkinter import ttk
-import paint 
-import File_location
+from utility import paint 
+from utility import File_location
 import time
-import SMPC
-import NN
-import NN_helper
-import five_layer
+from utility import SMPC
+from utility import NN
+from utility import NN_helper
+from utility import five_layer
 
 
 # window = Tk()
@@ -21,7 +21,7 @@ def call():
 
     
 
-    window.geometry("930x775") 
+    window.geometry("970x850") 
 
     canvas_2 = Canvas(window, width= WIDTH, height=70)
     canvas_2.grid(row = 0 , column=0)
@@ -60,7 +60,7 @@ def call():
 
     clicked = StringVar()
     my_combo = ttk.Combobox(canvas_2, values=options,font=('sans 20 bold'), justify=CENTER, textvariable=clicked, style='W.TCombobox', state = "readonly")
-    my_combo.grid(row = 0 , column=0, ipadx=300,ipady=10, padx=10, pady=10)
+    my_combo.grid(row = 0 , column=0, ipadx=270,ipady=10, padx=10, pady=10)
     # my_combo.config(dropdown_font = ('Times 20 bold'))
     my_combo.set( "Setup: Two Layer Neural Network" )
     my_combo.bind("<<ComboboxSelected>>", display_selected)
@@ -70,7 +70,7 @@ def call():
     canvas_1 = Canvas(window, width= WIDTH, height=260)
     canvas_1.grid(row = 1 , column=0,padx=20)
 
-    # back_image2 = PhotoImage(file="./Images_Video/NN.png") 
+    # back_image2 = PhotoImage(file="./utility/Images_Video/NN.png") 
     # my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image2)
 
     text_1 = "Cloud VM specification"

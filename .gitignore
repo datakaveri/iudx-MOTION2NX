@@ -4,6 +4,7 @@
 *.o
 *.exe
 *.log
+*.pyc
 .metadata
 .cproject
 .project
@@ -61,5 +62,13 @@ config_files/image_config.json
 # log files
 logs/
 
-#GUI
+#pycache
 GUI/__pycache__/
+
+#output file for GUI
+GUI/output.txt
+
+#Input Images
+GUI/Input_Images/*png
+
+

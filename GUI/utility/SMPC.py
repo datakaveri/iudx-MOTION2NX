@@ -1,39 +1,23 @@
 
 from tkinter import *
 from tkinter import ttk
-import paint 
-import File_location
+from utility import paint 
+from utility import File_location
 import time
-import NN
-import NN_helper
-import two_layer
-import five_layer
+from utility import NN
+from utility import NN_helper
+from utility import two_layer
+from utility import five_layer
 
 def call():
 
-    global xVelocity_yellow_1,yVelocity_yellow_1, xVelocity_yellow_2, yVelocity_yellow_2, xVelocity_red_1,yVelocity_red_1,  xVelocity_red_2,yVelocity_red_2, xVelocity_blue_1,yVelocity_blue_1,  xVelocity_blue_2,yVelocity_blue_2
+    
     WIDTH = 800
     HEIGHT = 600
 
 
 
-    #yellow velocity
-    xVelocity_yellow_1 = 1.7*0.5
-    yVelocity_yellow_1 = -0.3*0.5
-    xVelocity_yellow_2 = 1.7*0.5
-    yVelocity_yellow_2 = 0.4*0.5
-
-    #red velocity
-    xVelocity_red_1 = 1.5*0.5
-    yVelocity_red_1 = -0.3*0.5
-    xVelocity_red_2 = 1.5*0.5
-    yVelocity_red_2 = 0.5*0.5
-
-    #blue velocity
-    xVelocity_blue_1 = 1.6*0.5
-    yVelocity_blue_1 = -0.4*0.5
-    xVelocity_blue_2 = 1.6*0.5
-    yVelocity_blue_2 = 0.35*0.5
+    
 
     window = Tk()
     window.title("SMPC")
@@ -110,8 +94,10 @@ def call():
     canvas_1 = Canvas(window, width= WIDTH, height=HEIGHT, highlightthickness=2, highlightbackground="black")
     canvas_1.grid(row = 1 , column=0,padx=20, rowspan=2)
 
-    back_image2 = PhotoImage(file="./Images_Video/SMPC.png") 
+    back_image2 = PhotoImage(file="./utility/Images_Video/SMPC.png") 
     my_image2 = canvas_1.create_image(WIDTH/2,HEIGHT/2,anchor=CENTER,image = back_image2)
+
+
 
 
     canvas = Canvas(window, width= WIDTH -100, height=HEIGHT-100)
@@ -122,28 +108,47 @@ def call():
     canvas.create_text(700/2, 512/2,anchor= CENTER, text=details_smpc, fill="black", font=('sans 18 normal'))
 
     def client():
-        yellow_file_1 = PhotoImage(file="./Images_Video/yellow.png") 
-        my_yellow_image_1 = canvas_1.create_image(150,100,anchor=CENTER,image = yellow_file_1)
+        # global xVelocity_yellow_1,yVelocity_yellow_1, xVelocity_yellow_2, yVelocity_yellow_2, xVelocity_red_1,yVelocity_red_1,  xVelocity_red_2,yVelocity_red_2, xVelocity_blue_1,yVelocity_blue_1,  xVelocity_blue_2,yVelocity_blue_2
+        #yellow velocity
+        xVelocity_yellow_1 = 1.05*0.5
+        yVelocity_yellow_1 = -0.4*0.5
+        xVelocity_yellow_2 = 1.05*0.5
+        yVelocity_yellow_2 = 0.3*0.5
 
-        yellow_file_2 = PhotoImage(file="./Images_Video/yellow.png") 
-        my_yellow_image_2 = canvas_1.create_image(150,100,anchor=CENTER,image = yellow_file_2)
+        #red velocity
+        xVelocity_red_1 = 1.05*0.5
+        yVelocity_red_1 = -0.4*0.5
+        xVelocity_red_2 = 1.05*0.5
+        yVelocity_red_2 = 0.2*0.5
+
+        #blue velocity
+        xVelocity_blue_1 = 1.05*0.5
+        yVelocity_blue_1 = -0.4*0.5
+        xVelocity_blue_2 = 1.05*0.5
+        yVelocity_blue_2 = 0.3*0.5
+        
+        red_file_1 = PhotoImage(file="./utility/Images_Video/red.png") 
+        my_red_image_1 = canvas_1.create_image(285,110,anchor=CENTER,image = red_file_1)
+
+        red_file_2 = PhotoImage(file="./utility/Images_Video/red.png") 
+        my_red_image_2 = canvas_1.create_image(285,110,anchor=CENTER,image = red_file_2)
+        
+        yellow_file_1 = PhotoImage(file="./utility/Images_Video/yellow.png") 
+        my_yellow_image_1 = canvas_1.create_image(285,250,anchor=CENTER,image = yellow_file_1)
+
+        yellow_file_2 = PhotoImage(file="./utility/Images_Video/yellow.png") 
+        my_yellow_image_2 = canvas_1.create_image(285,250,anchor=CENTER,image = yellow_file_2)
 
 
-        red_file_1 = PhotoImage(file="./Images_Video/red.png") 
-        my_red_image_1 = canvas_1.create_image(170,310,anchor=CENTER,image = red_file_1)
+        blue_file_1 = PhotoImage(file="./utility/Images_Video/blue.png") 
+        my_blue_image_1 = canvas_1.create_image(285,490,anchor=CENTER,image = blue_file_1)
 
-        red_file_2 = PhotoImage(file="./Images_Video/red.png") 
-        my_red_image_2 = canvas_1.create_image(170,310,anchor=CENTER,image = red_file_2)
-
-        blue_file_1 = PhotoImage(file="./Images_Video/blue.png") 
-        my_blue_image_1 = canvas_1.create_image(160,520,anchor=CENTER,image = blue_file_1)
-
-        blue_file_2 = PhotoImage(file="./Images_Video/blue.png") 
-        my_blue_image_2 = canvas_1.create_image(160,520,anchor=CENTER,image = blue_file_2)
+        blue_file_2 = PhotoImage(file="./utility/Images_Video/blue.png") 
+        my_blue_image_2 = canvas_1.create_image(285,490,anchor=CENTER,image = blue_file_2)
 
 
         while True:
-            global xVelocity_yellow_1,yVelocity_yellow_1, xVelocity_yellow_2, yVelocity_yellow_2, xVelocity_red_1,yVelocity_red_1,  xVelocity_red_2,yVelocity_red_2, xVelocity_blue_1,yVelocity_blue_1,  xVelocity_blue_2,yVelocity_blue_2
+            # global xVelocity_yellow_1,yVelocity_yellow_1, xVelocity_yellow_2, yVelocity_yellow_2, xVelocity_red_1,yVelocity_red_1,  xVelocity_red_2,yVelocity_red_2, xVelocity_blue_1,yVelocity_blue_1,  xVelocity_blue_2,yVelocity_blue_2
 
             #yellow coordinates
             coordinate_y1 = canvas_1.coords(my_yellow_image_1)
@@ -158,70 +163,70 @@ def call():
             coordinate_b2 = canvas_1.coords(my_blue_image_2)
             
             # yellow 1 velocity
-            if(coordinate_y1[0] >= 320):
-                xVelocity_yellow_1 = 2.8*0.5
-            if(coordinate_y1[1] < 70 ):
-                yVelocity_yellow_1 = 0.85*0.5
+            if(coordinate_y1[0] >= 390):
+                xVelocity_yellow_1 = 1.4*0.5
+            if(coordinate_y1[1] < 210 ):
+                yVelocity_yellow_1 = -0.7*0.5
             
-            if(coordinate_y1[0] >= 500):
+            if(coordinate_y1[0] >= 530):
                 xVelocity_yellow_1 = 0
-            if(coordinate_y1[1] >= 125):
+            if(coordinate_y1[1] < 140):
                 yVelocity_yellow_1 = 0
             
             # yellow 2 velocity
-            if(coordinate_y2[0] >= 320):
-                xVelocity_yellow_2 = 2.8*0.5
-            if(coordinate_y2[1] >= 140 ):
-                yVelocity_yellow_2 = 5.15*0.5
+            if(coordinate_y2[0] >= 390):
+                xVelocity_yellow_2 = 1.40*0.5
+            if(coordinate_y2[1] >= 280 ):
+                yVelocity_yellow_2 = 1.7*0.5
 
-            if(coordinate_y2[0] >= 500):
+            if(coordinate_y2[0] >= 530):
                 xVelocity_yellow_2 = 0
-            if(coordinate_y2[1] >= 465):
+            if(coordinate_y2[1] >= 450):
                 yVelocity_yellow_2 = 0
 
             # red 1 velocity
-            if(coordinate_r1[0] >= 320):
-                xVelocity_red_1 = 1.8*0.8
-            if(coordinate_r1[1] < 280 ):
-                yVelocity_red_1 = -1.55*0.8
+            if(coordinate_r1[0] >= 390):
+                xVelocity_red_1 = 1.4*0.5
+            if(coordinate_r1[1] < 70 ):
+                yVelocity_red_1 = 0.7*0.5
             
-            if(coordinate_r1[0] >= 500):
+            if(coordinate_r1[0] >= 530):
                 xVelocity_red_1 = 0
-            if(coordinate_r1[1] < 125):
+            if(coordinate_r1[1] > 140):
                 yVelocity_red_1 = 0
             
             # red 2 velocity
-            if(coordinate_r2[0] >= 320):
-                xVelocity_red_2 = 1.8*0.8
-            if(coordinate_r2[1] >= 360 ):
-                yVelocity_red_2 = 1.30*0.8
+            if(coordinate_r2[0] >= 390):
+                xVelocity_red_2 = 1.4*0.5
+            if(coordinate_r2[1] >= 130 ):
+                yVelocity_red_2 = 3.20*0.5
             
-            if(coordinate_r2[0] >= 500):
+            if(coordinate_r2[0] >= 530):
                 xVelocity_red_2 = 0
-            if(coordinate_r2[1] >= 465):
+            if(coordinate_r2[1] >= 450):
                 yVelocity_red_2 = 0
             
             
             # blue 1 velocity
-            if(coordinate_b1[0] >= 320):
-                xVelocity_blue_1 = 2.8*0.5
-            if(coordinate_b1[1] < 480 ):
-                yVelocity_blue_1 = -5.55*0.5
+            if(coordinate_b1[0] >= 390):
+                xVelocity_blue_1 = 1.4*0.5
+            if(coordinate_b1[1] < 450 ):
+                yVelocity_blue_1 = -3.1*0.5
             
-            if(coordinate_b1[0] >= 500):
+            if(coordinate_b1[0] >= 530):
                 xVelocity_blue_1 = 0
-            if(coordinate_b1[1] < 125):
+            if(coordinate_b1[1] < 140):
                 yVelocity_blue_1 = 0
             
             # blue 2 velocity
-            if(coordinate_b2[0] >= 320):
-                xVelocity_blue_2 = 2.8*0.5
-            if(coordinate_b2[1] >= 555 ):
-                yVelocity_blue_2 = -1.4*0.5
+            if(coordinate_b2[0] >= 390):
+                xVelocity_blue_2 = 1.4*0.5
+            if(coordinate_b2[1] >= 520 ):
+                yVelocity_blue_2 = -0.7*0.5
             
-            if(coordinate_b2[0] >= 500):
+            if(coordinate_b2[0] >= 530):
                 xVelocity_blue_2 = 0
-            if(coordinate_b2[1] < 465):
+            if(coordinate_b2[1] < 450):
                 yVelocity_blue_2 = 0
             
 
@@ -233,7 +238,7 @@ def call():
                 canvas_1.delete(my_red_image_1)
                 canvas_1.delete(my_red_image_2)
                 canvas_1.delete(my_blue_image_1)
-                canvas_1.delete(my_red_image_2)
+                canvas_1.delete(my_blue_image_2)
                 break
             
             canvas_1.move(my_yellow_image_1,xVelocity_yellow_1,yVelocity_yellow_1)
@@ -247,12 +252,14 @@ def call():
             
             time.sleep(0.01)
 
+    
+
     def server():
 
-        yellow_file_4 = PhotoImage(file="./Images_Video/grey.png") 
-        my_yellow_image_4 = canvas_1.create_image(500,125,anchor=CENTER,image = yellow_file_4)
-        xVelocity_yellow_4 = -0.28*0.5
-        yVelocity_yellow_4 = 1.65*0.5
+        yellow_file_4 = PhotoImage(file="./utility/Images_Video/grey.png") 
+        my_yellow_image_4 = canvas_1.create_image(530,140,anchor=CENTER,image = yellow_file_4)
+        xVelocity_yellow_4 = -0.25*0.5
+        yVelocity_yellow_4 = 1.55*0.5
         canvas_1.move(my_yellow_image_4,xVelocity_yellow_4,yVelocity_yellow_4)
         window.update()
         
@@ -266,42 +273,24 @@ def call():
             
             
             # yellow 1 velocity
-            if(coordinate_y3[0] < 500 and coordinate_y3[1] < 125 ):
+            if(coordinate_y3[0] < 530 and coordinate_y3[1] < 140 ):
                 time.sleep(1)
 
                 break
             
 
-            if(471 <= coordinate_y3[0] < 500 and 465 >coordinate_y3[1] >= 290 ):
-                xVelocity_yellow_4 = 0.28*0.5
-                yVelocity_yellow_4 = 1.75*0.5
+            if(504 <= coordinate_y3[0] < 530 and 450 >= coordinate_y3[1] > 295 ):
+                xVelocity_yellow_4 = 0.25*0.5
+                yVelocity_yellow_4 = 1.55*0.5
 
-            if(499 < coordinate_y3[0] < 530 and 466 >= coordinate_y3[1] > 290 ):
-                xVelocity_yellow_4 = 0.28*0.5
-                yVelocity_yellow_4 = -1.75*0.5
+            if(530 < coordinate_y3[0] < 556 and 453 >= coordinate_y3[1] > 294 ):
+                xVelocity_yellow_4 = 0.25*0.5
+                yVelocity_yellow_4 = -1.55*0.5
 
-            if(500 < coordinate_y3[0] < 530 and 291 >= coordinate_y3[1] > 124 ):
-                xVelocity_yellow_4 = -0.28*0.5
-                yVelocity_yellow_4 = -1.65*0.5
-            
-            
-            
+            if(530 < coordinate_y3[0] < 555 and 300 >= coordinate_y3[1] > 140 ):
+                xVelocity_yellow_4 = -0.25*0.5
+                yVelocity_yellow_4 = -1.55*0.5
 
-            # if(coordinate_y3[0] < 472):
-            #     xVelocity_yellow_4 = 0.28*0.5
-            # if(coordinate_y3[1] > 290 ):
-            #     yVelocity_yellow_4 = 1.75*0.5
-
-            # if(coordinate_y3[0] > 500):
-            #     xVelocity_yellow_4 = 0.28*0.5
-            # if(coordinate_y3[1] > 465 ):
-            #     yVelocity_yellow_4 = -1.75*0.5
-
-            # if(coordinate_y3[0] > 530):
-            #     xVelocity_yellow_4 = -0.28*0.5
-            # if(coordinate_y3[1] < 290 ):
-            #     yVelocity_yellow_4 = -1.65*0.5
-            
             
 
             canvas_1.move(my_yellow_image_4,xVelocity_yellow_4,yVelocity_yellow_4)
@@ -313,17 +302,19 @@ def call():
     # my_grey_image_1 = canvas_1.create_image(770,295,anchor=CENTER,image = grey_file_1)
 
 
-
+    # yellow_file_1 = PhotoImage(file="./utility/Images_Video/yellow.png") 
+    # my_yellow_image_1 = canvas_1.create_image(220,130,anchor=CENTER,image = yellow_file_1)
 
     def result():
-        grey_file_1 = PhotoImage(file="./Images_Video/grey.png") 
-        my_grey_image_1 = canvas_1.create_image(500,125,anchor=CENTER,image = grey_file_1)
-        xVelocity_grey_1 = 2.7*0.5
-        yVelocity_grey_1 = 1.7*0.5
-        grey_file_2 = PhotoImage(file="./Images_Video/grey.png") 
-        my_grey_image_2 = canvas_1.create_image(500,465,anchor=CENTER,image = grey_file_2)
-        xVelocity_grey_2 = 2.7*0.5
-        yVelocity_grey_2 = -1.7*0.5
+
+        grey_file_1 = PhotoImage(file="./utility/Images_Video/grey.png") 
+        my_grey_image_1 = canvas_1.create_image(530,140,anchor=CENTER,image = grey_file_1)
+        xVelocity_grey_1 = 1.5*0.5
+        yVelocity_grey_1 = 0
+        grey_file_2 = PhotoImage(file="./utility/Images_Video/grey.png") 
+        my_grey_image_2 = canvas_1.create_image(530,450,anchor=CENTER,image = grey_file_2)
+        xVelocity_grey_2 = 1.3*0.5
+        yVelocity_grey_2 = 0
         
         while True:
             
@@ -332,16 +323,44 @@ def call():
             coordinate_g1 = canvas_1.coords(my_grey_image_1)
             coordinate_g2 = canvas_1.coords(my_grey_image_2)
 
-            if(coordinate_g1[0] > 770 and coordinate_g1[1] > 295 ):
+            if(coordinate_g1[0] > 680 and coordinate_g1[1] == 140 ):
+                xVelocity_grey_1 = 0
+                yVelocity_grey_1 = 4.3*0.5
+            
+            if(coordinate_g2[0] > 660 and coordinate_g2[1] == 450 ):
+                xVelocity_grey_2 = 0
+                yVelocity_grey_2 = 1.0*0.5
+
+            if(coordinate_g1[0] > 680 and coordinate_g1[1] > 570 ):
+                xVelocity_grey_1 = -5.6*0.5
+                yVelocity_grey_1 = 0
+            
+            if(coordinate_g2[0] > 660 and coordinate_g2[1] > 550 ):
+                xVelocity_grey_2 = -5.2*0.5
+                yVelocity_grey_2 = 0
+            
+            if(coordinate_g1[0] < 120 and coordinate_g1[1] > 570 ):
                 xVelocity_grey_1 = 0
                 yVelocity_grey_1 = 0
             
-            if(coordinate_g2[0] > 770 and coordinate_g2[1] <= 295 ):
+            if(coordinate_g2[0] < 140 and coordinate_g2[1] > 550 ):
                 xVelocity_grey_2 = 0
                 yVelocity_grey_2 = 0
 
+            # if(coordinate_g1[0] < 120 and coordinate_g1[1] < 500 ):
+            #     xVelocity_grey_1 = 0
+            #     yVelocity_grey_1 = 0
+            
+            # if(coordinate_g2[0] < 140 and coordinate_g2[1] < 520 ):
+            #     xVelocity_grey_2 = 0
+            #     yVelocity_grey_2 = 0
+            
+
+
+
             if(xVelocity_grey_1 == 0 and yVelocity_grey_1 == 0 and xVelocity_grey_2 == 0 and yVelocity_grey_2 == 0 ):
                 result2(my_grey_image_1,my_grey_image_2)
+                break
                 
 
 
@@ -356,27 +375,62 @@ def call():
     # my_grey_image_3 = canvas_1.create_image(25,100,anchor=CENTER,image = grey_file_3)
 
     def result2(my_grey_image_1,my_grey_image_2):
-        grey_file_3 = PhotoImage(file="./Images_Video/grey.png") 
-        my_grey_image_3 = canvas_1.create_image(770,295,anchor=CENTER,image = grey_file_3)
+
+        grey_file_3 = PhotoImage(file="./utility/Images_Video/grey.png") 
+        my_grey_image_3 = canvas_1.create_image(120,570,anchor=CENTER,image = grey_file_3)
+        grey_file_4 = PhotoImage(file="./utility/Images_Video/grey.png") 
+        my_grey_image_4 = canvas_1.create_image(140,550,anchor=CENTER,image = grey_file_4)
         
 
-        xVelocity_grey_1 = xVelocity_grey_2 = xVelocity_grey_3 = 0
-        yVelocity_grey_1 = yVelocity_grey_2 = yVelocity_grey_3 = 1.5
+        xVelocity_grey_1 = xVelocity_grey_2 = 0
+        xVelocity_grey_3 = xVelocity_grey_4 = 0
+        yVelocity_grey_1 = -0.7*0.5
+        yVelocity_grey_2 = -0.3*0.5
+        yVelocity_grey_3 = -4.5*0.5
+        yVelocity_grey_4 = -4.2*0.5
         
         
         while True:
             coordinate_g1 = canvas_1.coords(my_grey_image_1)
             coordinate_g2 = canvas_1.coords(my_grey_image_2)
             coordinate_g3 = canvas_1.coords(my_grey_image_3)
+            coordinate_g4 = canvas_1.coords(my_grey_image_4)
             # print(coordinate_g1)
-            if(coordinate_g1[1] >= 590 or coordinate_g2[1] >= 590 or coordinate_g3[1] >= 590):
-                xVelocity_grey_1 = xVelocity_grey_2 = xVelocity_grey_3 = -1.5
-                yVelocity_grey_1 = yVelocity_grey_2 = yVelocity_grey_3 = 0
             
-            if(coordinate_g1[0] < 25 or coordinate_g2[0] < 25 or coordinate_g3[0] < 25):
-                
-                result3(my_grey_image_1,my_grey_image_2,my_grey_image_3)
+            if(coordinate_g1[0] < 120 and coordinate_g1[1] < 500 ):
+                xVelocity_grey_1 = 1*0.5
+                yVelocity_grey_1 = 0
+            
+            if(coordinate_g2[0] < 140 and coordinate_g2[1] < 520 ):
+                xVelocity_grey_2 = 0.8*0.5
+                yVelocity_grey_2 = 0
 
+            
+            if(coordinate_g3[0] == 120 and coordinate_g3[1] < 120 ):
+                xVelocity_grey_3 = 1*0.5
+                yVelocity_grey_3 = 0
+            
+            if(coordinate_g4[0] == 140 and coordinate_g4[1] < 130 ):
+                xVelocity_grey_4 = 0.8*0.5
+                yVelocity_grey_4 = 0
+
+
+            if(coordinate_g1[0] > 220 and coordinate_g1[1] < 500 ):
+                xVelocity_grey_1 = 0
+                yVelocity_grey_1 = 0
+            
+            if(coordinate_g2[0] > 220 and coordinate_g2[1] < 520 ):
+                xVelocity_grey_2 = 0
+                yVelocity_grey_2 = 0
+
+            
+            if(coordinate_g3[0] > 220 and coordinate_g3[1] < 120 ):
+                xVelocity_grey_3 = 0
+                yVelocity_grey_3 = 0
+            
+            if(coordinate_g4[0] > 220 and coordinate_g4[1] < 130 ):
+                xVelocity_grey_4 = 0
+                yVelocity_grey_4 = 0
 
             
             
@@ -384,57 +438,25 @@ def call():
             canvas_1.move(my_grey_image_1,xVelocity_grey_1,yVelocity_grey_1)
             canvas_1.move(my_grey_image_2,xVelocity_grey_2,yVelocity_grey_2)
             canvas_1.move(my_grey_image_3,xVelocity_grey_3,yVelocity_grey_3)
+            canvas_1.move(my_grey_image_4,xVelocity_grey_4,yVelocity_grey_4)
             window.update()
             
             time.sleep(0.01)
 
 
-    def result3(my_grey_image_1,my_grey_image_2,my_grey_image_3):
-        
-        xVelocity_grey_1 = xVelocity_grey_2 = xVelocity_grey_3 = 0
-        yVelocity_grey_1 = yVelocity_grey_2 = yVelocity_grey_3 = -1.5
-        
-        while True:
-            coordinate_g1 = canvas_1.coords(my_grey_image_1)
-            coordinate_g2 = canvas_1.coords(my_grey_image_2)
-            coordinate_g3 = canvas_1.coords(my_grey_image_3)
-
-            if(coordinate_g1[1] <= 510 and coordinate_g1[0] <27):
-                xVelocity_grey_1 = 1.5
-                yVelocity_grey_1 = 0
+    
             
-            if(coordinate_g2[1] <= 305 and coordinate_g2[0] <27):
-                xVelocity_grey_2 = 1.5
-                yVelocity_grey_2 = 0
-            
-            if(coordinate_g3[1] <= 90 and coordinate_g3[0] <27):
-                xVelocity_grey_3 = 1.5
-                yVelocity_grey_3 = 0
-            
-            if(coordinate_g1[1] <= 510 and coordinate_g1[0] >160):
-                xVelocity_grey_1 = 0
-                yVelocity_grey_1 = 0
-            
-            if(coordinate_g2[1] <= 305 and coordinate_g2[0] >170):
-                xVelocity_grey_2 = 0
-                yVelocity_grey_2 = 0
-            
-            if(coordinate_g3[1] <= 90 and coordinate_g3[0] >150):
-                xVelocity_grey_3 = 0
-                yVelocity_grey_3 = 0
-            
-            if(xVelocity_grey_1 == 0 and yVelocity_grey_1 == 0 and xVelocity_grey_2 == 0 and yVelocity_grey_2 == 0 and xVelocity_grey_3 == 0 and yVelocity_grey_3 == 0 ):
+            if(xVelocity_grey_1 == 0 and yVelocity_grey_1 == 0 and xVelocity_grey_2 == 0 and yVelocity_grey_2 == 0 and xVelocity_grey_3 == 0 and yVelocity_grey_3 == 0 and xVelocity_grey_4 == 0 and yVelocity_grey_4 == 0):
                 time.sleep(0.3)
                 canvas_1.delete(my_grey_image_1)
                 canvas_1.delete(my_grey_image_2)
                 canvas_1.delete(my_grey_image_3)
+                canvas_1.delete(my_grey_image_4)
+                break
 
-            canvas_1.move(my_grey_image_1,xVelocity_grey_1,yVelocity_grey_1)
-            canvas_1.move(my_grey_image_2,xVelocity_grey_2,yVelocity_grey_2)
-            canvas_1.move(my_grey_image_3,xVelocity_grey_3,yVelocity_grey_3)
-            window.update()
             
-            time.sleep(0.01)
+            
+            
 
     # yellow_file_4 = PhotoImage(file="grey.png") 
     # my_yellow_image_4 = canvas_1.create_image(530,290,anchor=CENTER,image = yellow_file_4)

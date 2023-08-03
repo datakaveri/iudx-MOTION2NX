@@ -3,9 +3,9 @@ from tkinter import colorchooser
 import pyscreenshot as ImageGrab
 from tkinter import filedialog
 from tkinter import messagebox
-import File_location
-import SMPC
-import NN
+from utility import File_location
+from utility import SMPC
+from utility import NN
 
 
 
@@ -92,19 +92,35 @@ def call():
 
             img = ImageGrab.grab().crop((x,y,x1,y1))
             
-            fileLocation = filedialog.asksaveasfilename(defaultextension=".png")
-            img.save(fileLocation)
-            
-            
-            showImage = messagebox.askyesno("Paint App" , "Do you want to open image?")
-            if showImage:
-                img.show()
+            try:
+                fileLocation = filedialog.asksaveasfilename(defaultextension=".png")
+                img.save(fileLocation)
+                # showImage = messagebox.askyesno("Paint App" , "Do you want to open image?")
+                # if showImage:
+                #     img.show()
                 showImage1 = messagebox.askyesno("Paint App" , "Do you want to Upload Image?")
                 if showImage1:
                     Uploader(root, fileLocation)
                 else:
                     root.destroy()
                     call()
+
+            except Exception as e:
+                showImage1 = messagebox.askyesno("Paint App" , "Do you want to Try Saving Again Image?")
+                if showImage1:
+                    save_image()
+                else:
+                    showImage1 = messagebox.askyesno("Paint App" , "Do you want to Upload Image Directly?")
+                    if showImage1:
+                        Uploader(root, "")
+                    else:
+                        root.destroy()
+                        call()
+
+            
+            
+            
+            
 
         except Exception as e:
             messagebox.showinfo("Paint app: " , "Error occured")
@@ -124,6 +140,14 @@ def call():
         root.destroy()
         File_location.call(fileLocation)
     
+    def Uploader_direct(root):
+        if messagebox.askyesno("Paint app" , "Do you want to save before go to uploading"):
+            saveImage()
+        root.destroy()
+        File_location.call("")
+
+    
+    
     def back(root):
         root.destroy()
         NN.call()
@@ -139,13 +163,13 @@ def call():
 
     
 
-    pen_image = PhotoImage(file="Images_Video/pen.png") 
-    eraser_image = PhotoImage(file="Images_Video/eraser.png") 
-    save_image = PhotoImage(file="./Images_Video/save.png") 
-    new_image = PhotoImage(file="./Images_Video/new.png") 
-    clear_image = PhotoImage(file="./Images_Video/clear.png") 
-    back_image = PhotoImage(file="./Images_Video/back.png") 
-    upload_image = PhotoImage(file="./Images_Video/upload.png")
+    pen_image = PhotoImage(file="./utility/Images_Video/pen.png") 
+    eraser_image = PhotoImage(file="./utility/Images_Video/eraser.png") 
+    save_image = PhotoImage(file="./utility/Images_Video/save.png") 
+    new_image = PhotoImage(file="./utility/Images_Video/new.png") 
+    clear_image = PhotoImage(file="./utility/Images_Video/clear.png") 
+    back_image = PhotoImage(file="./utility/Images_Video/back.png") 
+    upload_image = PhotoImage(file="./utility/Images_Video/upload.png")
 
     
     
@@ -168,7 +192,7 @@ def call():
     newImageButton.grid(row=4 , column=0)
     clearImageButton = Button(frame1 , image=clear_image , bg="white" , command=clear)
     clearImageButton.grid(row=5 , column=0)
-    uploadImageButton = Button(frame1 , image=upload_image , bg="white" , command=lambda: Uploader(root))
+    uploadImageButton = Button(frame1 , image=upload_image , bg="white" , command=lambda: Uploader_direct(root))
     uploadImageButton.grid(row=6 , column=0)
     backButton = Button(frame1 , image=back_image , bg="white" , command=lambda: back(root))
     backButton.grid(row=0 , column=0)
