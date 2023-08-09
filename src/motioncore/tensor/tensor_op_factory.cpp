@@ -145,7 +145,13 @@ tensor::TensorCP TensorOpFactory::make_tensor_negate(const tensor::TensorCP) {
       fmt::format("{} does not support the Negate operation", get_provider_name()));
 }
 
-tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP,const uint64_t k) {
+tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP,const std::vector<uint64_t>) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
+}
+
+
+tensor::TensorCP TensorOpFactory::make_tensor_constAdd_op(const tensor::TensorCP,const uint64_t) {
   throw std::logic_error(
       fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
 }

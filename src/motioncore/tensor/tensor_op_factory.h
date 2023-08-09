@@ -97,7 +97,8 @@ class TensorOpFactory {
                                                   const tensor::TensorCP input,
                                                   std::size_t truncate_bits);
   virtual tensor::TensorCP make_tensor_negate(const tensor::TensorCP);   
-  virtual tensor::TensorCP make_tensor_constMul_op(const tensor::TensorCP,const uint64_t k);
+  virtual tensor::TensorCP make_tensor_constMul_op(const tensor::TensorCP,const std::vector<uint64_t> k);
+  virtual tensor::TensorCP make_tensor_constAdd_op(const tensor::TensorCP,const uint64_t k);
   virtual tensor::TensorCP make_tensor_add_op(const tensor::TensorCP,const tensor::TensorCP);
   virtual std::vector<tensor::TensorCP> make_tensor_split_op(const tensor::TensorCP);
   virtual tensor::TensorCP make_tensor_gt_op(const tensor::MaxPoolOp& maxpool_op,
