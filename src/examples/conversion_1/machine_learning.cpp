@@ -14,6 +14,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/thread/thread.hpp>
+#include <random>
 
 namespace po = boost::program_options;
 
@@ -63,34 +64,55 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   return options;
 }
 
+void generate_random_numbers(std::vector<int>* sample_file){
+    std::random_device rd;  // Seed for the random number engine
+    std::mt19937 gen(rd()); // Mersenne Twister random number generator
+
+    int minNumber = 1;
+    int maxNumber = 5000;
+    int numberOfRandomNumbers = 8;
+
+    std::uniform_int_distribution<int> distribution(minNumber, maxNumber);
+
+    for (int i = 0; i < numberOfRandomNumbers; ++i) {
+        int randomNumber = distribution(gen);
+        std::cout << randomNumber << " ";
+        sample_file->push_back(randomNumber);
+    }
+
+    // sample_file->push_back(minNumber);
+    // sample_file->push_back(maxNumber);
+
+}
+
 bool is_empty(std::ifstream& file) { return file.peek() == std::ifstream::traits_type::eof(); }
 
-void read_input(std::vector<float>& x_input,std::vector<float>& transpose_input,const Options& options) {
+void read_input(std::vector<float>& row_major_input,std::vector<float>& column_major_input,const Options& options) {
   std::string home_dir = getenv("BASE_DIR");
-
-  std::string path_sample_files = home_dir + "/config_files/"+options.sample_file;
-  std::cout<<path_sample_files<<"\n"; 
+  
+    std::vector<int>sample_file;
+    for(int i=0;i<2;i++)
+    {
+      generate_random_numbers(&sample_file);
+    }
 
   std::ifstream file;
-  file.open(path_sample_files);
 
-  std::vector<int>samplefile;
-
-  while(!file.eof())
-  {
-    int data;
-    file>>data;
-    std::cout<<data<<" ";
-    samplefile.push_back(data);
-  }
-
-  std::cout<<"\n";
-  file.close();
 
   std::string path=home_dir+"/data/ImageProvider/images/";
+  std::string input_path;
 
   for (int i = 0; i < options.m; i++) {
-    std::string input_path = path + "X" + std::to_string(samplefile[i]) + ".csv";
+    
+    //assumption first half of m is label 1 
+    //2nd half of m is label 0 
+    if(i<(options.m/2))
+    {
+     input_path = path + "images_folder1/X" + std::to_string(sample_file[i]) + ".csv";
+    } 
+    else{
+     input_path = path + "images_folder0/X" + std::to_string(sample_file[i]) + ".csv";
+    }
 
     std::cout << input_path << "\n";
     file.open(input_path);
@@ -104,29 +126,28 @@ void read_input(std::vector<float>& x_input,std::vector<float>& transpose_input,
 
       while (std::getline(obj, temp, ',')) {
         auto input = std::stof(temp);
-        std::cout << input << " ";
-        x_input.push_back(input);
+        // std::cout << input << " ";
+       row_major_input.push_back(input);
       }
     }
-    std::cout << "\n";
+    // std::cout << "\n";
 
     file.close();
     input_path = "";
   }
-  int size_single_input = x_input.size() / options.m;
+  int size_single_input = row_major_input.size() / options.m;
   std::cout << size_single_input << "\n";
     
-    std::cout<<"Transpose input :  \n";
+    // std::cout<<"Transpose input :  \n";
     for (int i = 0; i <size_single_input; ++i) {
     for (int j = 0; j < options.m; j++) {
      // std::cout << i <<" " << j << "   ";
-     auto data = x_input[j*size_single_input+i];
-     std::cout<<data<<"";
-     transpose_input.push_back(data);
+     auto data = row_major_input[j*size_single_input+i];
+    //  std::cout<<data<<"";
+     column_major_input.push_back(data);
 
     }
-  }
-
+    }
   std::cout << "\n";
 }
 
@@ -135,7 +156,7 @@ uint64_t sigmoid(uint64_t dot_product, int frac_bits) {
   auto neg_encoded_threshold =
       MOTION::new_fixed_point::encode<std::uint64_t, float>(-0.5, frac_bits);
 
-  std::cout << "dot_product: " << std::bitset<sizeof(dot_product) * 8>(dot_product) << "\n";
+  // std::cout << "dot_product: " << std::bitset<sizeof(dot_product) * 8>(dot_product) << "\n";
   std::uint64_t msb = (uint64_t)1 << 63;
   // std::cout << "msb: " << std::bitset<sizeof(msb) * 8>(msb) << "\n";
 
@@ -159,7 +180,7 @@ uint64_t sigmoid(uint64_t dot_product, int frac_bits) {
   }
 }
 
-std::vector<float> find_weights(std::vector<float> input,std::vector<float>transpose_input,Options& options) {
+std::vector<std::uint64_t> find_weights(std::vector<float> row_major_input,std::vector<float>column_major_input,std::vector<std::uint64_t>theta_current,Options& options) {
   // // input->encoded_input
 
   int frac_bits=options.frac_bits;
@@ -167,40 +188,41 @@ std::vector<float> find_weights(std::vector<float> input,std::vector<float>trans
 
   //#############################################################################################################
 
-  std::vector<std::uint64_t> encoded_input(input.size(), 0);
+  std::vector<std::uint64_t> encoded_input(row_major_input.size(), 0);
 
-  std::transform(input.begin(), input.end(), encoded_input.begin(), [frac_bits](auto j) {
+  std::transform(row_major_input.begin(),row_major_input.end(), encoded_input.begin(), [frac_bits](auto j) {
     return MOTION::new_fixed_point::encode<std::uint64_t, float>(j, frac_bits);
   });
 
 
-  std::vector<std::uint64_t> encoded_transpose_input(transpose_input.size(), 0);
+  std::vector<std::uint64_t> encoded_column_major_input(column_major_input.size(), 0);
 
-  std::transform(transpose_input.begin(), transpose_input.end(), encoded_transpose_input.begin(), [frac_bits](auto j) {
+  std::transform(column_major_input.begin(), column_major_input.end(), encoded_column_major_input.begin(), [frac_bits](auto j) {
     return MOTION::new_fixed_point::encode<std::uint64_t, float>(j, frac_bits);
   });
 
 
-  std::cout << "transpose input after decode: ";
-  for (int i = 0; i < encoded_transpose_input.size(); i++) {
-    std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(encoded_transpose_input[i],
-                                                                       frac_bits)
-              << " ";
-  }
+  // std::cout << "transpose input after decode: ";
+  // for (int i = 0; i < encoded_column_major_input.size(); i++) {
+  //   std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(encoded_column_major_input[i],
+  //                                                                      frac_bits)
+  //             << " ";
+  // }
 
 
-  // // dot_product_decoded = Theta * encoded_input
-  int size_single_input = input.size() / m;
+  // // dot_product_decoded = Theta * encoded_column_major_input
+  int size_single_input = row_major_input.size() / m;
+  
+  // // redundant now
+  // auto theta_my = MOTION::new_fixed_point::encode<std::uint64_t, float>(0.2, frac_bits);
 
-  auto theta_my = MOTION::new_fixed_point::encode<std::uint64_t, float>(0.2, frac_bits);
+  // std::vector<std::uint64_t> theta_current(size_single_input, theta_my);
 
-  std::vector<std::uint64_t> theta_current(size_single_input, theta_my);
-
-  std::cout << "theta_current: ";
+  std::cout << "theta_current: \n";
   for (int i = 0; i < theta_current.size(); i++) {
     std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(theta_current[i],
                                                                        frac_bits)
-              << " ";
+              << ",";
   }
 
   std::cout << "\n\n";
@@ -208,21 +230,21 @@ std::vector<float> find_weights(std::vector<float> input,std::vector<float>trans
   std::vector<std::uint64_t> dot_product(m, 0);
   std::vector<std::uint64_t> dot_product_decoded(m, 0);
 
-  dot_product = MOTION::matrix_multiply(1, size_single_input, m, theta_current, encoded_transpose_input);
+  dot_product = MOTION::matrix_multiply(1, size_single_input, m, theta_current, encoded_column_major_input);
 
   std::transform(dot_product.begin(), dot_product.end(), dot_product_decoded.begin(),
                  [frac_bits](auto j) {
                    return MOTION::new_fixed_point::decode<std::uint64_t, float>(j, frac_bits);
                  });
 
-  std::cout << "dot_product: ";
-  for (int i = 0; i < dot_product_decoded.size(); i++) {
-    std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(dot_product_decoded[i],
-                                                                       frac_bits)
-              << " ";
-  }
+  // std::cout << "dot_product: ";
+  // for (int i = 0; i < dot_product_decoded.size(); i++) {
+  //   std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(dot_product_decoded[i],
+  //                                                                      frac_bits)
+  //             << " ";
+  // }
 
-  std::cout << "\n\n";
+  // std::cout << "\n\n";
 
   //###################################################################################################################
 
@@ -231,13 +253,13 @@ std::vector<float> find_weights(std::vector<float> input,std::vector<float>trans
   std::transform(dot_product_decoded.begin(), dot_product_decoded.end(), sigmoid_dp.begin(),
                  [frac_bits](auto j) { return sigmoid(j, frac_bits); });
 
-  std::cout << "sigmoid_dp: ";
-  for (int i = 0; i < sigmoid_dp.size(); i++) {
-    std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(sigmoid_dp[i],
-                                                                       frac_bits) << " ";
-  }
+  // std::cout << "sigmoid_dp: ";
+  // for (int i = 0; i < sigmoid_dp.size(); i++) {
+  //   std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(sigmoid_dp[i],
+  //                                                                      frac_bits) << " ";
+  // }
 
-  std::cout << "\n\n";
+  // std::cout << "\n\n";
 
   //########################################################################################################################
   
@@ -265,26 +287,26 @@ std::vector<float> find_weights(std::vector<float> input,std::vector<float>trans
                    return MOTION::new_fixed_point::encode<std::uint64_t, float>(j, frac_bits);
                  });
 
-  std::cout << "encoded_actual_label: ";
-  for (int i = 0; i < encoded_actual_label.size(); i++) {
-    std::cout << encoded_actual_label[i] << " ";
-  }
+  // std::cout << "encoded_actual_label: ";
+  // for (int i = 0; i < encoded_actual_label.size(); i++) {
+  //   std::cout << encoded_actual_label[i] << " ";
+  // }
 
-  std::cout << "\n\n";
+  // std::cout << "\n\n";
   std::vector<std::uint64_t> temp(m, 0);
   std::transform(sigmoid_dp.begin(), sigmoid_dp.end(), encoded_actual_label.begin(), temp.begin(),
                  std::minus{});
 
-  std::cout << "temp: ";
-  for (int i = 0; i < temp.size(); i++) {
-    std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(temp[i], frac_bits) << " ";
-  }
+  // std::cout << "temp: ";
+  // for (int i = 0; i < temp.size(); i++) {
+  //   std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(temp[i], frac_bits) << " ";
+  // }
 
-  std::cout << "\n\n";
+  // std::cout << "\n\n";
 
   //##################################################################################################################################
 
-  // // // X.H == 1* single input size
+  // // // H.X == 1* single input size
   std::vector<std::uint64_t> loss_function(size_single_input, 0);
   std::vector<std::uint64_t> loss_function_decoded(size_single_input, 0);
   loss_function = MOTION::matrix_multiply(1, m, size_single_input, temp, encoded_input);
@@ -294,14 +316,14 @@ std::vector<float> find_weights(std::vector<float> input,std::vector<float>trans
                    return MOTION::new_fixed_point::decode<std::uint64_t, float>(j, frac_bits);
                  });
 
-  std::cout << "loss function: ";
-  for (int i = 0; i < loss_function_decoded.size(); i++) {
-    std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(loss_function_decoded[i],
-                                                                       frac_bits)
-              << " ";
-  }
+  // std::cout << "loss function: ";
+  // for (int i = 0; i < loss_function_decoded.size(); i++) {
+  //   std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(loss_function_decoded[i],
+  //                                                                      frac_bits)
+  //             << " ";
+  // }
 
-  std::cout << "\n\n";
+  // std::cout << "\n\n";
 
   //#####################################################################################################################################
 
@@ -318,13 +340,13 @@ std::vector<float> find_weights(std::vector<float> input,std::vector<float>trans
                    return MOTION::new_fixed_point::decode<std::uint64_t, float>(j, frac_bits);
                  });
 
-  std::cout << "loss function2: ";
-  for (int i = 0; i < loss_function_decoded.size(); i++) {
-    std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(loss_function_decoded[i],
-                                                                       frac_bits)
-              << " ";
-  }
-  std::cout << "\n\n";
+  // std::cout << "loss function2: ";
+  // for (int i = 0; i < loss_function_decoded.size(); i++) {
+  //   std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(loss_function_decoded[i],
+  //                                                                      frac_bits)
+  //             << " ";
+  // }
+  // std::cout << "\n\n";
 
   //#######################################################################################################################################
 
@@ -333,31 +355,88 @@ std::vector<float> find_weights(std::vector<float> input,std::vector<float>trans
   std::transform(theta_current.begin(), theta_current.end(), loss_function_decoded.begin(),
                  theta_new.begin(), std::minus{});
 
-  std::cout << "theta_new: ";
-  for (int i = 0; i < theta_new.size(); i++) {
-    std::cout << theta_new[i] << " ";
-  }
-  std::cout << "\n\n";
+  // std::cout << "theta_new: ";
+  // for (int i = 0; i < theta_new.size(); i++) {
+  //   std::cout << theta_new[i] << " ";
+  // }
+  // std::cout << "\n\n";
+
+  std::ofstream out_file;
+  path = home_dir+"/build_debwithrelinfo_gcc/Theta_new";
+
+  out_file.open(path,std::ios_base::app);
 
   std::vector<float> decoded_theta_new(size_single_input, (uint64_t)0);
   std::transform(theta_new.begin(), theta_new.end(), decoded_theta_new.begin(),
                  [frac_bits](auto& j) {
                    return MOTION::new_fixed_point::decode<std::uint64_t, float>(j, frac_bits);
                  });
-
-  for (int i = 0; i < decoded_theta_new.size(); i++) {
-    std::cout << decoded_theta_new[i] << ",";
-  }
-  std::cout << "\n\n";
   
-  return decoded_theta_new;
+  std::cout<<"Decoded theta new : \n\n";
+  for (int i = 0; i < decoded_theta_new.size(); i++) {
+    //std::cout << decoded_theta_new[i] << ",";
+    out_file<<decoded_theta_new[i]<<",";
+  }
+
+  out_file<<"\n\n";
+
+  out_file.close();
+  
+  return theta_new;
 }
 
 int main(int argc, char* argv[]) {
   
   auto options = parse_program_options(argc, argv);
-  std::vector<float> input, transpose_input;
+  std::vector<float> row_major_input, column_major_input;
 
-  read_input(input,transpose_input,*options);
-  std::vector<float> decoded_theta_new = find_weights(input,transpose_input,*options);
+  int frac_bits=options->frac_bits;
+  
+  //input is row_major_input
+
+  std::vector<std::uint64_t> theta_current;
+
+  for(int i=0;i<1000;i++)
+  {   
+    read_input(row_major_input,column_major_input,*options);
+    int size_single_input=row_major_input.size()/options->m;
+
+    if(i==0)
+    { 
+    std::random_device rd;  // Seed for the random number engine
+    std::mt19937 gen(rd()); // Mersenne Twister random number generator
+
+    std::uint64_t minNumber = 0;
+    std::uint64_t maxNumber = 8192;
+
+    std::uniform_int_distribution<std::uint64_t> distribution(minNumber, maxNumber);
+    theta_current.assign(size_single_input, 0);
+
+    for(int i=0;i<size_single_input;i++)
+    {   
+      int x = distribution(gen);
+      theta_current[i]=x;
+    }
+    } 
+
+    std::cout<<"Size of row_major_inputs : "<< row_major_input.size()<<"\n";
+    std::cout<<"Size of column major input : "<< column_major_input.size()<<"\n";
+
+    std::vector<std::uint64_t> encoded_theta_new = find_weights(row_major_input,column_major_input,theta_current,*options);
+
+    std::cout<<"\n\n ---- next iteration ---- \n\n ";
+
+    //put theta_current = encoded_theta_new
+    for(int i=0;i<encoded_theta_new.size();i++)
+    {
+       theta_current[i]=encoded_theta_new[i];
+    }
+
+    std::cout<<"Size of theta current : "<<theta_current.size()<<"\n";
+
+    row_major_input.clear();
+    column_major_input.clear();
+  }
+
+return EXIT_SUCCESS;
 }
