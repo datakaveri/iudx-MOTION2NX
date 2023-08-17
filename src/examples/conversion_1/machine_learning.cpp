@@ -79,10 +79,6 @@ void generate_random_numbers(std::vector<int>* sample_file){
         std::cout << randomNumber << " ";
         sample_file->push_back(randomNumber);
     }
-
-    // sample_file->push_back(minNumber);
-    // sample_file->push_back(maxNumber);
-
 }
 
 bool is_empty(std::ifstream& file) { return file.peek() == std::ifstream::traits_type::eof(); }
@@ -202,12 +198,14 @@ std::vector<std::uint64_t> find_weights(std::vector<float> row_major_input,std::
   });
 
 
-  // std::cout << "transpose input after decode: ";
-  // for (int i = 0; i < encoded_column_major_input.size(); i++) {
-  //   std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(encoded_column_major_input[i],
-  //                                                                      frac_bits)
-  //             << " ";
-  // }
+  std::cout << "transpose input after decode: ";
+  for (int i = 0; i < encoded_column_major_input.size(); i++) {
+    std::cout << MOTION::new_fixed_point::decode<std::uint64_t, float>(encoded_column_major_input[i],
+                                                                       frac_bits)
+              << " ";
+  }
+
+    std::cout << "\n\n";
 
 
   // // dot_product_decoded = Theta * encoded_column_major_input
@@ -388,18 +386,18 @@ std::vector<std::uint64_t> find_weights(std::vector<float> row_major_input,std::
 int main(int argc, char* argv[]) {
   
   auto options = parse_program_options(argc, argv);
-  std::vector<float> row_major_input, column_major_input;
-
+  std::vector<float> row_major_input, column_major_input , inference_input;
+  int size_single_input,column_major_size;
   int frac_bits=options->frac_bits;
   
   //input is row_major_input
 
-  std::vector<std::uint64_t> theta_current;
+  std::vector<std::uint64_t>theta_current;
 
   for(int i=0;i<1000;i++)
   {   
     read_input(row_major_input,column_major_input,*options);
-    int size_single_input=row_major_input.size()/options->m;
+    size_single_input=row_major_input.size()/options->m;
 
     if(i==0)
     { 
@@ -419,24 +417,57 @@ int main(int argc, char* argv[]) {
     }
     } 
 
-    std::cout<<"Size of row_major_inputs : "<< row_major_input.size()<<"\n";
-    std::cout<<"Size of column major input : "<< column_major_input.size()<<"\n";
+    std::cout<< "Size of row_major_inputs : "<< row_major_input.size()<<"\n";
+    std::cout<< "Size of column major input : "<< column_major_input.size()<<"\n";
+    
+    // // To inference the model , Theta(1*size)  Input(size*m) --> 
+    inference_input.assign(column_major_input.size(),0);
+    for(int i=0;i<column_major_input.size();i++)
+    {
+      inference_input[i]=column_major_input[i];
+    }
 
+    std::cout<<"\n\n";
     std::vector<std::uint64_t> encoded_theta_new = find_weights(row_major_input,column_major_input,theta_current,*options);
 
     std::cout<<"\n\n ---- next iteration ---- \n\n ";
+
 
     //put theta_current = encoded_theta_new
     for(int i=0;i<encoded_theta_new.size();i++)
     {
        theta_current[i]=encoded_theta_new[i];
     }
-
+    std::cout<<"\n";
     std::cout<<"Size of theta current : "<<theta_current.size()<<"\n";
 
     row_major_input.clear();
     column_major_input.clear();
   }
 
+  std::cout<<"inference_input size : "<< inference_input.size() <<"\n";
+  // // To inference the model , Theta(1*size) * Input(size*m) --> 1 * m 
+  std::vector<std::uint64_t> encoded_inference_input(inference_input.size(), (uint64_t)0);
+  std::transform(inference_input.begin(), inference_input.end(), encoded_inference_input.begin(),
+                 [frac_bits](auto& j) {
+                   return MOTION::new_fixed_point::encode<std::uint64_t, float>(j, frac_bits);
+                 });
+
+  auto output = MOTION::matrix_multiply(1,size_single_input,options->m,theta_current,encoded_inference_input);
+  std::transform(output.begin(),output.end(), output.begin(),
+                 [frac_bits](auto& j) {
+                   return MOTION::new_fixed_point::decode<std::uint64_t, float>(j, frac_bits);
+                 });
+  
+  for(int i=0;i<output.size();i++)
+  {
+    auto temp= MOTION::new_fixed_point::decode<std::uint64_t, float>(output[i], frac_bits);
+    if(temp>0)
+    std::cout<<"1 ";
+    else
+    std::cout<<"0 ";
+  }
+  std::cout<<"\n";
+   
 return EXIT_SUCCESS;
 }
