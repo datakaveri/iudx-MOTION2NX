@@ -679,7 +679,7 @@ MOTION::tensor::TensorCP gemm_output1, add_output1;
 
   auto conv_output = arithmetic_tof.make_tensor_conv2d_op(
       conv_op, tensor_X, tensor_CW1, tensor_CB1, options.fractional_bits);
-  // add_output1 = arithmetic_tof.make_tensor_add_op(tensor_CB1, conv_output );
+  add_output1 = arithmetic_tof.make_tensor_add_op(tensor_CB1, conv_output );
  
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
