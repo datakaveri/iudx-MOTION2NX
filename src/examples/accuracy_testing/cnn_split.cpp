@@ -377,9 +377,11 @@ int B_shares(Options* options, std::string p) {
   for (int i = 0; i < rows * cols; ++i) {
     try {
       uint64_t m1 = read_file(indata);
-      options->B_file.Delta.push_back(m1);
+      for (int i=0; i<options->output.row*options->output.col; i++)
+        options->B_file.Delta.push_back(m1);
       uint64_t m2 = read_file(indata);
-      options->B_file.delta.push_back(m2);
+      for (int i=0; i<options->output.row*options->output.col; i++)
+        options->B_file.delta.push_back(m2);
     } catch (std::ifstream::failure e) {
       std::cerr << "Error while reading the input bias share file.\n";
       return EXIT_FAILURE;
@@ -606,8 +608,8 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       .batch_size_ = 1, .num_channels_ = options.image_file.chnl, .height_ = options.image_file.row, .width_ = options.image_file.col};
   const MOTION::tensor::TensorDimensions conv_weights_dims{
       .batch_size_ = options.W_file.ker, .num_channels_ = options.W_file.chnl, .height_ = options.W_file.row, .width_ = options.W_file.col};
-  const MOTION::tensor::TensorDimensions CBias1_dims{
-      .batch_size_=  options.W_file.ker, .num_channels_ = 1, .height_ = 1, .width_ = 1};
+  const MOTION::tensor::TensorDimensions CBias1_dims{options.output.chnl, 1, 1, 1};
+  const MOTION::tensor::TensorDimensions CBias_dims{options.output.chnl, options.output.row, options.output.col};
 
   const MOTION::tensor::Conv2DOp conv_op = {.kernel_shape_ = {options.W_file.ker,
                                                               options.W_file.chnl,
@@ -653,8 +655,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 
   
 
-MOTION::tensor::TensorCP tensor_X, tensor_CW1, tensor_CB1;
-MOTION::tensor::TensorCP gemm_output1, add_output1;
+  MOTION::tensor::TensorCP tensor_X, tensor_CW1, tensor_CB1, tensor_CB, add_output;
 
   auto pairX = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_dims);
   std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_X =
@@ -671,6 +672,11 @@ MOTION::tensor::TensorCP gemm_output1, add_output1;
       std::move(pairCB1.first);
   tensor_CB1 = pairCB1.second;
 
+  auto pairCB = arithmetic_tof.make_arithmetic_64_tensor_input_shares(CBias_dims);
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_CB =
+      std::move(pairCB.first);
+  tensor_CB = pairCB.second;
+
   ///////////////////////////////////////////////////////////////
   input_promises_X[0].set_value(options.image_file.Delta);
   input_promises_X[1].set_value(options.image_file.delta);
@@ -681,22 +687,23 @@ MOTION::tensor::TensorCP gemm_output1, add_output1;
   input_promises_CB1[0].set_value(options.B_file.Delta);
   input_promises_CB1[1].set_value(options.B_file.delta);
 
+  input_promises_CB[0].set_value(options.B_file.Delta);
+  input_promises_CB[1].set_value(options.B_file.delta);
+
 //***********************************************************************
 
  
   /* checking what input values are */
 
-
-  auto conv_output = arithmetic_tof.make_tensor_conv2d_op(
-      conv_op, tensor_X, tensor_CW1, tensor_CB1, options.fractional_bits);
-  // add_output1 = arithmetic_tof.make_tensor_add_op(tensor_CB1, conv_output );
+  auto conv_output = arithmetic_tof.make_tensor_conv2d_op(conv_op, tensor_X, tensor_CW1, tensor_CB1, options.fractional_bits);
+  add_output = arithmetic_tof.make_tensor_add_op(conv_output, tensor_CB);
  
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(conv_output);
+    arithmetic_tof.make_arithmetic_tensor_output_other(add_output);
   } else {
-    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(conv_output);
+    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(add_output);
   }
   return output_future;
 /////////////////////////////////////////////////////////////////////////////////////
