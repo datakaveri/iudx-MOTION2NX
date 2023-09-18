@@ -69,6 +69,21 @@ void matrix_multiply(const tensor::GemmOp& gemm_op, const T* A, const T* B, T* o
     matrix_output = matrix_A * matrix_B;
   }
 }
+/// //
+template <typename T>
+void hadamard_matrix_multiply(const tensor::HammOp& hamm_op, const T* A, const T* B, T* output) {
+  // using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  using MatrixType = Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  assert(hamm_op.verify());
+
+  Eigen::Map<MatrixType> matrix_output(output, hamm_op.output_shape_[0], hamm_op.output_shape_[1]);
+  Eigen::Map<const MatrixType> matrix_A(A, hamm_op.input_A_shape_[0], hamm_op.input_A_shape_[1]);
+  Eigen::Map<const MatrixType> matrix_B(B, hamm_op.input_B_shape_[0], hamm_op.input_B_shape_[1]);
+  //std::cout << "In linear_algebra" << std::endl;
+  //std::cout << matrix_B << std::endl;
+  matrix_output = matrix_A * matrix_B;
+  //std::cout << matrix_output << std::endl;
+}
 
 template void matrix_multiply(std::size_t, std::size_t, std::size_t, const std::uint8_t*,
                               const std::uint8_t*, std::uint8_t*);
@@ -104,6 +119,16 @@ template void matrix_multiply(const tensor::GemmOp&, const std::uint64_t*, const
 template void matrix_multiply(const tensor::GemmOp&, const __uint128_t*, const __uint128_t*,
                               __uint128_t*);
 
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint8_t*, const std::uint8_t*,
+                              std::uint8_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint16_t*, const std::uint16_t*,
+                              std::uint16_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint32_t*, const std::uint32_t*,
+                              std::uint32_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint64_t*, const std::uint64_t*,
+                              std::uint64_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const __uint128_t*, const __uint128_t*,
+                              __uint128_t*);
 template <typename T>
 void join_matrices(std::size_t dim_l, std::size_t dim_m, std::size_t dim_n, const T* A,
                      const T* B, T* output) {

@@ -113,6 +113,12 @@ tensor::TensorCP TensorOpFactory::make_tensor_gemm_op(const tensor::GemmOp&, con
       fmt::format("{} does not support the Gemm operation", get_provider_name()));
 }
 
+tensor::TensorCP TensorOpFactory::make_tensor_hamm_op(const tensor::HammOp&, const tensor::TensorCP,
+                                                      const tensor::TensorCP, std::size_t) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Hamm operation", get_provider_name()));
+}
+
 tensor::TensorCP TensorOpFactory::make_tensor_sqr_op(const tensor::TensorCP, std::size_t) {
   throw std::logic_error(fmt::format("{} does not support the Sqr operation", get_provider_name()));
 }

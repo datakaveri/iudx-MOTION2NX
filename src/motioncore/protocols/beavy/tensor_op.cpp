@@ -948,6 +948,184 @@ void ArithmeticBEAVYTensorGemm<T>::evaluate_online() {
 template class ArithmeticBEAVYTensorGemm<std::uint32_t>;
 template class ArithmeticBEAVYTensorGemm<std::uint64_t>;
 
+template <typename T>
+ArithmeticBEAVYTensorHamm<T>::ArithmeticBEAVYTensorHamm(std::size_t gate_id,
+                                                        BEAVYProvider& beavy_provider,
+                                                        tensor::HammOp hamm_op,
+                                                        const ArithmeticBEAVYTensorCP<T> input_A,
+                                                        const ArithmeticBEAVYTensorCP<T> input_B,
+                                                        std::size_t fractional_bits)
+    : NewGate(gate_id),
+      beavy_provider_(beavy_provider),
+      hamm_op_(hamm_op),
+      fractional_bits_(fractional_bits),
+      input_A_(input_A),
+      input_B_(input_B),
+      output_(std::make_shared<ArithmeticBEAVYTensor<T>>(hamm_op.get_output_tensor_dims())) {
+  const auto my_id = beavy_provider_.get_my_id();
+  const auto output_size = hamm_op_.compute_output_size();
+  share_future_ = beavy_provider_.register_for_ints_message<T>(1 - my_id, gate_id_, output_size);
+  auto& ap = beavy_provider_.get_arith_manager().get_provider(1 - my_id);
+  const auto dim_l = hamm_op_.input_A_shape_[0];
+  const auto dim_m = hamm_op_.input_A_shape_[1];
+  //const auto dim_n = hamm_op_.input_B_shape_[1];
+  if (!beavy_provider_.get_fake_setup()) {
+    hm_lhs_side_ = ap.template register_hadamard_matrix_multiplication_lhs<T>(dim_l, dim_m);
+    hm_rhs_side_ = ap.template register_hadamard_matrix_multiplication_rhs<T>(dim_l, dim_m);
+  }
+  Delta_y_share_.resize(output_size);
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format("Gate {}: ArithmeticBEAVYTensorHamm<T> created", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+ArithmeticBEAVYTensorHamm<T>::~ArithmeticBEAVYTensorHamm() = default;
+
+template <typename T>
+void ArithmeticBEAVYTensorHamm<T>::evaluate_setup() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorHamm<T>::evaluate_setup start", gate_id_));
+    }
+  }
+
+  const auto output_size = hamm_op_.compute_output_size();
+
+  output_->get_secret_share() = Helpers::RandomVector<T>(output_size);
+  output_->set_setup_ready();
+
+  input_A_->wait_setup();
+  input_B_->wait_setup();
+
+  const auto& delta_a_share = input_A_->get_secret_share();
+  const auto& delta_b_share = input_B_->get_secret_share();
+  const auto& delta_y_share = output_->get_secret_share();
+
+  if (!beavy_provider_.get_fake_setup()) {
+    hm_lhs_side_->set_input(delta_a_share);
+    hm_rhs_side_->set_input(delta_b_share);
+  }
+
+  // [Delta_y]_i = [delta_a]_i * [delta_b]_i
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  hadamard_matrix_multiply(hamm_op_, delta_a_share.data(), delta_b_share.data(), Delta_y_share_.data());
+
+  if (fractional_bits_ == 0) {
+    // [Delta_y]_i += [delta_y]_i
+    __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+                              std::begin(delta_y_share), std::begin(Delta_y_share_), std::plus{});
+    // NB: happens after truncation if that is requested
+  }
+
+  if (!beavy_provider_.get_fake_setup()) {
+    hm_lhs_side_->compute_output();
+    hm_rhs_side_->compute_output();
+  }
+  std::vector<T> delta_ab_share1;
+  std::vector<T> delta_ab_share2;
+  if (beavy_provider_.get_fake_setup()) {
+    delta_ab_share1 = Helpers::RandomVector<T>(hamm_op_.compute_output_size());
+    delta_ab_share2 = Helpers::RandomVector<T>(hamm_op_.compute_output_size());
+  } else {
+    // [[delta_a]_i * [delta_b]_(1-i)]_i
+    delta_ab_share1 = hm_lhs_side_->get_output();
+    // [[delta_b]_i * [delta_a]_(1-i)]_i
+    delta_ab_share2 = hm_rhs_side_->get_output();
+  }
+
+  // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
+  __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+                            std::begin(delta_ab_share1), std::begin(Delta_y_share_), std::plus{});
+  // [Delta_y]_i += [[delta_b]_i * [delta_a]_(1-i)]_i
+  __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+                            std::begin(delta_ab_share2), std::begin(Delta_y_share_), std::plus{});
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorHamm<T>::evaluate_setup end", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void ArithmeticBEAVYTensorHamm<T>::evaluate_online() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorHamm<T>::evaluate_online start", gate_id_));
+    }
+  }
+
+  const auto output_size = hamm_op_.compute_output_size();
+  input_A_->wait_online();
+  input_B_->wait_online();
+  const auto& Delta_a = input_A_->get_public_share();
+  const auto& Delta_b = input_B_->get_public_share();
+  const auto& delta_a_share = input_A_->get_secret_share();
+  const auto& delta_b_share = input_B_->get_secret_share();
+  std::vector<T> tmp(output_size);
+
+  // after setup phase, `Delta_y_share_` contains [delta_y]_i + [delta_ab]_i
+
+  // [Delta_y]_i -= Delta_a * [delta_b]_i
+  hadamard_matrix_multiply(hamm_op_, Delta_a.data(), delta_b_share.data(), tmp.data());
+  __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+                            std::begin(Delta_y_share_), std::minus{});
+
+  // [Delta_y]_i -= Delta_b * [delta_a]_i
+  hadamard_matrix_multiply(hamm_op_, delta_a_share.data(), Delta_b.data(), tmp.data());
+  __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+                            std::begin(Delta_y_share_), std::minus{});
+
+  // [Delta_y]_i += Delta_ab (== Delta_a * Delta_b)
+  if (beavy_provider_.is_my_job(gate_id_)) {
+    hadamard_matrix_multiply(hamm_op_, Delta_a.data(), Delta_b.data(), tmp.data());
+    __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_), std::begin(tmp),
+                              std::begin(Delta_y_share_), std::plus{});
+  }
+
+  if (fractional_bits_ > 0) {
+    fixed_point::truncate_shared<T>(Delta_y_share_.data(), fractional_bits_, Delta_y_share_.size(),
+                                    beavy_provider_.is_my_job(gate_id_));
+    // [Delta_y]_i += [delta_y]_i
+    __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+                              std::begin(output_->get_secret_share()), std::begin(Delta_y_share_),
+                              std::plus{});
+    // NB: happens in setup phase if no truncation is requested
+  }
+
+  // broadcast [Delta_y]_i
+  beavy_provider_.broadcast_ints_message(gate_id_, Delta_y_share_);
+  // Delta_y = [Delta_y]_i + [Delta_y]_(1-i)
+  __gnu_parallel::transform(std::begin(Delta_y_share_), std::end(Delta_y_share_),
+                            std::begin(share_future_.get()), std::begin(Delta_y_share_),
+                            std::plus{});
+  output_->get_public_share() = std::move(Delta_y_share_);
+  output_->set_online_ready();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorHamm<T>::evaluate_online end", gate_id_));
+    }
+  }
+}
+
+template class ArithmeticBEAVYTensorHamm<std::uint32_t>;
+template class ArithmeticBEAVYTensorHamm<std::uint64_t>;
+
+
 // Implementation of tensor Join operation (addnl)
 template <typename T>
 ArithmeticBEAVYTensorJoin<T>::ArithmeticBEAVYTensorJoin(std::size_t gate_id,
