@@ -791,9 +791,11 @@ ArithmeticBEAVYTensorGemm<T>::ArithmeticBEAVYTensorGemm(std::size_t gate_id,
   const auto output_size = gemm_op_.compute_output_size();
   share_future_ = beavy_provider_.register_for_ints_message<T>(1 - my_id, gate_id_, output_size);
   auto& ap = beavy_provider_.get_arith_manager().get_provider(1 - my_id);
-  const auto dim_l = gemm_op_.input_A_shape_[0];
-  const auto dim_m = gemm_op_.input_A_shape_[1];
-  const auto dim_n = gemm_op_.input_B_shape_[1];
+  const auto transA = gemm_op_.transA_;
+  const auto dim_l = gemm_op_.output_shape_[0];
+  const auto dim_m = gemm_op_.input_A_shape_[transA ? 0 : 1];
+  const auto dim_n = gemm_op_.output_shape_[1];
+
   if (!beavy_provider_.get_fake_setup()) {
     mm_lhs_side_ = ap.template register_matrix_multiplication_lhs<T>(dim_l, dim_m, dim_n);
     mm_rhs_side_ = ap.template register_matrix_multiplication_rhs<T>(dim_l, dim_m, dim_n);
@@ -833,9 +835,22 @@ void ArithmeticBEAVYTensorGemm<T>::evaluate_setup() {
   const auto& delta_b_share = input_B_->get_secret_share();
   const auto& delta_y_share = output_->get_secret_share();
 
+  std::vector<T> delta_a_share_transpose;
+  std::vector<T> delta_b_share_transpose;
+  delta_a_share_transpose.resize(gemm_op_.compute_input_A_size());
+  delta_b_share_transpose.resize(gemm_op_.compute_input_B_size());
+
+  transpose(gemm_op_, delta_a_share.data(), delta_b_share.data(), delta_a_share_transpose.data(), delta_b_share_transpose.data());
+  
   if (!beavy_provider_.get_fake_setup()) {
-    mm_lhs_side_->set_input(delta_a_share);
-    mm_rhs_side_->set_input(delta_b_share);
+    if (gemm_op_.transA_)
+      mm_lhs_side_->set_input(delta_a_share_transpose);
+    else
+      mm_lhs_side_->set_input(delta_a_share);
+    if (gemm_op_.transB_)
+      mm_rhs_side_->set_input(delta_b_share_transpose);
+    else
+      mm_rhs_side_->set_input(delta_b_share);
   }
 
   // [Delta_y]_i = [delta_a]_i * [delta_b]_i

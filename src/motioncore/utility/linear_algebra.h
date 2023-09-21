@@ -47,6 +47,10 @@ void matrix_multiply(std::size_t dim_l, std::size_t dim_m, std::size_t dim_n, co
 template <typename T>
 void matrix_multiply(const tensor::GemmOp&, const T* A, const T* B, T* output);
 
+template <typename T> 
+void transpose(const tensor::GemmOp&, const T* A, const T* B, T* output_A, T* output_B);
+
+
 template <typename T>
 void hadamard_matrix_multiply(const tensor::HammOp&, const T* A, const T* B, T* output);
 
