@@ -363,7 +363,7 @@ template <typename T>
 class ArithmeticBEAVYTensorConstAdd : public NewGate {
  public:
   ArithmeticBEAVYTensorConstAdd(std::size_t gate_id, BEAVYProvider&,
-                            const T k,
+                            const std::vector<std::uint64_t> k,
                             const ArithmeticBEAVYTensorCP<T> input);
   ~ArithmeticBEAVYTensorConstAdd();
   bool need_setup() const noexcept override { return true; }
@@ -375,7 +375,7 @@ class ArithmeticBEAVYTensorConstAdd : public NewGate {
  private:
   BEAVYProvider& beavy_provider_;
   const ArithmeticBEAVYTensorCP<T> input_;
-  const T constant_;
+  const std::vector<std::uint64_t> constant_;
   std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
   ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;
   std::vector<T> Delta_y_;

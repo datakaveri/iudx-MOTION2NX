@@ -1308,7 +1308,7 @@ tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP i
 
 //New function added by Ramya, July 19
 //(addnl)
-tensor::TensorCP BEAVYProvider::make_tensor_constAdd_op(const tensor::TensorCP in,const uint64_t k) {
+tensor::TensorCP BEAVYProvider::make_tensor_constAdd_op(const tensor::TensorCP in,const std::vector<uint64_t> k) {
   auto bit_size = in->get_bit_size();
   std::unique_ptr<NewGate> gate;
   auto gate_id = gate_register_.get_next_gate_id();

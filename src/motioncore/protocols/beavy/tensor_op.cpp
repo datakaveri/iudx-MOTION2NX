@@ -1773,7 +1773,7 @@ template class ArithmeticBEAVYTensorConstMul<std::uint64_t>;
 
 template <typename T>
 ArithmeticBEAVYTensorConstAdd<T>::ArithmeticBEAVYTensorConstAdd(
-    std::size_t gate_id, BEAVYProvider& beavy_provider, const T k,
+    std::size_t gate_id, BEAVYProvider& beavy_provider, const std::vector<std::uint64_t> k,
     const ArithmeticBEAVYTensorCP<T> input)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
@@ -1811,7 +1811,7 @@ void ArithmeticBEAVYTensorConstAdd<T>::evaluate_setup() {
 
   const auto& delta_a_share_ = input_->get_secret_share();
 
-  std::vector<T> constant_vector(output_size, constant_);
+  std::vector<T> constant_vector(constant_.begin(), constant_.end());
   //auto& delta_y_share_ = constant_vector;
 
   //The following two lines work
@@ -1844,8 +1844,8 @@ void ArithmeticBEAVYTensorConstAdd<T>::evaluate_online() {
   const auto output_size = input_->get_dimensions().get_data_size();
   input_->wait_online();
   const auto& Delta_ = input_->get_public_share();
-  std::cout << "Constant is :" << constant_ << "\n";
-  std::vector<T> constant_vector(output_size, constant_);
+  //std::cout << "Constant is :" << constant_ << "\n";
+  std::vector<T> constant_vector(constant_.begin(), constant_.end());
   auto& output_share_temp = constant_vector;
   try{
     std::transform( std::begin(this->input_->get_public_share()),std::end(this->input_->get_public_share()), std::begin(constant_vector),std::begin(output_share_temp), std::plus{});
