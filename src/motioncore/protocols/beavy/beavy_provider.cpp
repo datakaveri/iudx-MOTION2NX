@@ -1119,6 +1119,49 @@ tensor::TensorCP BEAVYProvider::make_tensor_gemm_op(const tensor::GemmOp& gemm_o
   return output;
 }
 
+tensor::TensorCP BEAVYProvider::make_tensor_hamm_op(const tensor::HammOp& hamm_op,
+                                                    const tensor::TensorCP input_A,
+                                                    const tensor::TensorCP input_B,
+                                                    std::size_t fractional_bits) {
+  if (!hamm_op.verify()) {
+    throw std::invalid_argument("invalid HammOp");
+  }
+  if (input_A->get_dimensions() != hamm_op.get_input_A_tensor_dims()) {
+    throw std::invalid_argument("invalid input_A dimensions");
+  }
+  if (input_B->get_dimensions() != hamm_op.get_input_B_tensor_dims()) {
+    throw std::invalid_argument("invalid input_B dimensions");
+  }
+  auto bit_size = input_A->get_bit_size();
+  if (bit_size != input_B->get_bit_size()) {
+    throw std::invalid_argument("bit size mismatch");
+  }
+  std::unique_ptr<NewGate> gate;
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, input_A, hamm_op, input_B, fractional_bits, gate_id,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorHamm<T>>(
+        gate_id, *this, hamm_op, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(input_A),
+        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(input_B), fractional_bits);
+    output = tensor_op->get_output_tensor();
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
+}
+
 tensor::TensorCP BEAVYProvider::make_tensor_sqr_op(const tensor::TensorCP input,
                                                    std::size_t fractional_bits) {
   auto bit_size = input->get_bit_size();

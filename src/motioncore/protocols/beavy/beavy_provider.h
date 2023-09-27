@@ -216,6 +216,10 @@ class BEAVYProvider : public GateFactory,
                                        const tensor::TensorCP input_A,
                                        const tensor::TensorCP input_B,
                                        std::size_t fractional_bits = 0) override;
+  tensor::TensorCP make_tensor_hamm_op(const tensor::HammOp& conv_op,
+                                       const tensor::TensorCP input_A,
+                                       const tensor::TensorCP input_B,
+                                       std::size_t fractional_bits = 0) override;                                     
   tensor::TensorCP make_tensor_sqr_op(const tensor::TensorCP input,
                                       std::size_t fractional_bits = 0) override;
   tensor::TensorCP make_tensor_relu_op(const tensor::TensorCP) override;

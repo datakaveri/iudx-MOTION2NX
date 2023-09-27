@@ -176,6 +176,47 @@ class MatrixMultiplicationLHS {
 };
 
 template <typename T>
+class HadamardMatrixMultiplicationRHS {
+ public:
+  HadamardMatrixMultiplicationRHS(std::size_t l, std::size_t m, ArithmeticProvider&);
+  ~HadamardMatrixMultiplicationRHS();
+  void set_input(std::vector<T>&& inputs);
+  void set_input(const std::vector<T>& inputs);
+  void set_input(const T* inputs);
+  void compute_output();
+  std::vector<T> get_output();
+  void clear() noexcept;
+
+ private:
+  using is_enabled_ = ENCRYPTO::is_unsigned_int_t<T>;
+  std::array<std::size_t, 2> dims_;
+  std::vector<T> output_;
+  std::unique_ptr<IntegerMultiplicationSender<T>> mult_sender_;
+  bool is_output_ready_;
+};
+
+template <typename T>
+class HadamardMatrixMultiplicationLHS {
+ public:
+  HadamardMatrixMultiplicationLHS(std::size_t l, std::size_t m, ArithmeticProvider&);
+  ~HadamardMatrixMultiplicationLHS();
+  void set_input(std::vector<T>&& inputs);
+  void set_input(const std::vector<T>& inputs);
+  void set_input(const T* inputs);
+  void compute_output();
+  std::vector<T> get_output();
+  void clear() noexcept;
+
+ private:
+  using is_enabled_ = ENCRYPTO::is_unsigned_int_t<T>;
+  std::array<std::size_t, 2> dims_;
+  std::vector<T> output_;
+  std::unique_ptr<IntegerMultiplicationReceiver<T>> mult_receiver_;
+  std::shared_ptr<Logger> logger_;
+  bool is_output_ready_;
+};
+
+template <typename T>
 class ConvolutionInputSide {
  public:
   ConvolutionInputSide(tensor::Conv2DOp, ArithmeticProvider&);
@@ -252,6 +293,14 @@ class ArithmeticProvider {
   std::unique_ptr<MatrixMultiplicationLHS<T>> register_matrix_multiplication_lhs(std::size_t dim_l,
                                                                                  std::size_t dim_m,
                                                                                  std::size_t dim_n);
+
+  template <typename T>
+  std::unique_ptr<HadamardMatrixMultiplicationRHS<T>> register_hadamard_matrix_multiplication_rhs(std::size_t dim_l,
+                                                                                                  std::size_t dim_m);
+  template <typename T>
+  std::unique_ptr<HadamardMatrixMultiplicationLHS<T>> register_hadamard_matrix_multiplication_lhs(std::size_t dim_l,
+                                                                                                  std::size_t dim_m);
+
 
   template <typename T>
   std::unique_ptr<ConvolutionInputSide<T>> register_convolution_input_side(tensor::Conv2DOp);

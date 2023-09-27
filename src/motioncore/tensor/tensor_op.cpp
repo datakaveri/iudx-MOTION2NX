@@ -199,6 +199,72 @@ bool GemmOp::operator==(const GemmOp& other) const noexcept {
   return result;
 }
 
+bool HammOp::verify() const noexcept {
+  bool result = true;
+  std::size_t l = input_A_shape_[0];
+  std::size_t m = input_A_shape_[1];
+  result = result && (l == input_B_shape_[0]);
+  result = result && (m == input_B_shape_[1]);
+  result = result && (l == output_shape_[0]);
+  result = result && (m == output_shape_[1]);
+  // maybe add more checks here
+  return result;
+}
+
+std::array<std::size_t, 2> HammOp::compute_output_shape() const noexcept {
+  return {input_A_shape_[0], input_A_shape_[1]};
+}
+
+std::size_t HammOp::compute_output_size() const noexcept {
+  assert(verify());
+  auto output_shape = compute_output_shape();
+  return output_shape[0] * output_shape[1];
+}
+
+std::size_t HammOp::compute_input_A_size() const noexcept {
+  assert(verify());
+  return input_A_shape_[0] * input_A_shape_[1];
+}
+
+std::size_t HammOp::compute_input_B_size() const noexcept {
+  assert(verify());
+  return input_B_shape_[0] * input_B_shape_[1];
+}
+
+TensorDimensions HammOp::get_input_A_tensor_dims() const noexcept {
+  assert(verify());
+  return {.batch_size_ = 1,
+          .num_channels_ = 1,
+          .height_ = input_A_shape_[0],
+          .width_ = input_A_shape_[1]};
+}
+
+TensorDimensions HammOp::get_input_B_tensor_dims() const noexcept {
+  assert(verify());
+  return {.batch_size_ = 1,
+          .num_channels_ = 1,
+          .height_ = input_B_shape_[0],
+          .width_ = input_B_shape_[1]};
+}
+
+TensorDimensions HammOp::get_output_tensor_dims() const noexcept {
+  assert(verify());
+  return {.batch_size_ = 1,
+          .num_channels_ = 1,
+          .height_ = output_shape_[0],
+          .width_ = output_shape_[1]};
+}
+
+bool HammOp::operator==(const HammOp& other) const noexcept {
+  assert(verify());
+  assert(other.verify());
+  bool result = true;
+  result = result && input_A_shape_ == other.input_A_shape_;
+  result = result && input_B_shape_ == other.input_B_shape_;
+  result = result && output_shape_ == other.output_shape_;
+  return result;
+}
+
 bool JoinOp::verify() const noexcept {
   bool result = true;
   // maybe add more checks here
