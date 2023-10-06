@@ -1,0 +1,80 @@
+version: "2.4"
+
+#networks:
+#  motion2nx-net:
+#    driver: bridge
+
+services:
+  # SMPC server 0, image provider server
+  smpc-server0:
+    image: ghcr.io/datakaveri/motion2nx:local
+    volumes:
+      - type: volume
+        source: smpc-server0-volume
+        target: /usr/share/app/logs
+      - ../../../../data/ImageProvider/Final_Output_Shares:/usr/share/app/data/ImageProvider/Final_Output_Shares:rw
+      - ../../../../data/ImageProvider/images:/usr/share/app/data/ImageProvider/images:ro
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts:/usr/share/app/scripts:rw
+
+    restart: no
+      #    networks:
+      #- motion2nx-net
+    network_mode: "host"
+    ports:
+      # cs0_port_data_receiver
+      - "4005:4005"
+      # cs0_port_cs0_output_receiver
+      - "4007:4007"
+      # cs0_port_cs1_output_receiver
+      - "4008:4008"
+      # cs0_port_inference
+      - "4009:4009"
+      # cs0_port_image_receiver
+      - "4014:4014"
+      # relu0_port_inference
+      - "4012:4012"
+    mem_limit: 750m
+    cpus: 0.80
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/CNN && ./remote_server0_split_CNN.sh && while (true);  do  sleep 10; done"
+
+  # SMPC server 1, model provider server
+  smpc-server1:
+    image: ghcr.io/datakaveri/motion2nx:local
+    volumes:
+      - ../../../../data/ModelProvider/:/usr/share/app/data/ModelProvider/:ro
+      - ../../../../config_files:/usr/share/app/config_files:ro
+      - ../../../../scripts:/usr/share/app/scripts:rw
+      - type: volume
+        source: smpc-server1-volume
+        target: /usr/share/app/logs
+    restart: no
+    network_mode:
+      "host"
+      # - motion2nx-net
+    ports:
+      # cs1_port_data_receiver
+      - "4006:4006"
+      # cs1_port_inference
+      - "4010:4010"
+      # cs1_port_image_receiver
+      - "4015:4015"
+      # relu1_port_inference
+      - "4013:4013"
+    mem_limit: 750m
+    cpus: 0.80
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    command: bash -c "cd scripts/Non-ServerModel_Architecture/Split/CNN && ./remote_server1_split_CNN.sh && while (true);  do  sleep 10; done"
+
+volumes:
+  smpc-server1-volume:
+  smpc-server0-volume:

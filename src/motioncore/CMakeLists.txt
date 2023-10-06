@@ -24,6 +24,7 @@ add_library(motion
         communication/tcp_transport.cpp
         communication/transport.cpp
         compute_server/compute_server.cpp
+        compute_server/compute_server_CNN.cpp
         crypto/aes/aesni_primitives.cpp
         crypto/arithmetic_provider.cpp
         crypto/base_ots/base_ot_provider.cpp
