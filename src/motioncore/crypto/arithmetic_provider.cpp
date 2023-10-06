@@ -437,7 +437,7 @@ template <typename T>
 HadamardMatrixMultiplicationRHS<T>::HadamardMatrixMultiplicationRHS(std::size_t l, std::size_t m,
                                                     ArithmeticProvider& arith_provider)
     : dims_({l, m}),
-      mult_sender_(arith_provider.register_integer_multiplication_send<T>(l * m, 1)),
+      mult_sender_(arith_provider.register_integer_multiplication_send<T>(l * m, 1)), //1 indicates copy the matrix once.
       is_output_ready_(false) {}
 
 template <typename T>
@@ -456,6 +456,7 @@ void HadamardMatrixMultiplicationRHS<T>::set_input(const std::vector<T>& inputs)
   set_input(inputs.data());
 }
 
+//Sets input matrix by copying the right hand side matrix.
 template <typename T>
 void HadamardMatrixMultiplicationRHS<T>::set_input(const T* inputs) {
   std::vector<T> mult_inputs(inputs, inputs + dims_[0] * dims_[1]);
@@ -486,7 +487,6 @@ void HadamardMatrixMultiplicationRHS<T>::clear() noexcept {
 }
 
 // ---------- HadamardMatrixMultiplicationLHS ----------
-
 template <typename T>
 HadamardMatrixMultiplicationLHS<T>::HadamardMatrixMultiplicationLHS(std::size_t l, std::size_t m,
                                                     ArithmeticProvider& arith_provider)
@@ -513,6 +513,7 @@ void HadamardMatrixMultiplicationLHS<T>::set_input(const std::vector<T>& inputs)
   set_input(inputs.data());
 }
 
+//Sets input matrix by copying the left hand side matrix.
 template <typename T>
 void HadamardMatrixMultiplicationLHS<T>::set_input(const T* inputs) {
   std::vector<T> mult_inputs(inputs, inputs + dims_[0] * dims_[1]);

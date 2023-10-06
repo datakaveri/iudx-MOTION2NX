@@ -791,7 +791,9 @@ ArithmeticBEAVYTensorGemm<T>::ArithmeticBEAVYTensorGemm(std::size_t gate_id,
   const auto output_size = gemm_op_.compute_output_size();
   share_future_ = beavy_provider_.register_for_ints_message<T>(1 - my_id, gate_id_, output_size);
   auto& ap = beavy_provider_.get_arith_manager().get_provider(1 - my_id);
-  const auto transA = gemm_op_.transA_;
+  //Changed by Vishnu
+  //rewrote the dimensions according to transpose flags.     
+  const auto transA = gemm_op_.transA_; 
   const auto dim_l = gemm_op_.output_shape_[0];
   const auto dim_m = gemm_op_.input_A_shape_[transA ? 0 : 1];
   const auto dim_n = gemm_op_.output_shape_[1];
@@ -835,13 +837,15 @@ void ArithmeticBEAVYTensorGemm<T>::evaluate_setup() {
   const auto& delta_b_share = input_B_->get_secret_share();
   const auto& delta_y_share = output_->get_secret_share();
 
+  //Changed by Vishnu.
+  //Transposing the delta share matrices and calling the OT accordingly.
   std::vector<T> delta_a_share_transpose;
   std::vector<T> delta_b_share_transpose;
   delta_a_share_transpose.resize(gemm_op_.compute_input_A_size());
   delta_b_share_transpose.resize(gemm_op_.compute_input_B_size());
 
   transpose(gemm_op_, delta_a_share.data(), delta_b_share.data(), delta_a_share_transpose.data(), delta_b_share_transpose.data());
-  
+
   if (!beavy_provider_.get_fake_setup()) {
     if (gemm_op_.transA_)
       mm_lhs_side_->set_input(delta_a_share_transpose);
@@ -983,7 +987,7 @@ ArithmeticBEAVYTensorHamm<T>::ArithmeticBEAVYTensorHamm(std::size_t gate_id,
   auto& ap = beavy_provider_.get_arith_manager().get_provider(1 - my_id);
   const auto dim_l = hamm_op_.input_A_shape_[0];
   const auto dim_m = hamm_op_.input_A_shape_[1];
-  //const auto dim_n = hamm_op_.input_B_shape_[1];
+  
   if (!beavy_provider_.get_fake_setup()) {
     hm_lhs_side_ = ap.template register_hadamard_matrix_multiplication_lhs<T>(dim_l, dim_m);
     hm_rhs_side_ = ap.template register_hadamard_matrix_multiplication_rhs<T>(dim_l, dim_m);
@@ -1711,11 +1715,12 @@ template class ArithmeticBEAVYTensorNegate<std::uint64_t>;
 template <typename T>
 ArithmeticBEAVYTensorConstMul<T>::ArithmeticBEAVYTensorConstMul(
     std::size_t gate_id, BEAVYProvider& beavy_provider, const std::vector<uint64_t> k,
-    const ArithmeticBEAVYTensorCP<T> input)
+    const ArithmeticBEAVYTensorCP<T> input, std::size_t fractional_bits)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
       constant_(k),
       input_(input),
+      fractional_bits_(fractional_bits),
       output_(std::make_shared<ArithmeticBEAVYTensor<T>>(input_->get_dimensions())) {
   const auto my_id = beavy_provider_.get_my_id();
   const auto output_size = input_->get_dimensions().get_data_size();
@@ -1753,33 +1758,12 @@ void ArithmeticBEAVYTensorConstMul<T>::evaluate_setup() {
 
   auto& delta_y_share_ = constant_vector;
 
-  // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
   __gnu_parallel::transform(std::begin(constant_vector), std::end(constant_vector),
                             std::begin(delta_a_share_), std::begin(delta_y_share_),
                             std::multiplies{});
-                             std::cout << "Test vector print:[ \n";
-   std::cout << "Multipling small delta with Constant \n";
-   for (auto i = 0; i < delta_y_share_.size(); i++) {
-   std::cout<< delta_y_share_[i] << " ";
-   }
-   std::cout <<" \n";
-//if (this->fractional_bits_ > 0) {
-   std::cout << "Stopped decoding in evaluate setup"<< "\n";
-   auto& output_share_decoded = delta_y_share_;
-    int fractional_bits=13;
-    // std::cout << "Fractional bits: " << fractional_bits << std::endl;
-    // std::transform(std::begin(delta_y_share_), std::end(delta_y_share_),
-    //                std::begin(output_share_decoded), [this](auto tmp) {
-    //                  return MOTION::new_fixed_point::truncate(
-    //                      tmp, 13);
-    //                });
-//}
-std::cout << "The decoded small delta \n";
-   for (auto i = 0; i < output_share_decoded.size(); i++) {
-   std::cout<< output_share_decoded[i] << " ";
-   }
-   std::cout <<" \n";
-
+  
+  auto& output_share_decoded = delta_y_share_;
+  
    // //generation of delta shares
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -1788,8 +1772,7 @@ std::cout << "The decoded small delta \n";
   __gnu_parallel::transform(final_delta.begin(), final_delta.end(), final_delta.begin(),
                  [&gen](auto j) { return RandomNumDistribution(gen); });
 
-this->output_->get_secret_share() = std::move(final_delta);
- // output_->get_secret_share() = std::move(delta_y_share_);
+  this->output_->get_secret_share() = std::move(final_delta); 
   output_->set_setup_ready();
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -1816,103 +1799,39 @@ void ArithmeticBEAVYTensorConstMul<T>::evaluate_online() {
   const auto& Delta_ = input_->get_public_share();
   const auto& delta_a_share_ = input_->get_secret_share();
   const auto& final_delta = output_->get_secret_share(); 
-  //const auto& delta_y_share_ = output_->get_secret_share();
 
   std::vector<T> constant_vector(constant_.begin(), constant_.end());
 
-  //std::vector<T> delta_y_share_;
   auto& delta_y_share_ = constant_vector;
-  std::cout << "Constant vector1:\n";
-     for (auto i = 0; i < constant_vector.size(); i++) {
-   std::cout<< constant_vector[i] << " ";
-   }
-   std::cout <<" \n";
+  
   __gnu_parallel::transform(std::begin(constant_vector), std::end(constant_vector),
                             std::begin(delta_a_share_), std::begin(delta_y_share_),
                             std::multiplies{});
 
-
   auto& delta_ = delta_y_share_;
-
-  std::cout << "The delta_ \n";
-   for (auto i = 0; i < delta_.size(); i++) {
-   std::cout<< delta_[i] << " ";
-   }
-   std::cout <<" \n";
-  //std::vector<T> constant_vector(output_size, 2*constant_);
-  std::vector<T> constant_vector2(constant_.begin(), constant_.end());
-  // std::vector<T> constant_vector(output_size);//, constant_);
-  // constant_vector.push_back(constant_);
-  // //constant_vector.push_back(constant_);
-  // //constant_vector.push_back(constant_);
-  // constant_vector.push_back(1*constant_);
-  // constant_vector.push_back(0*constant_);
-  std::cout << "Constant vector:\n";
-     for (auto i = 0; i < constant_vector2.size(); i++) {
-   std::cout<< constant_vector2[i] << " ";
-   }
-   std::cout <<" \n";
-  // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
-  __gnu_parallel::transform(std::begin(constant_vector2), std::end(constant_vector2),
+  
+  __gnu_parallel::transform(std::begin(constant_), std::end(constant_),
                             std::begin(Delta_), std::begin(Delta_y_), std::multiplies{});
-//////////////Hardcoded it for 13 fractional bits
-    std::cout << "Multipling capital delta with Constant \n";
-   for (auto i = 0; i < Delta_y_.size(); i++) {
-   std::cout<< Delta_y_[i] << " ";
-   }
-  std::cout <<" \n";
-      std::cout << "Stopped decoding in evaluate online" <<"\n";
+
     auto output_share_decoded = constant_vector;
     auto Delta_beavy = Delta_y_;
-    // std::vector<uint64_t> gmw_x_encoded(Delta_y_.size(), 0),delta_decoded(Delta_y_.size(), 0),gmw_x_decoded(Delta_y_.size(), 0),Delta_partial(Delta_y_.size(), 0);
     auto gmw_x_encoded = constant_vector;
-    // std::vector<uint64_t> final_Delta(Delta_y_.size(), 0);
-    auto frac_bits = 13;
-  //   std::cout<<"Fractional bits: "<<13<<std::endl;
-  //   std::transform( std::begin(Delta_y_),std::end(Delta_y_), std::begin(output_share_decoded), [this](auto tmp){
-  //       return MOTION::new_fixed_point::truncate(tmp, 13);
-  //   });
-  //   std::cout << "The decoded capital delta \n";
-  //  for (auto i = 0; i < output_share_decoded.size(); i++) {
-  //  std::cout<< output_share_decoded[i] << " ";
-  //  }
-  //  std::cout <<" \n";
+  
   ////////////////////////////////////Creating arithmetic gmw of beavy shares////////////
- std::cout << "Capital Delta:\n";
-    for (auto i = 0; i < Delta_beavy.size(); i++) {
-   std::cout<< Delta_beavy[i] << " ";
-   }
-  std::cout <<" \n";
+ 
   auto id = beavy_provider_.get_my_id();
-std::transform(Delta_beavy.begin(), Delta_beavy.end(), gmw_x_encoded.begin(),
-                 [&id](auto& c) { return c * id; });
-std::cout << "gmw_x_encoded" <<"\n";
-for (auto i = 0; i < gmw_x_encoded.size(); i++) {
-    std::cout<< gmw_x_encoded[i] << " ";
-    }
-    std::cout <<" \n";
-    std::cout << "delta to minus" <<"\n";
-for (auto i = 0; i < delta_.size(); i++) {
-    std::cout<< delta_[i] << " ";
-    }
-    std::cout <<" \n";
-    auto gmw_x_decoded = constant_vector;
- // //gmw share = gmw_x_encoded
+  std::transform(Delta_beavy.begin(), Delta_beavy.end(), gmw_x_encoded.begin(),
+                   [&id](auto& c) { return c * id; });
+
+  auto gmw_x_decoded = constant_vector;
+  auto frac_bits = fractional_bits_;
+
   __gnu_parallel::transform(gmw_x_encoded.begin(), gmw_x_encoded.end(), delta_.begin(),
                             gmw_x_encoded.begin(), std::minus{});
-  std::cout << "The answer:\n";
-  for (auto i = 0; i < gmw_x_encoded.size(); i++) {
-    std::cout<< gmw_x_encoded[i] << " ";
-    }
-    std::cout <<" \n";
   
   std::transform(std::begin(gmw_x_encoded), std::end(gmw_x_encoded), std::begin(gmw_x_decoded),
                  [frac_bits](auto j) { return MOTION::new_fixed_point::truncate(j, frac_bits); });
-  std::cout << "After truncate:\n";
-  for (auto i = 0; i < gmw_x_decoded.size(); i++) {
-    std::cout<< gmw_x_decoded[i] << " ";
-    }
-    std::cout <<" \n";
+  
     
   
   auto Delta_partial= gmw_x_encoded;
@@ -1922,28 +1841,11 @@ for (auto i = 0; i < delta_.size(); i++) {
   beavy_provider_.broadcast_ints_message(gate_id_, partial_share);
    const auto partial_other_share = share_future_.get();
    auto& final_Delta = Delta_partial;
-   std::cout << "Other partial share:\n";
-   for (auto i = 0; i < partial_other_share.size(); i++) {
-    std::cout<< partial_other_share[i] << " ";
-    }
-    std::cout <<" \n";
-
-   std::cout << "Its partial share:\n";
-   for (auto i = 0; i < Delta_partial.size(); i++) {
-    std::cout<< Delta_partial[i] << " ";
-    }
-    std::cout <<" \n";
+   
    __gnu_parallel::transform(Delta_partial.begin(), Delta_partial.end(), partial_other_share.begin(),
                             final_Delta.begin(), std::plus{});
-    std::cout << "Delta of output:";
-    for (auto i = 0; i < final_Delta.size(); i++) {
-    std::cout<< final_Delta[i] << " ";
-    }
-    std::cout <<" \n";
     
-    this->output_->get_public_share() = std::move(final_Delta);
-    
-  //output_->get_public_share() = std::move(Delta_y_);
+  this->output_->get_public_share() = std::move(final_Delta);
  
   output_->set_online_ready();
 
@@ -1958,15 +1860,174 @@ for (auto i = 0; i < delta_.size(); i++) {
 
 template class ArithmeticBEAVYTensorConstMul<std::uint32_t>;
 template class ArithmeticBEAVYTensorConstMul<std::uint64_t>;
+//************************************************************************
+// Haritha cosnt matrix mult***** (Given model in clear to both parties and data the inform of shares)
+// constat_ (constant matrix), in vector form
+//input_(matrix in form of shares) in tensorform
+//gemm_op_ dimensions of input and output matrices
+template <typename T>
+ArithmeticBEAVYTensorConstMatrixMul<T>::ArithmeticBEAVYTensorConstMatrixMul(
+    std::size_t gate_id, BEAVYProvider& beavy_provider, tensor::GemmOp gemm_op,
+     const std::vector<uint64_t> k,
+     const ArithmeticBEAVYTensorCP<T> input,
+    const std::size_t fractional_bits)
+    : NewGate(gate_id),
+      beavy_provider_(beavy_provider),
+      gemm_op_(gemm_op),
+      constant_(k), 
+      input_(input),
+      fractional_bits_(fractional_bits),
+      output_(std::make_shared<ArithmeticBEAVYTensor<T>>(gemm_op.get_output_tensor_dims())) {
+  const auto my_id = beavy_provider_.get_my_id();
+  const auto output_size = gemm_op_.compute_output_size();
+  //we have to register the message handler in constructor to communicate shares to the
+  // other user
+  share_future_ = beavy_provider_.register_for_ints_message<T>(1 - my_id, gate_id_, output_size);
 
+  // resizing the Delta_y - class private variable (place holder for oputput public shares )
+  Delta_y_.resize(output_size);
 
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format("Gate {}: ArithmeticBEAVYTensorConstMatrixMul<T> created", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+ArithmeticBEAVYTensorConstMatrixMul<T>::~ArithmeticBEAVYTensorConstMatrixMul() = default;
+
+template <typename T>
+void ArithmeticBEAVYTensorConstMatrixMul<T>::evaluate_setup() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorConstMatrixMul<T>::evaluate_setup start", gate_id_));
+    }
+  }
+  // number of elements inoutput matrix (=constant matrix * input_matrix)
+  const auto output_size = gemm_op_.compute_output_size();
+  input_->wait_setup();
+  // reference for input matrix secretshares (it is a vector)
+  const auto& delta_a_share_ = input_->get_secret_share();
+  // copying constant-matrix values into vector 
+  std::vector<T> constant_vector(constant_.begin(), constant_.end());
+  // a reference varaible for the constant vector that we created above
+  auto& delta_y_share_ = constant_vector;
+
+  // creating secret shares for output
+  // note that output secret shares should be set in setup phase only
+  output_->get_secret_share() = Helpers::RandomVector<T>(output_size);
+  
+  output_->set_setup_ready();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorConstMatrixMul<T>::evaluate_setup end", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void ArithmeticBEAVYTensorConstMatrixMul<T>::evaluate_online() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorConstMatrixMul<T>::evaluate_online start", gate_id_));
+    }
+  }
+  const auto output_size = gemm_op_.compute_output_size();
+  input_->wait_online();
+  // Input matrix public shares
+  const auto& Delta_ = input_->get_public_share();
+  // secret shares
+  const auto& delta_a_share_ = input_->get_secret_share();
+  
+  const auto& final_delta = output_->get_secret_share();
+  // input matrices dimensions
+  const auto dim_l = gemm_op_.input_A_shape_[0];
+  const auto dim_m = gemm_op_.input_A_shape_[1]; 
+  const auto dim_n = gemm_op_.input_B_shape_[1];
+
+  //copying constant_  into constant_vector
+  std::vector<T> constant_vector(constant_.begin(), constant_.end());
+  // place holder for constan*delta_a_shares
+  std::vector<T> delta_y_share_;
+  delta_y_share_.resize(output_size);
+
+//mutiplying constant matrix with secret shares of input matrix
+delta_y_share_ = MOTION::matrix_multiply(dim_l, dim_m, dim_n, constant_vector, delta_a_share_);
+
+auto& delta_ = delta_y_share_;
+
+//mutiplying constant matrix with public shares of input matrix
+Delta_y_ = MOTION::matrix_multiply(dim_l, dim_m, dim_n, constant_vector, Delta_);
+  
+// auto gmw_x_encoded = constant_vector;
+std::vector<T> gmw_x_encoded;
+gmw_x_encoded.resize(output_size);
+auto frac_bits = fractional_bits_;
+  
+////////////////////////////////////Creating arithmetic gmw of beavy shares////////////
+// id 0 : gmw_encoded = -W*delta_a_share_0
+// id 1 : gmw_encoded = W*Delta_a - W*delta_a_share_1
+auto id = beavy_provider_.get_my_id();
+
+std::transform(Delta_y_.begin(), Delta_y_.end(), gmw_x_encoded.begin(),
+                 [&id](auto& c) { return c * id; });
+                 
+std::vector<T> gmw_x_decoded;
+gmw_x_decoded.resize(output_size);
+__gnu_parallel::transform(gmw_x_encoded.begin(), gmw_x_encoded.end(), delta_.begin(),
+                            gmw_x_encoded.begin(), std::minus{});
+
+// Now trucatining gmw_x_encoded and storing in gmw_x_decoded
+std::transform(std::begin(gmw_x_encoded), std::end(gmw_x_encoded), std::begin(gmw_x_decoded),
+                 [frac_bits](auto j) { return MOTION::new_fixed_point::truncate(j, frac_bits); });
+
+//Delta_partial = gmw_decoded + private shares of output
+// we have reference to the output private shares in final_delta
+std:: vector<T> Delta_partial;
+Delta_partial.resize(output_size);
+
+__gnu_parallel::transform(gmw_x_decoded.begin(), gmw_x_decoded.end(), final_delta.begin(),
+                            Delta_partial.begin(), std::plus{});
+
+beavy_provider_.broadcast_ints_message(gate_id_, Delta_partial);
+
+const auto partial_other_share = share_future_.get();
+
+auto& final_Delta = Delta_partial;
+__gnu_parallel::transform(Delta_partial.begin(), Delta_partial.end(), partial_other_share.begin(),
+                            final_Delta.begin(), std::plus{});
+    
+this->output_->get_public_share() = std::move(final_Delta);
+output_->set_online_ready();
+if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: ArithmeticBEAVYTensorConstMatrixMul<T>::evaluate_online end", gate_id_));
+    }
+  }
+}
+
+template class ArithmeticBEAVYTensorConstMatrixMul<std::uint32_t>;
+template class ArithmeticBEAVYTensorConstMatrixMul<std::uint64_t>;
+
+//************************************************************************
 /////////////////////////////////////////////////////////////////////////////////////
 //New function added by Ramya, July  19
 
 
 template <typename T>
 ArithmeticBEAVYTensorConstAdd<T>::ArithmeticBEAVYTensorConstAdd(
-    std::size_t gate_id, BEAVYProvider& beavy_provider, const T k,
+    std::size_t gate_id, BEAVYProvider& beavy_provider, const std::vector<std::uint64_t> k,
     const ArithmeticBEAVYTensorCP<T> input)
     : NewGate(gate_id),
       beavy_provider_(beavy_provider),
@@ -2004,13 +2065,8 @@ void ArithmeticBEAVYTensorConstAdd<T>::evaluate_setup() {
 
   const auto& delta_a_share_ = input_->get_secret_share();
 
-  std::vector<T> constant_vector(output_size, constant_);
-  //auto& delta_y_share_ = constant_vector;
-
-  //The following two lines work
-  // auto& output_share_temp = constant_vector;
-  // std::transform( std::begin(this->input_->get_secret_share()),std::end(this->input_->get_secret_share()), std::begin(constant_vector),std::begin(output_share_temp), std::minus{});
-  //Comment the below one line when you uncomment the above 
+  std::vector<T> constant_vector(constant_.begin(), constant_.end());
+  
   auto& output_share_temp = this->input_->get_secret_share();
   output_->get_secret_share() = std::move(output_share_temp);
   output_->set_setup_ready();
@@ -2037,23 +2093,17 @@ void ArithmeticBEAVYTensorConstAdd<T>::evaluate_online() {
   const auto output_size = input_->get_dimensions().get_data_size();
   input_->wait_online();
   const auto& Delta_ = input_->get_public_share();
-  std::cout << "Constant is :" << constant_ << "\n";
-  std::vector<T> constant_vector(output_size, constant_);
+  
+  std::vector<T> constant_vector(constant_.begin(), constant_.end());
   auto& output_share_temp = constant_vector;
   try{
-    std::transform( std::begin(this->input_->get_public_share()),std::end(this->input_->get_public_share()), std::begin(constant_vector),std::begin(output_share_temp), std::plus{});
-      }
+    __gnu_parallel::transform( std::begin(this->input_->get_public_share()),std::end(this->input_->get_public_share()), std::begin(constant_vector),std::begin(output_share_temp), std::plus{});
+  }
   catch(std::exception& e){
       std::cout<<"Error in adding constant and wire in gate.cpp - "<<e.what()<<std::endl;
-    }
+  }
   this->output_->get_public_share() = std::move(output_share_temp);
-  // std::vector<T> constant_vector(output_size, constant_);
-
-  // // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
-  // __gnu_parallel::transform(std::begin(constant_vector), std::end(constant_vector),
-  //                           std::begin(Delta_), std::begin(Delta_y_), std::plus{});
-
-  // output_->get_public_share() = std::move(Delta_y_);
+  
   output_->set_online_ready();
 
   if constexpr (MOTION_VERBOSE_DEBUG) {

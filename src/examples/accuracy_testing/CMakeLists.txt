@@ -8,7 +8,6 @@ add_executable(tensor_gt_mul_split tensor_gt_mul_split.cpp)
 add_executable(weight_share_receiver_genr weight_share_receiver_genr.cpp)
 add_executable(training training.cpp)
 
-
 find_package(Boost COMPONENTS json log program_options REQUIRED)
 
 target_compile_features(tensor_gt_relu PRIVATE cxx_std_20)
@@ -22,14 +21,6 @@ target_compile_features(weight_share_receiver_genr PRIVATE cxx_std_20)
 target_compile_features(training PRIVATE cxx_std_20)
 
 target_link_libraries(tensor_gt_relu
-    MOTION::motion
-    Boost::json
-    Boost::log
-    Boost::program_options
-)
-
-
-target_link_libraries(training
     MOTION::motion
     Boost::json
     Boost::log
@@ -79,6 +70,13 @@ target_link_libraries(tensor_gt_mul_split
 )
 
 target_link_libraries(weight_share_receiver_genr
+    MOTION::motion
+    Boost::json
+    Boost::log
+    Boost::program_options
+)
+
+target_link_libraries(training
     MOTION::motion
     Boost::json
     Boost::log
