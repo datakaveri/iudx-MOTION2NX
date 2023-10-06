@@ -1119,6 +1119,8 @@ tensor::TensorCP BEAVYProvider::make_tensor_gemm_op(const tensor::GemmOp& gemm_o
   return output;
 }
 
+//Added by Nitya and Vishnu
+//Hadamard product - both the inputs are in shares and element wise product of both matrices. 
 tensor::TensorCP BEAVYProvider::make_tensor_hamm_op(const tensor::HammOp& hamm_op,
                                                     const tensor::TensorCP input_A,
                                                     const tensor::TensorCP input_B,
@@ -1310,26 +1312,17 @@ tensor::TensorCP BEAVYProvider::make_tensor_negate(const tensor::TensorCP in) {
 }
 
 //(addnl)
-tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP in,const std::vector<uint64_t> k) {
-  //std::cout<<"The constant inside the function:" <<k<<"\n";
-  for_each(k.begin(),
-             k.end(),
-             [](const auto& elem) {
- 
-                 // printing one by one element
-                 // separated with space
-                 std::cout << elem << " ";
-             });
+tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP in,const std::vector<uint64_t> k, std::size_t fractional_bits) {
  
   auto bit_size = in->get_bit_size();
   std::unique_ptr<NewGate> gate;
   auto gate_id = gate_register_.get_next_gate_id();
   tensor::TensorCP output;
-  const auto make_op = [this, in, gate_id, k,
+  const auto make_op = [this, in, gate_id, k, fractional_bits,
                         &output](auto dummy_arg) {
     using T = decltype(dummy_arg);
     auto tensor_op = std::make_unique<ArithmeticBEAVYTensorConstMul<T>>(
-        gate_id, *this, k, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in));
+        gate_id, *this, k, std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in), fractional_bits);
     output = tensor_op->get_output_tensor();
     return tensor_op;
   };

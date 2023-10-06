@@ -368,7 +368,8 @@ class ArithmeticBEAVYTensorConstMul : public NewGate {
  public:
   ArithmeticBEAVYTensorConstMul(std::size_t gate_id, BEAVYProvider&,
                             const std::vector<uint64_t> k,
-                            const ArithmeticBEAVYTensorCP<T> input);
+                            const ArithmeticBEAVYTensorCP<T> input, 
+                            std::size_t fractional_bits);
   ~ArithmeticBEAVYTensorConstMul();
   bool need_setup() const noexcept override { return true; }
   bool need_online() const noexcept override { return true; }
@@ -379,6 +380,7 @@ class ArithmeticBEAVYTensorConstMul : public NewGate {
  private:
   BEAVYProvider& beavy_provider_;
   const ArithmeticBEAVYTensorCP<T> input_;
+  std::size_t fractional_bits_;
   const std::vector<uint64_t> constant_;
   std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
   ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;

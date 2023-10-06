@@ -6,11 +6,11 @@ output shares of this will be written. The following instructions run this code.
 
 At the argument "--filepath " give the path of the file containing shares from build_deb.... folder
 Server-0
-./bin/constAdd --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
+./bin/constMul --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
 --boolean-protocol yao --fractional-bits 13 --file-input input0
 
 Server-1
-./bin/constAdd --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
+./bin/constMul --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
 --boolean-protocol yao --fractional-bits 13  --file-input input1
 
 */
@@ -290,7 +290,7 @@ void print_stats(const Options& options,
                  const MOTION::Statistics::AccumulatedRunTimeStats& run_time_stats,
                  const MOTION::Statistics::AccumulatedCommunicationStats& comm_stats) {
   if (options.json) {
-    auto obj = MOTION::Statistics::to_json("const add", run_time_stats, comm_stats);
+    auto obj = MOTION::Statistics::to_json("const mul", run_time_stats, comm_stats);
     obj.emplace("party_id", options.my_id);
     obj.emplace("arithmetic_protocol", MOTION::ToString(options.arithmetic_protocol));
     obj.emplace("boolean_protocol", MOTION::ToString(options.boolean_protocol));
@@ -325,56 +325,28 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 
   input_promises_X[0].set_value(options.input.Delta);
   input_promises_X[1].set_value(options.input.delta);
-
-  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation,make_relu,make_sigmoid,make_indicator;
-
-  // -RELU(-X)u
-  make_activation = [&](const auto& input) {
-  //  const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
-    const auto boolean_tensor =
-        boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, input);
-    const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor);
-    return boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
-  };
-
-  //  RELU(X)
-  make_relu = [&](const auto& input) {
-    const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
-    const auto boolean_tensor =
-        boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, negated_tensor);
-    const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor); // -RELU(-X)
-    const auto finBoolean_tensor =
-        boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
-    return arithmetic_tof.make_tensor_negate(finBoolean_tensor);
-  };
-
-  make_indicator = [&](const auto& input) {
-    const auto first_relu_output = make_activation(input);    // Returns -RELU(-X)
-
-    // Declaring a constant uint64 vector of same size as input and initializing every element with encoded 9000
-    std::vector<uint64_t> const_vector(options.input.row * options.input.col, MOTION::new_fixed_point::encode<uint64_t, float>(9000, options.fractional_bits));
-
-    // Multiplying the tensor with the constant vector (element wise)
-    const auto mult_output = arithmetic_tof.make_tensor_constMul_op(first_relu_output, const_vector, options.fractional_bits);
-    // Reached 9000 * -RELU(-X)
-    // Adding an encoded one to the tensor
-    std::vector<uint64_t> const_vector2(options.input.row * options.input.col, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
-    const auto add_output = arithmetic_tof.make_tensor_constAdd_op(mult_output,const_vector2);
-    // Reached 1 + 9000 * -RELU(-X)
-
-    return make_relu(add_output); // make_relu returns RELU(Y)
-    // Returning RELU( 1 + 9000 * -RELU(-X) )
-  };
   
-  MOTION::tensor::TensorCP tensor_indicator = make_indicator(tensor_X);
+  std::uint64_t constant =
+          MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits);  
+  //std::vector<std::uint64_t>constant_vector(options.input.row * options.input.col, constant);
+  std::vector<float>constant_vector_unencoded = {-4, -3, -2, -1, 0, 1, 2, 3};
+  //std::vector<float>constant_vector_unencoded = {-4, -3, -2, -0.01, 0, 0.01, 2, 3};
+
+  std::vector<std::uint64_t>constant_vector(constant_vector_unencoded.size());
+  std::transform(constant_vector_unencoded.begin(),constant_vector_unencoded.end(), constant_vector.begin(), [](auto j) {
+    return MOTION::new_fixed_point::encode<std::uint64_t, float>(j, 13);
+  });
+
+  MOTION::tensor::TensorCP const_mul_output = 
+    arithmetic_tof.make_tensor_constMul_op(tensor_X, constant_vector, 13);
   
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future, main_output_future,
       main_output;
 
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(tensor_indicator);
+    arithmetic_tof.make_arithmetic_tensor_output_other(const_mul_output);
   } else {
-    main_output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(tensor_indicator);
+    main_output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(const_mul_output);
   }
 
   return std::move(main_output_future);

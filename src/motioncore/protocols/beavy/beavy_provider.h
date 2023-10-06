@@ -232,7 +232,7 @@ class BEAVYProvider : public GateFactory,
                                           std::size_t fractional_bits = 0) override;
   //Functions defined to perform constant operations (addnl)
   tensor::TensorCP make_tensor_negate(const tensor::TensorCP) override;
-  tensor::TensorCP make_tensor_constMul_op(const tensor::TensorCP,const std::vector<uint64_t> k) override;
+  tensor::TensorCP make_tensor_constMul_op(const tensor::TensorCP,const std::vector<uint64_t> k, std::size_t fractional_bits) override;
   //New function added by Ramya, July 19
   tensor::TensorCP make_tensor_constAdd_op(const tensor::TensorCP,const std::vector<uint64_t> k) override;
   tensor::TensorCP make_tensor_add_op(const tensor::TensorCP,const tensor::TensorCP) override;

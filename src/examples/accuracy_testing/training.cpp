@@ -578,7 +578,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   std::cout << "Encoded alpha m:" << encoded_alpham << "\n";
   std::vector<uint64_t> constant_vector(gemmop1_dims.height_ * options.Xtranspose.col,
                                         encoded_alpham);
-  auto HX_alpham_tensor = arithmetic_tof.make_tensor_constMul_op(HX_tensor, constant_vector);
+  auto HX_alpham_tensor = arithmetic_tof.make_tensor_constMul_op(HX_tensor, constant_vector, options.fractional_bits);
   auto negated_HX_alpham_tensor = arithmetic_tof.make_tensor_negate(HX_alpham_tensor);
   auto Updated_theta = arithmetic_tof.make_tensor_add_op(tensor_theta, negated_HX_alpham_tensor);
   std::cout << "Gemm operation ends \n";

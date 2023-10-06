@@ -70,6 +70,7 @@ void matrix_multiply(const tensor::GemmOp& gemm_op, const T* A, const T* B, T* o
   }
 }
 
+//Transposes the given matrices.
 template <typename T>
 void transpose(const tensor::GemmOp& gemm_op, const T* A, const T* B, T* output_A, T* output_B) {
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -83,19 +84,17 @@ void transpose(const tensor::GemmOp& gemm_op, const T* A, const T* B, T* output_
   matrix_output_B = matrix_B.transpose();
 }
 
+//element wise product of two eigen arrays.
 template <typename T>
 void hadamard_matrix_multiply(const tensor::HammOp& hamm_op, const T* A, const T* B, T* output) {
-  // using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using MatrixType = Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   assert(hamm_op.verify());
 
   Eigen::Map<MatrixType> matrix_output(output, hamm_op.output_shape_[0], hamm_op.output_shape_[1]);
   Eigen::Map<const MatrixType> matrix_A(A, hamm_op.input_A_shape_[0], hamm_op.input_A_shape_[1]);
   Eigen::Map<const MatrixType> matrix_B(B, hamm_op.input_B_shape_[0], hamm_op.input_B_shape_[1]);
-  //std::cout << "In linear_algebra" << std::endl;
-  //std::cout << matrix_B << std::endl;
+
   matrix_output = matrix_A * matrix_B;
-  //std::cout << matrix_output << std::endl;
 }
 
 template void matrix_multiply(std::size_t, std::size_t, std::size_t, const std::uint8_t*,
