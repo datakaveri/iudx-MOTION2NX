@@ -388,7 +388,38 @@ class ArithmeticBEAVYTensorConstMul : public NewGate {
   std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
   std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
 };
+//************************************************************************
+// Haritha cosnt matrix mult***** (Given model in clear to both parties and data the inform of shares)
+template <typename T>
+class ArithmeticBEAVYTensorConstMatrixMul : public NewGate {
+ public:
+  ArithmeticBEAVYTensorConstMatrixMul(std::size_t gate_id, BEAVYProvider&,
+                            tensor::GemmOp, 
+                            const std::vector<uint64_t> k,
+                            const ArithmeticBEAVYTensorCP<T> input, 
+                            const std::size_t fractional_bits);
+                   
+  ~ArithmeticBEAVYTensorConstMatrixMul();
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  const ArithmeticBEAVYTensorP<T>& get_output_tensor() const { return output_; }
 
+ private:
+  BEAVYProvider& beavy_provider_;
+  tensor::GemmOp gemm_op_;
+  const ArithmeticBEAVYTensorCP<T> input_;
+  const std::size_t fractional_bits_;
+  const std::vector<uint64_t> constant_;
+  std::shared_ptr<ArithmeticBEAVYTensor<T>> output_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> share_future_;
+  std::vector<T> Delta_y_;
+  // we dont need any OTs
+  // std::unique_ptr<MOTION::MatrixMultiplicationRHS<T>> mm_rhs_side_;
+  // std::unique_ptr<MOTION::MatrixMultiplicationLHS<T>> mm_lhs_side_;
+};
+///////***********************************************************************************
 
 ///////////////New function added by Ramya, July 16
 
