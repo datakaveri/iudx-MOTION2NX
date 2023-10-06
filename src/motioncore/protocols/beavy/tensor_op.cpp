@@ -2066,12 +2066,7 @@ void ArithmeticBEAVYTensorConstAdd<T>::evaluate_setup() {
   const auto& delta_a_share_ = input_->get_secret_share();
 
   std::vector<T> constant_vector(constant_.begin(), constant_.end());
-  //auto& delta_y_share_ = constant_vector;
-
-  //The following two lines work
-  // auto& output_share_temp = constant_vector;
-  // std::transform( std::begin(this->input_->get_secret_share()),std::end(this->input_->get_secret_share()), std::begin(constant_vector),std::begin(output_share_temp), std::minus{});
-  //Comment the below one line when you uncomment the above 
+  
   auto& output_share_temp = this->input_->get_secret_share();
   output_->get_secret_share() = std::move(output_share_temp);
   output_->set_setup_ready();
@@ -2098,23 +2093,17 @@ void ArithmeticBEAVYTensorConstAdd<T>::evaluate_online() {
   const auto output_size = input_->get_dimensions().get_data_size();
   input_->wait_online();
   const auto& Delta_ = input_->get_public_share();
-  //std::cout << "Constant is :" << constant_ << "\n";
+  
   std::vector<T> constant_vector(constant_.begin(), constant_.end());
   auto& output_share_temp = constant_vector;
   try{
-    std::transform( std::begin(this->input_->get_public_share()),std::end(this->input_->get_public_share()), std::begin(constant_vector),std::begin(output_share_temp), std::plus{});
-      }
+    __gnu_parallel::transform( std::begin(this->input_->get_public_share()),std::end(this->input_->get_public_share()), std::begin(constant_vector),std::begin(output_share_temp), std::plus{});
+  }
   catch(std::exception& e){
       std::cout<<"Error in adding constant and wire in gate.cpp - "<<e.what()<<std::endl;
-    }
+  }
   this->output_->get_public_share() = std::move(output_share_temp);
-  // std::vector<T> constant_vector(output_size, constant_);
-
-  // // [Delta_y]_i += [[delta_a]_i * [delta_b]_(1-i)]_i
-  // __gnu_parallel::transform(std::begin(constant_vector), std::end(constant_vector),
-  //                           std::begin(Delta_), std::begin(Delta_y_), std::plus{});
-
-  // output_->get_public_share() = std::move(Delta_y_);
+  
   output_->set_online_ready();
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
