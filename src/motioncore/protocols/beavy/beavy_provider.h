@@ -233,6 +233,12 @@ class BEAVYProvider : public GateFactory,
   //Functions defined to perform constant operations (addnl)
   tensor::TensorCP make_tensor_negate(const tensor::TensorCP) override;
   tensor::TensorCP make_tensor_constMul_op(const tensor::TensorCP,const std::vector<uint64_t> k) override;
+  
+  
+  // Haritha cosnt matrix mult***** (Given model in clear to both parties and data the inform of shares)
+  tensor::TensorCP make_tensor_constMatrix_Mul_op(const tensor::GemmOp& gemm_op, const std::vector<uint64_t> W,
+                                                  const tensor::TensorCP X, const std::size_t fractional_bits) override;
+  
   //New function added by Ramya, July 19
   tensor::TensorCP make_tensor_constAdd_op(const tensor::TensorCP,const uint64_t k) override;
   tensor::TensorCP make_tensor_add_op(const tensor::TensorCP,const tensor::TensorCP) override;

@@ -156,6 +156,13 @@ tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP
       fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
 }
 
+// Haritha cosnt matrix mult***** (Given model in clear to both parties and data the inform of shares)
+tensor::TensorCP TensorOpFactory::make_tensor_constMatrix_Mul_op(const tensor::GemmOp& gemm_op, 
+                                                            const std::vector<uint64_t> W, const tensor::TensorCP X, 
+                                                            const std::size_t fractional_bits){
+throw std::logic_error(
+      fmt::format("{} does not support the Const Matrix Multiplication operation", get_provider_name())); 
+}
 
 tensor::TensorCP TensorOpFactory::make_tensor_constAdd_op(const tensor::TensorCP,const uint64_t) {
   throw std::logic_error(

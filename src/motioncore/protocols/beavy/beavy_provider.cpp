@@ -1229,7 +1229,7 @@ tensor::TensorCP BEAVYProvider::make_tensor_relu_op(const tensor::TensorCP in) {
   gate_register_.register_gate(std::move(tensor_op));
   return output;
 }
-
+  ///
 template <typename T>
 tensor::TensorCP BEAVYProvider::basic_make_tensor_relu_op(const tensor::TensorCP in_bool,
                                                           const tensor::TensorCP in_arith) {
@@ -1347,7 +1347,54 @@ tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP i
   return output;
 
 }
+//************************************************************************
+// Haritha cosnt matrix mult***** (Given model in clear to both parties and data the inform of shares)
+tensor::TensorCP BEAVYProvider::make_tensor_constMatrix_Mul_op(const tensor::GemmOp& gemm_op, const std::vector<uint64_t> k,
+                                                  const tensor::TensorCP in, const std::size_t fractional_bits){
+  
+  
+ if (!gemm_op.verify()) {
+    throw std::invalid_argument("invalid Const Matrix mutiplication");
+  }
+  if (k.size() != gemm_op.compute_input_A_size()) {
+    throw std::invalid_argument("invalid input_A dimensions");
+  }
+  if (in->get_dimensions() != gemm_op.get_input_B_tensor_dims()) {
+    throw std::invalid_argument("invalid input_B dimensions");
+  }
+  auto bit_size = in->get_bit_size();
+  std::unique_ptr<NewGate> gate;
+  
+  auto gate_id = gate_register_.get_next_gate_id();
+  tensor::TensorCP output;
+  const auto make_op = [this, gemm_op, in, gate_id, k, fractional_bits,
+                        &output](auto dummy_arg) {
+    using T = decltype(dummy_arg);
+    // std :: cout << "*** 1365 : Beavyprovider.cpp before ArithmeticBEAVYTensorConstMatrixMul \n";
+    auto tensor_op = std::make_unique<ArithmeticBEAVYTensorConstMatrixMul<T>>(
+        gate_id, *this, gemm_op, k, 
+        std::dynamic_pointer_cast<const ArithmeticBEAVYTensor<T>>(in),
+        fractional_bits);
+    output = tensor_op->get_output_tensor();
+    // std :: cout << "**** 1371 : Beavyprovider.cpp before ArithmeticBEAVYTensorConstMatrixMul \n";
+    return tensor_op;
+  };
+  switch (bit_size) {
+    case 32:
+      gate = make_op(std::uint32_t{});
+      break;
+    case 64:
+      gate = make_op(std::uint64_t{});
+      break;
+    default:
+      throw std::logic_error(fmt::format("unexpected bit size {}", bit_size));
+  }
+  gate_register_.register_gate(std::move(gate));
+  return output;
 
+}
+
+//************************************************************************
 
 //New function added by Ramya, July 19
 //(addnl)
