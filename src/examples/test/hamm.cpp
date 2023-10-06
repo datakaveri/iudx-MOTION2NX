@@ -6,10 +6,12 @@ output shares of this will be written. The following instructions run this code.
 
 At the argument "--filepath " give the path of the file containing shares from build_deb.... folder
 Server-0
-./bin/tensor_gt_mul --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input file_config_input0 --config-file-model file_config_model0 --layer-id 1
+./bin/hamm --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
+--boolean-protocol yao --fractional-bits 13 --file-input1 input1_s0 --file-input2 input2_s0
 
 Server-1
-./bin/tensor_gt_mul --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13  --config-file-input file_config_input1 --config-file-model file_config_model1 --layer-id 1
+./bin/hamm --my-id 1 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy
+--boolean-protocol yao --fractional-bits 13  --file-input1 input1_s1 --file-input2 input2_s1
 
 */
 // MIT License
@@ -93,17 +95,14 @@ struct Options {
   int num_elements;
   //////////////////////////////////////////////////////////////
   std::size_t fractional_bits;
-  std::string inputpath;
-  std::string modelpath;
-  std::size_t layer_id;
-
+  std::string inputpath1;
+  std::string inputpath2;
   std::size_t my_id;
   // std::string filepath_frombuild;
   MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
-  Matrix image_file;
-  Matrix W_file;
-  Matrix B_file;
+  Matrix input1;
+  Matrix input2;
   Matrix row;
   Matrix col;
 };
@@ -120,149 +119,60 @@ std::uint64_t read_file(std::ifstream& pro) {
       break;
     }
   }
-
   std::string::size_type sz = 0;
   std::uint64_t ret = (uint64_t)std::stoull(str, &sz, 0);
   return ret;
 }
 
-// this function reads all lines but takes into consideration only the required input
-// if j==count , the program will not make str empty and return it once j>count
-std::string read_filepath(std::ifstream& indata, int count) {
-  std::string str;
-
-  while (j <= count) {
-    char num;
-    while (indata) {
-      std::getline(indata, str);
-
-      if (j < count) {
-        str = " ";
-      }
-      j++;
-      break;
-    }
-  }
-  return str;
-}
-
-void image_shares(Options* options, std::string p) {
+void read_input(Options* options, std::string p, int matrix_no) {
   std::ifstream temps;
-  temps.open("/home/vt/iudx-MOTION2NX/build_debwithrelinfo_gcc/server" + std::to_string(options->my_id) + "/Image_shares/remote_image_shares");
-  // std::cout << "p:" << p << "\n";
+  temps.open(p);
+  std::cout << "p:" << p << "\n";
   if (temps) {
-    std::cout << "image shares File found\n";
+    std::cout << "File found\n";
   } else {
-    std::cout << "image shares File not found\n";
+    std::cout << "File not found\n";
   }
   assert(temps);
-
-  std::uint64_t rows = read_file(temps);
-  options->image_file.row = rows;
-  std::cout << "r " << rows << " ";
-  std::uint64_t cols = read_file(temps);
-  options->image_file.col = cols;
-  std::cout << "c " << cols << "\n";
-
-  for (int i = 0; i < rows * cols; ++i) {
-    uint64_t m1 = read_file(temps);
-    // std::cout << m1 << " ";
-    options->image_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(temps);
-    // std::cout << m2 << "\n";
-    options->image_file.delta.push_back(m2);
+  
+  if(matrix_no == 1) {
+    std::uint64_t rows = read_file(temps);
+    options->input1.row = rows;
+    std::cout << "r " << rows << " ";
+    std::uint64_t cols = read_file(temps);
+    options->input1.col = cols;
+    std::cout << "c " << cols << "\n";
+    
+    for (int i = 0; i < rows * cols; ++i) {
+      uint64_t m1 = read_file(temps);
+      options->input1.Delta.push_back(m1);
+      uint64_t m2 = read_file(temps);
+      options->input1.delta.push_back(m2);
+    }
+  } else if(matrix_no == 2) {
+    std::uint64_t rows = read_file(temps);
+    options->input2.row = rows;
+    std::cout << "r " << rows << " ";
+    std::uint64_t cols = read_file(temps);
+    options->input2.col = cols;
+    std::cout << "c " << cols << "\n";
+    
+    for (int i = 0; i < rows * cols; ++i) {
+      uint64_t m1 = read_file(temps);
+      options->input2.Delta.push_back(m1);
+      uint64_t m2 = read_file(temps);
+      options->input2.delta.push_back(m2);
+  }
   }
   temps.close();
 }
 
-void W_shares(Options* options, std::string p) {
-  std::ifstream indata;
-  indata.open(p);
-  if (std::ifstream(p)) {
-    std::cout << "\n W_shares File found\n";
-  } else {
-    std::cout << "\n W_sharesFile not found\n";
-  }
-  assert(indata);
-
-  int rows = read_file(indata);
-  options->W_file.row = rows;
-  std::cout << "r " << rows << " ";
-  int cols = read_file(indata);
-  options->W_file.col = cols;
-  std::cout << "c " << cols << "\n";
-
-  for (int i = 0; i < rows * cols; ++i) {
-    uint64_t m1 = read_file(indata);
-    options->W_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(indata);
-    options->W_file.delta.push_back(m2);
-    std::cout << m1 << ' ' << m2 << std::endl;
-  }
-  indata.close();
-}
-
-void B_shares(Options* options, std::string p) {
-  std::ifstream indata;
-  indata.open(p);
-
-  if (std::ifstream(p)) {
-    std::cout << "\n B_shares File found\n";
-  } else {
-    std::cout << "\n B_shares File not found\n";
-  }
-  assert(indata);
-
-  int rows = read_file(indata);
-  options->B_file.row = rows;
-  std::cout << "r " << rows << " ";
-  int cols = read_file(indata);
-  options->B_file.col = cols;
-  std::cout << "c " << cols << "\n";
-
-  for (int i = 0; i < rows * cols; ++i) {
-    uint64_t m1 = read_file(indata);
-    options->B_file.Delta.push_back(m1);
-    uint64_t m2 = read_file(indata);
-    options->B_file.delta.push_back(m2);
-  }
-  indata.close();
-}
-
 void file_read(Options* options) {
   std::string path = std::filesystem::current_path();
-  std::string t1 = path + "/build_debwithrelinfo_gcc/" + options->inputpath;
-  std::string t2 = path + "/build_debwithrelinfo_gcc/" + options->modelpath;
-
-  std::ifstream file1, file2;
-  file1.open(t1);
-  file2.open(t2);
-  if (file1 && file2) {
-    std::cout << "\n File read File found\n";
-  } else {
-    std::cout << "\n File read File not found\n";
-  }
-
-  std::string i = read_filepath(file1, 0);
-  // std::cout << "i:" << i << "\n";
-
-  file1.close();
-
-  j = 0;
-  image_shares(options, i);
-
-  //  skip 2(layer_id-1) and read first 2 lines
-  int c = 2 * (options->layer_id - 1);
-  std::string w = read_filepath(file2, c);
-
-  std::cout << "w:" << w << "\n";
-  std::cout << "j:" << j << "\n";
-  // std::string b = read_filepath(file2, c + 1);
-  // std::cout << "b:" << b << "\n";
-  // file2.close();
-
-  W_shares(options, w);
-  //B_shares(options, b);
+  std::string t1 = path + "/" + options->inputpath1;
+  std::string t2 = path + "/" + options->inputpath2;
+  read_input(options, t1, 1);
+  read_input(options, t2, 2);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -272,10 +182,9 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   // clang-format off
   desc.add_options()
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
-    ("config-file-input", po::value<std::string>()->required(), "config file containing options")
-    ("config-file-model", po::value<std::string>()->default_value(""), "config file containing options")
+    ("file-input1", po::value<std::string>()->required(), "input matrix 1")
+    ("file-input2", po::value<std::string>()->required(), "input matrix 2")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
-    ("layer-id", po::value<std::size_t>()->required(), "layer id")
     ("party", po::value<std::vector<std::string>>()->multitoken(),
      "(party id, IP, port), e.g., --party 1,127.0.0.1,7777")
     ("threads", po::value<std::size_t>()->default_value(0), "number of threads to use for gate evaluation")
@@ -319,9 +228,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.sync_between_setup_and_online = vm["sync-between-setup-and-online"].as<bool>();
   options.no_run = vm["no-run"].as<bool>();
   //////////////////////////////////////////////////////////////////
-  options.inputpath = vm["config-file-input"].as<std::string>();
-  options.modelpath = vm["config-file-model"].as<std::string>();
-  options.layer_id = vm["layer-id"].as<std::size_t>();
+  options.inputpath1 = vm["file-input1"].as<std::string>();
+  options.inputpath2 = vm["file-input2"].as<std::string>();
   /////////////////////////////////////////////////////////////////
   options.fractional_bits = vm["fractional-bits"].as<std::size_t>();
   if (options.my_id > 1) {
@@ -401,7 +309,7 @@ void print_stats(const Options& options,
                  const MOTION::Statistics::AccumulatedRunTimeStats& run_time_stats,
                  const MOTION::Statistics::AccumulatedCommunicationStats& comm_stats) {
   if (options.json) {
-    auto obj = MOTION::Statistics::to_json("tensor_gt_mul", run_time_stats, comm_stats);
+    auto obj = MOTION::Statistics::to_json("const add", run_time_stats, comm_stats);
     obj.emplace("party_id", options.my_id);
     obj.emplace("arithmetic_protocol", MOTION::ToString(options.arithmetic_protocol));
     obj.emplace("boolean_protocol", MOTION::ToString(options.boolean_protocol));
@@ -419,66 +327,47 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
 
-  ////////////////Using below to set size of input tensor/////////////////////
-  ////////Looks clumsy but could not fix it
-  /*const MOTION::tensor::GemmOp gemm_op1 = {
-      .input_A_shape_ = {256, 784}, .input_B_shape_ = {784, 1}, .output_shape_ = {256, 1}};
-*/
+  std::cout << options.input1.row << " " << options.input1.col << "\n";
+  std::cout << options.input2.row << " " << options.input2.col << "\n";
+  
+  MOTION::tensor::TensorDimensions X1_dims = {.batch_size_ = 1,
+  .num_channels_ = 1,
+  .height_ = options.input1.row,
+  .width_ = options.input1.col  
+  };
 
-  std::cout << "Dims " << options.W_file.row << " " << options.W_file.col << "\n";
-  std::cout << options.image_file.row << " " << options.image_file.col << "\n";
+  MOTION::tensor::TensorDimensions X2_dims = {.batch_size_ = 1,
+  .num_channels_ = 1,
+  .height_ = options.input2.row,
+  .width_ = options.input2.col  
+  };
 
+  MOTION::tensor::TensorCP tensor_X1, tensor_X2;
+
+  auto pairX1 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(X1_dims);
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_X1 =
+      std::move(pairX1.first);
+  tensor_X1 = pairX1.second;
+
+  input_promises_X1[0].set_value(options.input1.Delta);
+  input_promises_X1[1].set_value(options.input1.delta);
+
+  auto pairX2 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(X2_dims);
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_X2 =
+      std::move(pairX2.first);
+  tensor_X2 = pairX2.second;
+
+  input_promises_X2[0].set_value(options.input2.Delta);
+  input_promises_X2[1].set_value(options.input2.delta);
+  
   const MOTION::tensor::HammOp hamm_op1 = {
-      .input_A_shape_ = {options.W_file.row, options.W_file.col},
-      .input_B_shape_ = {options.image_file.row, options.image_file.col},
-      .output_shape_ = {options.W_file.row, options.image_file.col}};
+      .input_A_shape_ = {options.input1.row, options.input1.col},
+      .input_B_shape_ = {options.input2.row, options.input2.col},
+      .output_shape_ = {options.input1.row, options.input1.col}};
+  
+  MOTION::tensor::TensorCP hamm_output1 = arithmetic_tof.make_tensor_hamm_op(hamm_op1, tensor_X1, tensor_X2, options.fractional_bits);
 
-  // const MOTION::tensor::GemmOp gemm_op1 = {
-  //     .input_A_shape_ = {options.W_file.row, options.W_file.col},
-  //     .input_B_shape_ = {options.image_file.row, options.image_file.col},
-  //     .output_shape_ = {options.W_file.row, options.image_file.col}};
-
-  const auto W1_dims = hamm_op1.get_input_A_tensor_dims();
-
-  const auto X_dims = hamm_op1.get_input_B_tensor_dims();
-  // const auto B1_dims = gemm_op1.get_output_tensor_dims();
-
-  /////////////////////////////////////////////////////////////////////////
-  MOTION::tensor::TensorCP tensor_X, tensor_W1;//, tensor_B1;
-  MOTION::tensor::TensorCP hamm_output1;//, add_output1;
-
-  auto pairX = arithmetic_tof.make_arithmetic_64_tensor_input_shares(X_dims);
-  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_X =
-      std::move(pairX.first);
-  tensor_X = pairX.second;
-
-  auto pairW1 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(W1_dims);
-  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_W1 =
-      std::move(pairW1.first);
-  tensor_W1 = pairW1.second;
-
-  // auto pairB1 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(B1_dims);
-  // std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_B1 =
-  //     std::move(pairB1.first);
-  // tensor_B1 = pairB1.second;
-
-  ///////////////////////////////////////////////////////////////
-  input_promises_X[0].set_value(options.image_file.Delta);
-  input_promises_X[1].set_value(options.image_file.delta);
-
-  input_promises_W1[0].set_value(options.W_file.Delta);
-  input_promises_W1[1].set_value(options.W_file.delta);
-
-//   input_promises_B1[0].set_value(options.B_file.Delta);
-//   input_promises_B1[1].set_value(options.B_file.delta);
-  ///////////////////////////////////////////////////////////////////
-
-  hamm_output1 =
-      arithmetic_tof.make_tensor_hamm_op(hamm_op1, tensor_W1, tensor_X, options.fractional_bits);
-  //add_output1 = arithmetic_tof.make_tensor_add_op(gemm_output1, tensor_B1);
-
-  ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future, main_output_future,
-      main_output;
+  ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future, main_output_future, main_output;
 
   if (options.my_id == 0) {
     arithmetic_tof.make_arithmetic_tensor_output_other(hamm_output1);
@@ -494,7 +383,7 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
   backend.run();
   if (options.my_id == 1) {
     auto main = output_future.get();
-    std::cout << main.size() << std::endl;
+
     for (int i = 0; i < main.size(); ++i) {
       long double temp =
           MOTION::new_fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
