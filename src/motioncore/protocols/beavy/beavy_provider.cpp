@@ -1312,14 +1312,14 @@ tensor::TensorCP BEAVYProvider::make_tensor_negate(const tensor::TensorCP in) {
 //(addnl)
 tensor::TensorCP BEAVYProvider::make_tensor_constMul_op(const tensor::TensorCP in,const std::vector<uint64_t> k) {
   //std::cout<<"The constant inside the function:" <<k<<"\n";
-  for_each(k.begin(),
+  /*for_each(k.begin(),
              k.end(),
              [](const auto& elem) {
  
                  // printing one by one element
                  // separated with space
                  std::cout << elem << " ";
-             });
+             });*/
  
   auto bit_size = in->get_bit_size();
   std::unique_ptr<NewGate> gate;

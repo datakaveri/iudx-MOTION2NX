@@ -6,10 +6,10 @@ from bash file we are giving ip1 and in this file it is appended to ip1_0 and ip
 
 At the argument "--filepath " give the path of the file containing shares from build_deb.... folder
 Server-0
-./bin/training_all_labels --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares --config-file-model file_config_model0 --actual-labels Actual_all_labels --current-path ${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 20 --theta0 Theta_all_labels
+./bin/training_all_labels --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares --config-file-model file_config_model0 --actual-labels Actual_all_labels --current-path ${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 2 --w1t-filename SharesForW1T0 --w2t-filename SharesForW2T0
 
 Server-1
-./bin/training_all_labels --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares --config-file-model file_config_model1 --actual-labels Actual_all_labels --current-path ${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 20 --theta0 Theta_all_labels
+./bin/training_all_labels --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares --config-file-model file_config_model1 --actual-labels Actual_all_labels --current-path ${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 2 --w1t-filename SharesForW1T1 --w2t-filename SharesForW2T1
 
 */
 // MIT License
@@ -199,7 +199,7 @@ struct Options {
   int num_elements;
   //////////////////////////////////////////////////////////////
   std::size_t fractional_bits;
-  std::string imageprovider, actuallabels, theta0;
+  std::string imageprovider, actuallabels, W1T_filename, W2T_filename;
   std::string modelpath;
   std::size_t layer_id;
   std::string currentpath;
@@ -209,7 +209,8 @@ struct Options {
   int sample_size;
   Matrix image_file[20], actual_labels;
   Matrix X, Xtranspose;
-  Matrix theta;
+  Matrix W1T; //theta
+  Matrix W2T;
   Matrix row;
   Matrix col;
 };
@@ -223,7 +224,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("help,h", po::bool_switch()->default_value(false),"produce help message")
     ("config-file-input", po::value<std::string>()->required(), "config file containing options")
     ("actual-labels", po::value<std::string>()->required(), "Name of the file with actual labels")
-    ("theta0", po::value<std::string>()->required(), "Name of the file with theta")
+    ("w1t-filename", po::value<std::string>()->required(), "Name of the file with weights 1 transpose")
+    ("w2t-filename", po::value<std::string>()->required(), "Name of the file with weights 2 transpose")
     ("config-file-model", po::value<std::string>()->required(), "config file containing options")
     ("my-id", po::value<std::size_t>()->required(), "my party id")
     ("sample-size", po::value<int>()->required(), "sample size")
@@ -275,11 +277,12 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   //////////////////////////////////////////////////////////////////
   options.imageprovider = vm["config-file-input"].as<std::string>();
   options.actuallabels = vm["actual-labels"].as<std::string>();
-  options.theta0 = vm["theta0"].as<std::string>();
+  options.W1T_filename = vm["w1t-filename"].as<std::string>();
+  options.W2T_filename = vm["w2t-filename"].as<std::string>();
   options.modelpath = vm["config-file-model"].as<std::string>();
   ///////////////////////////////////////////////////////////////////
   std::string path = options.currentpath;
-  Matrix_input Xi[20], Yi, Theta_n;
+  Matrix_input Xi[20], Yi, Theta1_n, Theta2_n;
   for (int i = 0; i < options.sample_size; i++) {
     auto t1 = path + "/server" + std::to_string(options.my_id) + "/Image_shares/" +
               options.imageprovider + std::to_string(i + 1);
@@ -307,19 +310,32 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     options.actual_labels.Delta.push_back(Yi.Data[j].Delta);
     options.actual_labels.delta.push_back(Yi.Data[j].delta);
   }
+  std::cout << "labels: " << options.actual_labels.col << " " << options.sample_size << std::endl;
   if (options.actual_labels.col != options.sample_size) {
     std::cerr << "Sample size should match actual labels \n";
   }
 
-  t1 = path + "/server" + std::to_string(options.my_id) + "/Image_shares/" + options.theta0;
+    t1 = path + "/" + options.W1T_filename;
+  //t1 = path + "/server" + std::to_string(options.my_id) + "/Image_shares/" + options.W1T_filename;
   // Read 10 * 784 size theta
-  std::cout << "Path from where theta0 files are read:" << t1 << "\n";
-  Theta_n.Set_data(t1);
-  options.theta.row = Theta_n.get_rows();
-  options.theta.col = Theta_n.get_columns();
-  for (int j = 0; j < options.theta.row * options.theta.col; ++j) {
-    options.theta.Delta.push_back(Theta_n.Data[j].Delta);
-    options.theta.delta.push_back(Theta_n.Data[j].delta);
+  std::cout << "Path from where W1 transpose files are read:" << t1 << "\n";
+  Theta1_n.Set_data(t1);
+  options.W1T.row = Theta1_n.get_rows();
+  options.W1T.col = Theta1_n.get_columns();
+  for (int j = 0; j < options.W1T.row * options.W1T.col; ++j) {
+    options.W1T.Delta.push_back(Theta1_n.Data[j].Delta);
+    options.W1T.delta.push_back(Theta1_n.Data[j].delta);
+  }
+
+  t1 = path + "/" + options.W2T_filename;
+  // Read 10 * 784 size theta
+  std::cout << "Path from where W2 transpose files are read:" << t1 << "\n";
+  Theta2_n.Set_data(t1);
+  options.W2T.row = Theta2_n.get_rows();
+  options.W2T.col = Theta2_n.get_columns();
+  for (int j = 0; j < options.W2T.row * options.W2T.col; ++j) {
+    options.W2T.Delta.push_back(Theta2_n.Data[j].Delta);
+    options.W2T.delta.push_back(Theta2_n.Data[j].delta);
   }
   std::cout << "Generating X \n";
 
@@ -461,12 +477,12 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
 
-  std::cout << "Theta:" << options.theta.row << " " << options.theta.col << "\n";
+  std::cout << "Theta:" << options.W1T.row << " " << options.W1T.col << "\n";
   std::cout << "X:" << options.X.row << " " << options.X.col << "\n";
 
-  const MOTION::tensor::GemmOp gemm_op1 = {.input_A_shape_ = {options.theta.row, options.theta.col},
+  const MOTION::tensor::GemmOp gemm_op1 = {.input_A_shape_ = {options.W1T.row, options.W1T.col},
                                            .input_B_shape_ = {options.X.row, options.X.col},
-                                           .output_shape_ = {options.theta.row, options.X.col}};
+                                           .output_shape_ = {options.W1T.row, options.X.col}};
 
   // const auto W1_dims = gemm_op1.get_input_A_tensor_dims();
 
@@ -482,11 +498,11 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   // theta_dims.num_channels_ = 1;
   // theta_dims.height_ = options.theta.row * options.theta.col;
   // theta_dims.width_ = 1;
-  const auto theta_dims = gemm_op1.get_input_A_tensor_dims();
+  const auto W1T_dims = gemm_op1.get_input_A_tensor_dims();
   const auto X_dims = gemm_op1.get_input_B_tensor_dims();
   const auto gemmop1_dims = gemm_op1.get_output_tensor_dims();
   std::cout << "X dims:" << X_dims.height_ << " " << X_dims.width_ << "\n";
-  std::cout << "theta dims:" << theta_dims.height_ << " " << theta_dims.width_ << "\n";
+  std::cout << "W1 T dims:" << W1T_dims.height_ << " " << W1T_dims.width_ << "\n";
   std::cout << "Output dimensions of first gemm operation:" << gemmop1_dims.height_ << " "
             << gemmop1_dims.width_ << "\n";
 
@@ -499,26 +515,49 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   Y_dims.num_channels_ = 1;
   Y_dims.height_ = options.actual_labels.row;
   Y_dims.width_ = options.actual_labels.col;
-
+  std::cout << Y_dims.height_ << " " << Y_dims.width_ << std::endl;
   const MOTION::tensor::GemmOp gemm_op2 = {
-      .input_A_shape_ = {W2_transpose_dims.height_, W2_transpose_dims.width_},
+      .input_A_shape_ = {options.W2T.row, options.W2T.col},
       .input_B_shape_ = gemm_op1.compute_output_shape(),
       .output_shape_ = {Y_dims.height_, Y_dims.width_}};
+  const auto W2T_dims = gemm_op2.get_input_A_tensor_dims();
 
   const MOTION::tensor::GemmOp gemm_op3 = {
-      .input_A_shape_ = gemm_op2.compute_output_shape(),
-      .input_B_shape_ = {Y_dims.height_, Y_dims.width_},
-      .output_shape_ = {W2_transpose_dims.height_, W2_transpose_dims.width_},
+      .input_A_shape_ = {Y_dims.height_, Y_dims.width_},
+      .input_B_shape_ = gemm_op1.compute_output_shape(),
+      .output_shape_ = {W2T_dims.height_, W2T_dims.width_},
       .transB_ = true};
-    
+  
+  std::cout << "Gemm op 3 dimensions: \n";
+  std::cout << "Input A: " << Y_dims.height_ << " " << Y_dims.width_ << "\n";
+  std::cout << "Input B: " << gemm_op1.compute_output_shape()[0] << " " << gemm_op1.compute_output_shape()[1] << "\n";
+  std::cout << "Output: " << W2T_dims.height_<< " " << W2T_dims.width_ << "\n";
+
   const MOTION::tensor::GemmOp gemm_op4 = {
-      .input_A_shape_ = gemm_op2.compute_output_shape(),
+      .input_A_shape_ = {W2T_dims.height_, W2T_dims.width_},
       .input_B_shape_ = {Y_dims.height_, Y_dims.width_},
-      .output_shape_ = {W2_transpose_dims.height_, W2_transpose_dims.width_},
+      .output_shape_ = {W2T_dims.width_, Y_dims.width_},
+      .transA_ = true};
+
+  std::cout << "Gemm op 4 dimensions: \n";
+  std::cout << "Input A: " << W2T_dims.height_ << " " << W2T_dims.width_ << "\n";
+  std::cout << "Input B: " << Y_dims.height_ << " "  << Y_dims.width_ << "\n";
+  std::cout << "Output: " << W2T_dims.width_ << " " << Y_dims.height_ << "\n";
+
+
+  const MOTION::tensor::HammOp hamm_op1 = {
+      .input_A_shape_ = gemm_op4.compute_output_shape(),
+      .input_B_shape_ = gemm_op1.compute_output_shape(),
+      .output_shape_ = gemm_op1.compute_output_shape()};
+  
+  const MOTION::tensor::GemmOp gemm_op5 = {
+      .input_A_shape_ = hamm_op1.compute_output_shape(),
+      .input_B_shape_ = {options.X.row, options.X.col},
+      .output_shape_ = {options.W1T.row, options.W1T.col},
       .transB_ = true};
 
   /////////////////////////////////////////////////////////////////////////
-  MOTION::tensor::TensorCP tensor_X, tensor_Y, tensor_W1, tensor_X0, tensor_Xtranspose;
+  MOTION::tensor::TensorCP tensor_X, tensor_Y, tensor_W1T, tensor_W2T, tensor_X0, tensor_Xtranspose;
   MOTION::tensor::TensorCP gemm_output1, add_output1;
 
   std::cout << "Make tensors \n";
@@ -542,10 +581,14 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       std::move(pairY.first);
   tensor_Y = pairY.second;
   std::cout << "Tensor Y created \n";
-  auto pairtheta = arithmetic_tof.make_arithmetic_64_tensor_input_shares(theta_dims);
+  auto pairtheta1 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(W1T_dims);
   std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>
-      input_promises_theta = std::move(pairtheta.first);
-  tensor_W1 = pairtheta.second;
+      input_promises_theta1 = std::move(pairtheta1.first);
+  tensor_W1T = pairtheta1.second;
+  auto pairtheta2 = arithmetic_tof.make_arithmetic_64_tensor_input_shares(W2T_dims);
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>>
+      input_promises_theta2 = std::move(pairtheta2.first);
+  tensor_W2T = pairtheta2.second;
   std::cout << "End of tensor creation \n";
   ///////////////////////////////////////////////////////////////
   input_promises_X[0].set_value(options.X.Delta);
@@ -554,8 +597,11 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   input_promises_Y[0].set_value(options.actual_labels.Delta);
   input_promises_Y[1].set_value(options.actual_labels.delta);
 
-  input_promises_theta[0].set_value(options.theta.Delta);
-  input_promises_theta[1].set_value(options.theta.delta);
+  input_promises_theta1[0].set_value(options.W1T.Delta);
+  input_promises_theta1[1].set_value(options.W1T.delta);
+
+  input_promises_theta2[0].set_value(options.W2T.Delta);
+  input_promises_theta2[1].set_value(options.W2T.delta);
 
   input_promises_Xtranspose[0].set_value(options.Xtranspose.Delta);
   input_promises_Xtranspose[1].set_value(options.Xtranspose.delta);
@@ -565,8 +611,8 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   /////////////////////////////Sigmoid//////////////////////////////////
 
   
-  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation,make_relu,make_sigmoid,make_indicator;
-
+  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation,make_relu;
+  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&), std::size_t> make_indicator, make_sigmoid;
   // -RELU(-X)u
   make_activation = [&](const auto& input) {
   //  const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
@@ -587,75 +633,96 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
     return arithmetic_tof.make_tensor_negate(finBoolean_tensor);
   };
   
-  make_sigmoid = [&](const auto& input) {
-  //  const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
-  const  auto input_const_add = arithmetic_tof.make_tensor_constAdd_op(input,MOTION::new_fixed_point::encode<uint64_t, float>(-0.5, options.fractional_bits));
-  const auto first_relu_output = make_activation(input_const_add);
-  const auto input_const_add2 = arithmetic_tof.make_tensor_constAdd_op(first_relu_output,MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
-  const auto negated_tensor = arithmetic_tof.make_tensor_negate(input_const_add2);
-  const auto final_relu_output = make_activation(negated_tensor);
-  return arithmetic_tof.make_tensor_negate(final_relu_output);
+  make_sigmoid = [&](const auto& input, std::size_t input_size) {
+    const std::vector<uint64_t>constant_vector1(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(-0.5, options.fractional_bits));
+    const auto input_const_add = arithmetic_tof.make_tensor_constAdd_op(
+        input, constant_vector1);
+    const auto first_relu_output = make_activation(input_const_add);
+    const std::vector<uint64_t>constant_vector2(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
+    const auto input_const_add2 = arithmetic_tof.make_tensor_constAdd_op(
+        first_relu_output, constant_vector2);
+    const auto negated_tensor = arithmetic_tof.make_tensor_negate(input_const_add2);
+    const auto final_relu_output = make_activation(negated_tensor);
+    return arithmetic_tof.make_tensor_negate(final_relu_output);
   };
 
-  make_indicator = [&](const auto& input) {
+  make_indicator = [&](const auto& input, std::size_t input_size) {
     const auto first_relu_output = make_activation(input);    // Returns -RELU(-X)
 
     // Declaring a constant uint64 vector of same size as input and initializing every element with encoded 9000
-    std::vector<uint64_t> const_vector(theta_dims.height_ * theta_dims.width_, MOTION::new_fixed_point::encode<uint64_t, float>(9000, options.fractional_bits));
+    std::vector<uint64_t> const_vector(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(9000, options.fractional_bits));
 
     // Multiplying the tensor with the constant vector (element wise)
-    const auto mult_output = arithmetic_tof.make_tensor_constMul_op(first_relu_output, const_vector);
+    const auto mult_output = arithmetic_tof.make_tensor_constMul_op(first_relu_output, const_vector, options.fractional_bits);
     // Reached 9000 * -RELU(-X)
     // Adding an encoded one to the tensor
-    const auto add_output = arithmetic_tof.make_tensor_constAdd_op(mult_output, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
+    std::vector<uint64_t> const_vector2(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
+    const auto add_output = arithmetic_tof.make_tensor_constAdd_op(mult_output,const_vector2);
     // Reached 1 + 9000 * -RELU(-X)
-    
+
     return make_relu(add_output); // make_relu returns RELU(Y)
     // Returning RELU( 1 + 9000 * -RELU(-X) )
   };
 
   ///////////////////////////////////////////////////////////////////
   std::cout << "Gemm operation starts \n";
-  tensor_Z1 =
-      arithmetic_tof.make_tensor_gemm_op(gemm_op1, tensor_W1_transpose, tensor_X, options.fractional_bits);
+  auto tensor_Z1 =
+      arithmetic_tof.make_tensor_gemm_op(gemm_op1, tensor_W1T, tensor_X, options.fractional_bits);
   auto tensor_A1 = make_relu(tensor_Z1);
-  tensor_Z2 = 
-      arithmetic_tof.make_tensor_gemm_op(gemm_op2, tensor_W2_transpose, tensor_A1, options.fractional_bits);
-  auto tensor_A2 = make_sigmoid(tensor_Z2);
+  auto tensor_Z2 = 
+      arithmetic_tof.make_tensor_gemm_op(gemm_op2, tensor_W2T, tensor_A1, options.fractional_bits);
+  std::cout << "gemm op 2" << std::endl;
+  auto tensor_A2 = make_sigmoid(tensor_Z2, gemm_op2.compute_output_size());
+  std::cout << "sigmoid" << std::endl;
   auto negated_Y = arithmetic_tof.make_tensor_negate(tensor_Y);
+  std::cout << "negation" << std::endl;
   auto tensor_H = arithmetic_tof.make_tensor_add_op(tensor_A2, negated_Y);
-
-  auto tensor_dLdW2 = arithmetic_tof.make_tensor_gemm_op(gemm_op3, tensor_A1, tensor_H,
+  std::cout << "addition" << std::endl;
+  auto tensor_dLdW2T = arithmetic_tof.make_tensor_gemm_op(gemm_op3, tensor_H, tensor_A1,
                                                       options.fractional_bits);
-                                              
-  auto tensor_dLdW1 = arithmetic_tof.make_tensor_gemm_op(gemm_op4, hadamard_output, tensor_X,
+  std::cout << "gemm op 3" << std::endl;
+  auto tensor_gemm_op4_output = arithmetic_tof.make_tensor_gemm_op(gemm_op4, tensor_W2T, tensor_H,
                                                       options.fractional_bits);
+  std::cout << "gemm op 4" << std::endl;
+  auto tensor_indicator_Z1 = make_indicator(tensor_Z1, gemm_op1.compute_output_size());
+  std::cout << "indicator matrix" << std::endl;
+  auto tensor_hadamard_output = arithmetic_tof.make_tensor_hamm_op(hamm_op1, tensor_gemm_op4_output, tensor_indicator_Z1,
+                                                      options.fractional_bits);                                                                    
+  std::cout << "Hadamard" << std::endl;
+  auto tensor_dLdW1T = arithmetic_tof.make_tensor_gemm_op(gemm_op5, tensor_hadamard_output, tensor_X,
+                                                      options.fractional_bits);
+  std::cout << "Gemm op 5" << std::endl;
   float alpham = 0.005;
-  auto encoded_alpham =
-      MOTION::new_fixed_point::encode<uint64_t, float>(alpham, options.fractional_bits);
+  auto encoded_alpham = MOTION::new_fixed_point::encode<uint64_t, float>(alpham, options.fractional_bits);
   std::cout << "Encoded alpha m:" << encoded_alpham << "\n";
-  std::vector<uint64_t> constant_vector(gemmop1_dims.height_ * options.Xtranspose.col,
-                                        encoded_alpham);
-  auto HX_alpham_tensor = arithmetic_tof.make_tensor_constMul_op(HX_tensor, constant_vector);
-  auto negated_HX_alpham_tensor = arithmetic_tof.make_tensor_negate(HX_alpham_tensor);
-  auto Updated_theta = arithmetic_tof.make_tensor_add_op(tensor_W1, negated_HX_alpham_tensor);
+  std::vector<uint64_t> constant_vector2(gemm_op3.get_output_tensor_dims().height_ * gemm_op3.get_output_tensor_dims().width_, encoded_alpham);
+  auto tensor_dLdW2_alpham = arithmetic_tof.make_tensor_constMul_op(tensor_dLdW2T, constant_vector2, options.fractional_bits);
+  auto tensor_negated_dLdW2_alpham = arithmetic_tof.make_tensor_negate(tensor_dLdW2_alpham);
+  auto Updated_W2T = arithmetic_tof.make_tensor_add_op(tensor_W2T, tensor_negated_dLdW2_alpham);
+
+  std::vector<uint64_t> constant_vector1(gemm_op5.get_output_tensor_dims().height_ * gemm_op5.get_output_tensor_dims().width_, encoded_alpham);
+  auto tensor_dLdW1_alpham = arithmetic_tof.make_tensor_constMul_op(tensor_dLdW1T, constant_vector1, options.fractional_bits);
+  auto tensor_negated_dLdW1_alpham = arithmetic_tof.make_tensor_negate(tensor_dLdW1_alpham);
+  auto Updated_W1T = arithmetic_tof.make_tensor_add_op(tensor_W1T, tensor_negated_dLdW1_alpham);
+  
   std::cout << "Gemm operation ends \n";
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future, main_output_future,
       main_output;
 
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(Updated_theta);
+    arithmetic_tof.make_arithmetic_tensor_output_other(Updated_W2T);
   } else {
-    main_output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(Updated_theta);
+    main_output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(Updated_W2T);
   }
 
-  tensor_W1 = Updated_theta;
+  tensor_W2T = Updated_W2T;
+  tensor_W1T = Updated_W1T;
 
   return std::move(main_output_future);
 }
 
 void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
-  int iterations = 10;
+  int iterations = 3;
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   for (int i = 0; i < iterations; i++) {
     std::cout << "iteration " << i + 1 << "  *****************\n";
