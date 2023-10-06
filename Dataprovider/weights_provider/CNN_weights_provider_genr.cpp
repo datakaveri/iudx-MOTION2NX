@@ -560,6 +560,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
       int rows, columns;
       int typeOfVector = data_array.getType();
 
+      // Type of Vector
       boost::asio::write(socket, boost::asio::buffer(&typeOfVector, sizeof(typeOfVector)), send_error);
       if (send_error) {
       socket.close();
@@ -590,6 +591,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
         std::cout << iter << " ";
       std::cout << std::endl;
 
+      // Dimensions
       boost::asio::write(socket, boost::asio::buffer(&dimensions, sizeof(dimensions)), send_error);
       if (send_error) {
       socket.close();
@@ -625,6 +627,7 @@ void send_shares_to_servers(std::vector<Matrix> data_shares, const Options& opti
       std::cout << "Number of elements:" << num_of_elements << std::endl;
       std::cout << "....Sending data...." << "\n";
       try{
+        // Shares
         write_struct_vector(socket, share_data, num_of_elements);
       }
       catch(std::runtime_error& e){

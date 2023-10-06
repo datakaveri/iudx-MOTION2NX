@@ -196,7 +196,7 @@ void retrieve_shares(Options& options) {
   }
 
   generate_filepaths(options);
-  store_types(options, types);
+  store_types(options, types);                                // writing into layer_types0/layer_types1 file
 
   for (auto i = 0; i < numberOfVectors; i++) {
     auto data_share_file_path = options.filepaths[i];

@@ -486,7 +486,7 @@ get_provider_total_data(int port_number) {
     boost::asio::write(socket_, boost::asio::buffer(msg_type + std::to_string(i) + "\n"));
     
     if (temp_type==1)
-      temp_no_dims = 10;
+      temp_no_dims = 10;                  // 4 Dimensions + 4 Padding + 2 Strides
     else if (temp_type==0)
       temp_no_dims = 2;
 

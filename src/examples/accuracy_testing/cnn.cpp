@@ -590,10 +590,12 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       .batch_size_ = 1, .num_channels_ = options.image_file.chnl, .height_ = options.image_file.row, .width_ = options.image_file.col};
   const MOTION::tensor::TensorDimensions conv_weights_dims{
       .batch_size_ = options.W_file.ker, .num_channels_ = options.W_file.chnl, .height_ = options.W_file.row, .width_ = options.W_file.col};
+  // Bias Dimensions for convolution operation
   const MOTION::tensor::TensorDimensions CBias1_dims{options.output.chnl, 1, 1, 1};
+  // Bias Dimensions for addition operation
   const MOTION::tensor::TensorDimensions CBias_dims{options.output.chnl, options.output.row, options.output.col};
 
-  const MOTION::tensor::Conv2DOp conv_op = {.kernel_shape_ = {options.W_file.ker,
+  const MOTION::tensor::Conv2DOp conv_op =  {.kernel_shape_ = {options.W_file.ker,
                                                               options.W_file.chnl,
                                                               options.W_file.row,
                                                               options.W_file.col},
@@ -667,18 +669,17 @@ MOTION::tensor::TensorCP tensor_X, tensor_CW1, tensor_CB1, tensor_CB, add_output
   input_promises_CW1[0].set_value(options.W_file.Delta);
   input_promises_CW1[1].set_value(options.W_file.delta);
 
-  input_promises_CB1[0].set_value(options.B_file.Delta);
+  input_promises_CB[0].set_value(options.B_file.Delta);                 // Blown up Bias values
   input_promises_CB1[1].set_value(options.B_file.delta);
 
-  input_promises_CB[0].set_value(options.B_file.Delta);
+  input_promises_CB[0].set_value(options.B_file.Delta);                 // Blown up Bias values
   input_promises_CB[1].set_value(options.B_file.delta);
 
 //***********************************************************************
 
- 
-  /* checking what input values are */
-
+  // Convolution Operation
   auto conv_output = arithmetic_tof.make_tensor_conv2d_op(conv_op, tensor_X, tensor_CW1, tensor_CB1, options.fractional_bits);
+  // Bias Addition
   add_output = arithmetic_tof.make_tensor_add_op(conv_output, tensor_CB);
  
 

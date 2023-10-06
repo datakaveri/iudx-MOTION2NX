@@ -377,10 +377,10 @@ int B_shares(Options* options, std::string p) {
   for (int i = 0; i < rows * cols; ++i) {
     try {
       uint64_t m1 = read_file(indata);
-      for (int i=0; i<options->output.row*options->output.col; i++)
+      for (int i=0; i<options->output.row*options->output.col; i++)       // Blowing up Bias values by output row * output col no of times
         options->B_file.Delta.push_back(m1);
       uint64_t m2 = read_file(indata);
-      for (int i=0; i<options->output.row*options->output.col; i++)
+      for (int i=0; i<options->output.row*options->output.col; i++)       // Blowing up small delta shares
         options->B_file.delta.push_back(m2);
     } catch (std::ifstream::failure e) {
       std::cerr << "Error while reading the input bias share file.\n";
@@ -608,7 +608,9 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
       .batch_size_ = 1, .num_channels_ = options.image_file.chnl, .height_ = options.image_file.row, .width_ = options.image_file.col};
   const MOTION::tensor::TensorDimensions conv_weights_dims{
       .batch_size_ = options.W_file.ker, .num_channels_ = options.W_file.chnl, .height_ = options.W_file.row, .width_ = options.W_file.col};
+  // Bias Dimensions for convolution operation
   const MOTION::tensor::TensorDimensions CBias1_dims{options.output.chnl, 1, 1, 1};
+  // Bias Dimensions for addition operation
   const MOTION::tensor::TensorDimensions CBias_dims{options.output.chnl, options.output.row, options.output.col};
 
   const MOTION::tensor::Conv2DOp conv_op = {.kernel_shape_ = {options.W_file.ker,
@@ -637,23 +639,6 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   std::cout << "Output Dimensions:\n"<< "Number of Channels: " << options.output.chnl <<
   "\nHeight of Matrix: " << options.output.row << "\nWidth of Matrix: " << options.output.col << std::endl;
   std::cout << "----------------------------------" << std::endl;
-
-//   MOTION::tensor::TensorCP input_tensor;
-//   MOTION::tensor::TensorCP conv_weights_tensor;
-//   MOTION::tensor::TensorCP squashed_weights_tensor;
-//   MOTION::tensor::TensorCP fully_connected_weights_tensor;
-
-//  make_activation = [&](const auto& input) {
-//     const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
-//     const auto boolean_tensor =
-//         boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, negated_tensor);
-//     const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor);
-//     const auto finBoolean_tensor =
-//         boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
-//     return arithmetic_tof.make_tensor_negate(finBoolean_tensor);
-//   };
-
-  
 
   MOTION::tensor::TensorCP tensor_X, tensor_CW1, tensor_CB1, tensor_CB, add_output;
 
@@ -684,18 +669,18 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   input_promises_CW1[0].set_value(options.W_file.Delta);
   input_promises_CW1[1].set_value(options.W_file.delta);
 
-  input_promises_CB1[0].set_value(options.B_file.Delta);
+  input_promises_CB1[0].set_value(options.B_file.Delta);                // Dummy input
   input_promises_CB1[1].set_value(options.B_file.delta);
 
-  input_promises_CB[0].set_value(options.B_file.Delta);
+  input_promises_CB[0].set_value(options.B_file.Delta);                 // Blown up Bias values
   input_promises_CB[1].set_value(options.B_file.delta);
 
 //***********************************************************************
 
- 
-  /* checking what input values are */
 
+  // Convolution Operation
   auto conv_output = arithmetic_tof.make_tensor_conv2d_op(conv_op, tensor_X, tensor_CW1, tensor_CB1, options.fractional_bits);
+  // Bias Addition
   add_output = arithmetic_tof.make_tensor_add_op(conv_output, tensor_CB);
  
 
@@ -723,7 +708,7 @@ void genrt_cnn_outputshare(const Options& options) {
     std::cerr << "Error while opening cnn_outputshare file.\n";
     return;
   }
-  o_file <<  options.kernels_original << " " <<
+  o_file <<  options.kernels_original << " " <<               // Dimensions with channels
              options.output.row  << " " <<
              options.output.col  << "\n";
   
@@ -745,7 +730,7 @@ void genrt_outputshare(const Options& options) {
     std::cerr << "Error while opening outputshare file.\n";
     return;
   }
-
+                                                            // Dimensions without channels
   o_file << options.kernels_original * options.output.row * options.output.col << " " << 1 << "\n";
   o_file.close();
   return;
