@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "Error while parsing the given input options.\n";
     return EXIT_FAILURE;
   }
-  int channels = 3, rows = 32, columns = 32;  // hardcoded
+  int channels = 1, rows = 28, columns = 28;  // hardcoded
   int num_elements = channels * rows * columns;
   Shares cs0_data[num_elements];
   Shares cs1_data[num_elements];
