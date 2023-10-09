@@ -55,15 +55,15 @@ number_of_layers=`echo $smpc_config | jq -r .number_of_layers`
 fractional_bits=`echo $smpc_config | jq -r .fractional_bits`
 
 # echo all input variables
-#echo "cs0_host $cs0_host"
-#echo "cs1_host $cs1_host"
-#echo "cs0_port_model_receiver $cs0_port_model_receiver"
-#echo "cs1_port_model_receiver $cs1_port_model_receiver"
-#echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
-#echo "cs0_port_inference $cs0_port_inference"
-#echo "cs1_port_inference $cs1_port_inference"
-#echo "fractional bits: $fractional_bits"
-#echo "no. of splits: $splits"
+# echo "cs0_host $cs0_host"
+# echo "cs1_host $cs1_host"
+# echo "cs0_port_model_receiver $cs0_port_model_receiver"
+# echo "cs1_port_model_receiver $cs1_port_model_receiver"
+# echo "cs0_port_cs1_output_receiver $cs0_port_cs1_output_receiver"
+# echo "cs0_port_inference $cs0_port_inference"
+# echo "cs1_port_inference $cs1_port_inference"
+# echo "fractional bits: $fractional_bits"
+# echo "no. of splits: $splits"
 ##########################################################################################################################################
 
 if [ ! -d "$debug_1" ];
@@ -102,6 +102,7 @@ if [ -f AverageTime1 ]; then
    rm AverageTime1
    # echo "AverageTime1 is removed"
 fi
+
 
 #########################Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"

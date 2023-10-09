@@ -431,6 +431,118 @@ void MatrixMultiplicationLHS<T>::clear() noexcept {
   is_output_ready_ = false;
 }
 
+// ---------- HadamardMatrixMultiplicationRHS ----------
+
+template <typename T>
+HadamardMatrixMultiplicationRHS<T>::HadamardMatrixMultiplicationRHS(std::size_t l, std::size_t m,
+                                                    ArithmeticProvider& arith_provider)
+    : dims_({l, m}),
+      mult_sender_(arith_provider.register_integer_multiplication_send<T>(l * m, 1)), //1 indicates copy the matrix once.
+      is_output_ready_(false) {}
+
+template <typename T>
+HadamardMatrixMultiplicationRHS<T>::~HadamardMatrixMultiplicationRHS() = default;
+
+template <typename T>
+void HadamardMatrixMultiplicationRHS<T>::set_input(std::vector<T>&& inputs) {
+  set_input(inputs);
+}
+
+template <typename T>
+void HadamardMatrixMultiplicationRHS<T>::set_input(const std::vector<T>& inputs) {
+  if (inputs.size() != dims_[0] * dims_[1]) {
+    throw std::invalid_argument("input has unexpected size");
+  }
+  set_input(inputs.data());
+}
+
+//Sets input matrix by copying the right hand side matrix.
+template <typename T>
+void HadamardMatrixMultiplicationRHS<T>::set_input(const T* inputs) {
+  std::vector<T> mult_inputs(inputs, inputs + dims_[0] * dims_[1]);
+  mult_sender_->set_inputs(std::move(mult_inputs));
+}
+
+template <typename T>
+void HadamardMatrixMultiplicationRHS<T>::compute_output() {
+  mult_sender_->compute_outputs();
+  auto mult_output = mult_sender_->get_outputs();
+  assert(mult_output.size() == dims_[0] * dims_[1]);
+  output_.resize(dims_[0] * dims_[1]);
+  std::copy(mult_output.begin(), mult_output.end(), output_.begin());
+  is_output_ready_ = true;
+}
+
+template <typename T>
+std::vector<T> HadamardMatrixMultiplicationRHS<T>::get_output() {
+  assert(is_output_ready_);
+  return std::move(output_);
+}
+
+template <typename T>
+void HadamardMatrixMultiplicationRHS<T>::clear() noexcept {
+  mult_sender_->clear();
+  output_ = {};
+  is_output_ready_ = false;
+}
+
+// ---------- HadamardMatrixMultiplicationLHS ----------
+template <typename T>
+HadamardMatrixMultiplicationLHS<T>::HadamardMatrixMultiplicationLHS(std::size_t l, std::size_t m,
+                                                    ArithmeticProvider& arith_provider)
+    : dims_({l, m}),
+      mult_receiver_(arith_provider.register_integer_multiplication_receive<T>(l * m, 1)),
+      is_output_ready_(false) {}
+
+template <typename T>
+HadamardMatrixMultiplicationLHS<T>::~HadamardMatrixMultiplicationLHS() = default;
+
+template <typename T>
+void HadamardMatrixMultiplicationLHS<T>::set_input(std::vector<T>&& inputs) {
+  if (inputs.size() != dims_[0] * dims_[1]) {
+    throw std::invalid_argument("input has unexpected size");
+  }
+  mult_receiver_->set_inputs(std::move(inputs));
+}
+
+template <typename T>
+void HadamardMatrixMultiplicationLHS<T>::set_input(const std::vector<T>& inputs) {
+  if (inputs.size() != dims_[0] * dims_[1]) {
+    throw std::invalid_argument("input has unexpected size");
+  }
+  set_input(inputs.data());
+}
+
+//Sets input matrix by copying the left hand side matrix.
+template <typename T>
+void HadamardMatrixMultiplicationLHS<T>::set_input(const T* inputs) {
+  std::vector<T> mult_inputs(inputs, inputs + dims_[0] * dims_[1]);
+  mult_receiver_->set_inputs(std::move(mult_inputs));
+}
+
+template <typename T>
+void HadamardMatrixMultiplicationLHS<T>::compute_output() {
+  mult_receiver_->compute_outputs();
+  auto mult_output = mult_receiver_->get_outputs();
+  assert(mult_output.size() == dims_[0] * dims_[1]);
+  output_.resize(dims_[0] * dims_[1]);
+  std::copy(mult_output.begin(), mult_output.end(), output_.begin());
+  is_output_ready_ = true;
+}
+
+template <typename T>
+std::vector<T> HadamardMatrixMultiplicationLHS<T>::get_output() {
+  assert(is_output_ready_);
+  return std::move(output_);
+}
+
+template <typename T>
+void HadamardMatrixMultiplicationLHS<T>::clear() noexcept {
+  mult_receiver_->clear();
+  output_ = {};
+  is_output_ready_ = false;
+}
+
 // ---------- ConvolutionInputSide ----------
 
 template <typename T>
@@ -651,6 +763,18 @@ std::unique_ptr<MatrixMultiplicationLHS<T>> ArithmeticProvider::register_matrix_
 }
 
 template <typename T>
+std::unique_ptr<HadamardMatrixMultiplicationRHS<T>> ArithmeticProvider::register_hadamard_matrix_multiplication_rhs(
+    std::size_t dim_l, std::size_t dim_m) {
+  return std::make_unique<HadamardMatrixMultiplicationRHS<T>>(dim_l, dim_m, *this);
+}
+
+template <typename T>
+std::unique_ptr<HadamardMatrixMultiplicationLHS<T>> ArithmeticProvider::register_hadamard_matrix_multiplication_lhs(
+    std::size_t dim_l, std::size_t dim_m) {
+  return std::make_unique<HadamardMatrixMultiplicationLHS<T>>(dim_l, dim_m, *this);
+}
+
+template <typename T>
 std::unique_ptr<ConvolutionInputSide<T>> ArithmeticProvider::register_convolution_input_side(
     tensor::Conv2DOp conv_op) {
   return std::make_unique<ConvolutionInputSide<T>>(conv_op, *this);
@@ -720,6 +844,18 @@ template class MatrixMultiplicationLHS<std::uint16_t>;
 template class MatrixMultiplicationLHS<std::uint32_t>;
 template class MatrixMultiplicationLHS<std::uint64_t>;
 template class MatrixMultiplicationLHS<__uint128_t>;
+
+template class HadamardMatrixMultiplicationRHS<std::uint8_t>;
+template class HadamardMatrixMultiplicationRHS<std::uint16_t>;
+template class HadamardMatrixMultiplicationRHS<std::uint32_t>;
+template class HadamardMatrixMultiplicationRHS<std::uint64_t>;
+template class HadamardMatrixMultiplicationRHS<__uint128_t>;
+
+template class HadamardMatrixMultiplicationLHS<std::uint8_t>;
+template class HadamardMatrixMultiplicationLHS<std::uint16_t>;
+template class HadamardMatrixMultiplicationLHS<std::uint32_t>;
+template class HadamardMatrixMultiplicationLHS<std::uint64_t>;
+template class HadamardMatrixMultiplicationLHS<__uint128_t>;
 
 template class ConvolutionInputSide<std::uint8_t>;
 template class ConvolutionInputSide<std::uint16_t>;
@@ -827,6 +963,29 @@ template std::unique_ptr<MatrixMultiplicationLHS<std::uint64_t>>
 template std::unique_ptr<MatrixMultiplicationLHS<__uint128_t>>
     ArithmeticProvider::register_matrix_multiplication_lhs<__uint128_t>(std::size_t, std::size_t,
                                                                         std::size_t);
+
+template std::unique_ptr<HadamardMatrixMultiplicationRHS<std::uint8_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_rhs<std::uint8_t>(std::size_t, std::size_t);
+template std::unique_ptr<HadamardMatrixMultiplicationRHS<std::uint16_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_rhs<std::uint16_t>(std::size_t, std::size_t);
+                                                                        
+template std::unique_ptr<HadamardMatrixMultiplicationRHS<std::uint32_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_rhs<std::uint32_t>(std::size_t, std::size_t);
+template std::unique_ptr<HadamardMatrixMultiplicationRHS<std::uint64_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_rhs<std::uint64_t>(std::size_t, std::size_t);
+template std::unique_ptr<HadamardMatrixMultiplicationRHS<__uint128_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_rhs<__uint128_t>(std::size_t, std::size_t);
+
+template std::unique_ptr<HadamardMatrixMultiplicationLHS<std::uint8_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_lhs<std::uint8_t>(std::size_t, std::size_t);
+template std::unique_ptr<HadamardMatrixMultiplicationLHS<std::uint16_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_lhs<std::uint16_t>(std::size_t, std::size_t);
+template std::unique_ptr<HadamardMatrixMultiplicationLHS<std::uint32_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_lhs<std::uint32_t>(std::size_t, std::size_t);
+template std::unique_ptr<HadamardMatrixMultiplicationLHS<std::uint64_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_lhs<std::uint64_t>(std::size_t, std::size_t);
+template std::unique_ptr<HadamardMatrixMultiplicationLHS<__uint128_t>>
+    ArithmeticProvider::register_hadamard_matrix_multiplication_lhs<__uint128_t>(std::size_t, std::size_t);
 
 template std::unique_ptr<ConvolutionInputSide<std::uint8_t>>
     ArithmeticProvider::register_convolution_input_side<std::uint8_t>(tensor::Conv2DOp);

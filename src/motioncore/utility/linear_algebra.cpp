@@ -70,6 +70,33 @@ void matrix_multiply(const tensor::GemmOp& gemm_op, const T* A, const T* B, T* o
   }
 }
 
+//Transposes the given matrices.
+template <typename T>
+void transpose(const tensor::GemmOp& gemm_op, const T* A, const T* B, T* output_A, T* output_B) {
+  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  assert(gemm_op.verify());
+  Eigen::Map<MatrixType> matrix_output_A(output_A, gemm_op.input_A_shape_[1], gemm_op.input_A_shape_[0]);
+  Eigen::Map<MatrixType> matrix_output_B(output_B, gemm_op.input_B_shape_[1], gemm_op.input_B_shape_[0]);
+  Eigen::Map<const MatrixType> matrix_A(A, gemm_op.input_A_shape_[0], gemm_op.input_A_shape_[1]);
+  Eigen::Map<const MatrixType> matrix_B(B, gemm_op.input_B_shape_[0], gemm_op.input_B_shape_[1]);
+
+  matrix_output_A = matrix_A.transpose();
+  matrix_output_B = matrix_B.transpose();
+}
+
+//element wise product of two eigen arrays.
+template <typename T>
+void hadamard_matrix_multiply(const tensor::HammOp& hamm_op, const T* A, const T* B, T* output) {
+  using MatrixType = Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  assert(hamm_op.verify());
+
+  Eigen::Map<MatrixType> matrix_output(output, hamm_op.output_shape_[0], hamm_op.output_shape_[1]);
+  Eigen::Map<const MatrixType> matrix_A(A, hamm_op.input_A_shape_[0], hamm_op.input_A_shape_[1]);
+  Eigen::Map<const MatrixType> matrix_B(B, hamm_op.input_B_shape_[0], hamm_op.input_B_shape_[1]);
+
+  matrix_output = matrix_A * matrix_B;
+}
+
 template void matrix_multiply(std::size_t, std::size_t, std::size_t, const std::uint8_t*,
                               const std::uint8_t*, std::uint8_t*);
 template void matrix_multiply(std::size_t, std::size_t, std::size_t, const std::uint16_t*,
@@ -104,6 +131,23 @@ template void matrix_multiply(const tensor::GemmOp&, const std::uint64_t*, const
 template void matrix_multiply(const tensor::GemmOp&, const __uint128_t*, const __uint128_t*,
                               __uint128_t*);
 
+template void transpose(const tensor::GemmOp&, const std::uint8_t* A, const std::uint8_t* B, std::uint8_t* output_A, std::uint8_t* output_B);
+template void transpose(const tensor::GemmOp&, const std::uint16_t* A, const std::uint16_t* B, std::uint16_t* output_A, std::uint16_t* output_B);
+template void transpose(const tensor::GemmOp&, const std::uint32_t* A, const std::uint32_t* B, std::uint32_t* output_A, std::uint32_t* output_B);
+template void transpose(const tensor::GemmOp&, const std::uint64_t* A, const std::uint64_t* B, std::uint64_t* output_A, std::uint64_t* output_B);
+template void transpose(const tensor::GemmOp&, const __uint128_t* A, const __uint128_t* B, __uint128_t* output_A, __uint128_t* output_B);
+
+
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint8_t*, const std::uint8_t*,
+                              std::uint8_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint16_t*, const std::uint16_t*,
+                              std::uint16_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint32_t*, const std::uint32_t*,
+                              std::uint32_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const std::uint64_t*, const std::uint64_t*,
+                              std::uint64_t*);
+template void hadamard_matrix_multiply(const tensor::HammOp&, const __uint128_t*, const __uint128_t*,
+                              __uint128_t*);
 template <typename T>
 void join_matrices(std::size_t dim_l, std::size_t dim_m, std::size_t dim_n, const T* A,
                      const T* B, T* output) {

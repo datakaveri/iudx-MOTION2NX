@@ -170,8 +170,8 @@ int share_generation(std::ifstream& image_data, int num_elements, Shares* cs0_da
 
       cs0_data[i] = cs0;
       cs1_data[i] = cs1;
-      // std::cout << "Data = " << data[i] << " Delta = " << cs0.Delta << " delta0 = " << cs0.delta
-      //      << " delta1 = " << cs1.delta << "\n";
+      std::cout << "Data = " << data[i] << " Delta = " << cs0.Delta << " delta0 = " << cs0.delta
+                << " delta1 = " << cs1.delta << "\n";
     }
   } catch (std::exception& e) {
     std::cerr << "Error during image share generation: " << e.what() << std::endl;

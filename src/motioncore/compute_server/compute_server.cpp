@@ -8,6 +8,19 @@ using std::cout;
 using std::endl;
 using std::string;
 
+string read_(tcp::socket& socket) {
+  boost::asio::streambuf buf;
+
+  boost::asio::read_until(socket, buf, "\n");
+  string data = boost::asio::buffer_cast<const char*>(buf.data());
+  return data;
+}
+
+void send_(tcp::socket& socket, const string& message) {
+  const string msg = message + "\n";
+  boost::asio::write(socket, boost::asio::buffer(msg));
+}
+
 namespace COMPUTE_SERVER {
 
 string read_(tcp::socket& socket) {
@@ -613,7 +626,7 @@ get_provider_total_data_genr(int port_number) {
   const string msg_data = "Server has received the data.\n";
   //////////////////////////////// Repeatedly use the following////////////////
   // read operation
-  for (int i = 0; i < 2*numberOfLayers; i++) {
+  for (int i = 0; i < 2 * numberOfLayers; i++) {
     read(socket_, boost::asio::buffer(&dims, sizeof(dims)), ec);
     if (ec) {
       cout << ec << "\n";
@@ -641,11 +654,40 @@ get_provider_total_data_genr(int port_number) {
   }
   socket_.close();
   int i = 1;
-  for(auto iter : dims_of_all_shares) {
+  for (auto iter : dims_of_all_shares) {
     cout << "Dims " << i << ": " << iter.first << " " << iter.second << endl;
-    i++;  
+    i++;
   }
   return {numberOfLayers, fractional_bits, std::make_pair(data, dims_of_all_shares)};
+}
+
+int read_number_of_layers_constmodel(int port_number) {
+  boost::asio::io_service io_service;
+
+  // listen for new connection
+  tcp::acceptor acceptor_(io_service, tcp::endpoint(tcp::v4(), port_number));
+  // socket creation
+  tcp::socket socket_(io_service);
+  // waiting for the connection
+  acceptor_.accept(socket_);
+
+  boost::system::error_code ec;
+
+  int numberOfLayers;
+  const string msg_layer = "Server has received the number of layers expected \n";
+  /////////Receiving number of layers to be expected
+  read(socket_, boost::asio::buffer(&numberOfLayers, sizeof(numberOfLayers)), ec);
+  if (ec) {
+    cout << ec << "\n";
+  } else {
+    cout << "No Error. Number of layers: " << numberOfLayers << "\n";
+  }
+
+  boost::asio::write(socket_, boost::asio::buffer(msg_layer));
+  cout << "Server received the number of layers!" << endl;
+  ///////////
+  socket_.close();
+  return numberOfLayers;
 }
 
 }  // namespace COMPUTE_SERVER

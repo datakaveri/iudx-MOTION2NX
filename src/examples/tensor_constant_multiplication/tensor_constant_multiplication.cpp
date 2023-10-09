@@ -76,18 +76,17 @@ struct Options {
   bool no_run = false;
 };
 
-void retrieve_shares(int port_number,Options* options) {
-    auto pair1 = COMPUTE_SERVER::get_provider_mat_mul_const_data(port_number);
-    std::vector<COMPUTE_SERVER::Shares>input_values_dp = pair1.second.first;
-    for(int i=0;i<input_values_dp.size();i++) {
-      options->input_values_dp_Delta.push_back(input_values_dp[i].Delta);
-      options->input_values_dp_delta.push_back(input_values_dp[i].delta);
-
-    }
-    options->input_values_dp_rows = pair1.second.second[0];
-    options->input_values_dp_cols = pair1.second.second[1];
-    options->constant = pair1.second.second[2];
-    options->fractional_bits = pair1.first;  
+void retrieve_shares(int port_number, Options* options) {
+  auto pair1 = COMPUTE_SERVER::get_provider_mat_mul_const_data(port_number);
+  std::vector<COMPUTE_SERVER::Shares> input_values_dp = pair1.second.first;
+  for (int i = 0; i < input_values_dp.size(); i++) {
+    options->input_values_dp_Delta.push_back(input_values_dp[i].Delta);
+    options->input_values_dp_delta.push_back(input_values_dp[i].delta);
+  }
+  options->input_values_dp_rows = pair1.second.second[0];
+  options->input_values_dp_cols = pair1.second.second[1];
+  options->constant = pair1.second.second[2];
+  options->fractional_bits = pair1.first;
 }
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -166,11 +165,10 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
 
-  if(options.my_id == 0) {
-    retrieve_shares(1234,&options);
-  }
-  else {    
-    retrieve_shares(1235,&options);
+  if (options.my_id == 0) {
+    retrieve_shares(1234, &options);
+  } else {
+    retrieve_shares(1235, &options);
   }
 
   const auto parse_party_argument =
@@ -216,16 +214,13 @@ std::unique_ptr<MOTION::Communication::CommunicationLayer> setup_communication(
 
 auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
   // retrieve the gate factories for the chosen protocols
-  auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);  
+  auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);
   auto& boolean_tof = backend.get_tensor_op_factory(MOTION::MPCProtocol::Yao);
 
-
   const MOTION::tensor::GemmOp gemm_op = {
-      .input_A_shape_ = {options.input_values_dp_rows, options.input_values_dp_cols}, 
-      .input_B_shape_ = {options.input_values_dp_cols, options.input_values_dp_rows}, 
-      .output_shape_ = {options.input_values_dp_rows, options.input_values_dp_rows}
-      };  
-
+      .input_A_shape_ = {options.input_values_dp_rows, options.input_values_dp_cols},
+      .input_B_shape_ = {options.input_values_dp_cols, options.input_values_dp_rows},
+      .output_shape_ = {options.input_values_dp_rows, options.input_values_dp_rows}};
 
   const auto input_A_dims = gemm_op.get_input_A_tensor_dims();
   const auto input_B_dims = gemm_op.get_input_B_tensor_dims();
@@ -237,33 +232,33 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
 
   MOTION::tensor::TensorCP tensor;
   auto pair = arithmetic_tof.make_arithmetic_64_tensor_input_shares(input_A_dims);
-  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a = std::move(pair.first);
+  std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint64_t>>> input_promises_a =
+      std::move(pair.first);
   tensor = pair.second;
 
   input_promises_a[0].set_value(options.input_values_dp_Delta);
-  input_promises_a[1].set_value(options.input_values_dp_delta);     
-
-  auto output = arithmetic_tof.make_tensor_constMul_op(tensor, (uint64_t)options.constant);
+  input_promises_a[1].set_value(options.input_values_dp_delta);
+  int constant = 0.6;
+  // auto output = arithmetic_tof.make_tensor_constMul_op(tensor,constant);
 
   ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
   if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(output);
+    arithmetic_tof.make_arithmetic_tensor_output_other(tensor);
   } else {
-    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(output);
+    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(tensor);
   }
 
   return output_future;
 }
 
-void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend){
+void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
   auto output_future = create_composite_circuit(options, backend);
   backend.run();
   if (options.my_id == 1) {
     auto interm = output_future.get();
     std::cout << "The result is:\n[";
-    for(int i=0; i<interm.size(); ++i)
-    {
-      float temp = MOTION::fixed_point::decode<uint64_t,float>(interm[i],options.fractional_bits);
+    for (int i = 0; i < interm.size(); ++i) {
+      float temp = MOTION::fixed_point::decode<uint64_t, float>(interm[i], options.fractional_bits);
       std::cout << temp << " , ";
     }
     std::cout << "]" << std::endl;
@@ -282,7 +277,7 @@ int main(int argc, char* argv[]) {
                                                    boost::log::trivial::severity_level::trace);
     comm_layer->set_logger(logger);
     MOTION::TwoPartyTensorBackend backend(*comm_layer, options->threads,
-                                      options->sync_between_setup_and_online, logger);
+                                          options->sync_between_setup_and_online, logger);
     run_composite_circuit(*options, backend);
     comm_layer->shutdown();
   } catch (std::runtime_error& e) {

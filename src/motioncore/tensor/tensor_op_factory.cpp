@@ -113,6 +113,12 @@ tensor::TensorCP TensorOpFactory::make_tensor_gemm_op(const tensor::GemmOp&, con
       fmt::format("{} does not support the Gemm operation", get_provider_name()));
 }
 
+tensor::TensorCP TensorOpFactory::make_tensor_hamm_op(const tensor::HammOp&, const tensor::TensorCP,
+                                                      const tensor::TensorCP, std::size_t) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Hamm operation", get_provider_name()));
+}
+
 tensor::TensorCP TensorOpFactory::make_tensor_sqr_op(const tensor::TensorCP, std::size_t) {
   throw std::logic_error(fmt::format("{} does not support the Sqr operation", get_provider_name()));
 }
@@ -145,7 +151,20 @@ tensor::TensorCP TensorOpFactory::make_tensor_negate(const tensor::TensorCP) {
       fmt::format("{} does not support the Negate operation", get_provider_name()));
 }
 
-tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP,const uint64_t k) {
+tensor::TensorCP TensorOpFactory::make_tensor_constMul_op(const tensor::TensorCP,const std::vector<uint64_t>, std::size_t) {
+  throw std::logic_error(
+      fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
+}
+
+// Haritha cosnt matrix mult***** (Given model in clear to both parties and data the inform of shares)
+tensor::TensorCP TensorOpFactory::make_tensor_constMatrix_Mul_op(const tensor::GemmOp& gemm_op, 
+                                                            const std::vector<uint64_t> W, const tensor::TensorCP X, 
+                                                            const std::size_t fractional_bits){
+throw std::logic_error(
+      fmt::format("{} does not support the Const Matrix Multiplication operation", get_provider_name())); 
+}
+
+tensor::TensorCP TensorOpFactory::make_tensor_constAdd_op(const tensor::TensorCP,const std::vector<uint64_t>) {
   throw std::logic_error(
       fmt::format("{} does not support the Const Multiplication operation", get_provider_name()));
 }

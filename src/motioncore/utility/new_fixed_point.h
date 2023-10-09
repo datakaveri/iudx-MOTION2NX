@@ -28,6 +28,7 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iostream>
 #include <limits>
 #include <type_traits>
 
@@ -94,7 +95,7 @@ F decode(I y, std::size_t fractional_bits) {
     // std :: cout << double(y) << " " << z;
     return ans;
   } else {
-    I z = (new_value - y);
+    I z = (new_value - y + 1);
     long double ans = (z) / std::exp2(fractional_bits);
     // std :: cout << "\n Inside negative \n";
     // std::cout.precision(17);
