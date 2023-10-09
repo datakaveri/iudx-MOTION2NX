@@ -74,7 +74,7 @@ image_id=`echo $smpc_config | jq -r .image_id`
 # echo "image_id $image_id"
 # echo "fractional bits: $fractional_bits"
 # echo "no. of splits: $splits"
-# echo "smpc_config_path: $smpc_config_path
+# echo "smpc_config_path: $smpc_config_path"
 ##########################################################################################################################################
 
 if [ ! -d "$debug_0" ];
@@ -114,6 +114,7 @@ if [ -f AverageTime0 ]; then
    rm AverageTime0
    # echo "AverageTime0 is removed"
 fi
+
 
 ######################### Weights Share Receiver ############################################################################################
 echo "Weight shares receiver starts"
