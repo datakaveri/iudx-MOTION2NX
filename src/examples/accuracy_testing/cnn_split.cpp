@@ -669,10 +669,10 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   input_promises_CW1[0].set_value(options.W_file.Delta);
   input_promises_CW1[1].set_value(options.W_file.delta);
 
-  input_promises_CB1[0].set_value(options.B_file.Delta);                // Dummy Bias values (5, 1, 1, 1) for mnist
+  input_promises_CB1[0].set_value(options.B_file.Delta);                // Dummy input
   input_promises_CB1[1].set_value(options.B_file.delta);
 
-  input_promises_CB[0].set_value(options.B_file.Delta);                 // Blown up Bias values (845(5x13x13), 1) for mnist
+  input_promises_CB[0].set_value(options.B_file.Delta);                 // Blown up Bias values
   input_promises_CB[1].set_value(options.B_file.delta);
 
 //***********************************************************************
