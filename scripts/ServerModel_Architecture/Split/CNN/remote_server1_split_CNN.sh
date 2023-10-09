@@ -214,7 +214,7 @@ for ((layer_id=1; layer_id<$number_of_layers; layer_id++)); do
    then
       input_config="cnn_outputshare"
       
-      $build_path/bin/cnn --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/cnn1_layer${layer_id}.txt &
+      $build_path/bin/conv --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --current-path $build_path > $debug_1/cnn1_layer${layer_id}.txt &
       pid1=$!
       wait $pid1 
       check_exit_statuses $?
@@ -240,7 +240,7 @@ for ((layer_id=1; layer_id<$number_of_layers; layer_id++)); do
          let l=$((m-1)) 
          let a=$((l*x+1))
          let b=$((m*x))
-         $build_path/bin/cnn_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --kernel_start $a --kernel_end $b --current-path $build_path > $debug_1/cnn1_layer${layer_id}_split.txt &
+         $build_path/bin/conv_split --my-id 1 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits $fractional_bits --config-file-input $input_config --config-file-model file_config_model1 --layer-id $layer_id --kernel_start $a --kernel_end $b --current-path $build_path > $debug_1/cnn1_layer${layer_id}_split.txt &
          pid1=$!
          wait $pid1
          check_exit_statuses $? 
