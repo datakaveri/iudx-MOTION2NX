@@ -1,3 +1,4 @@
+
 /*
 inputpath changed to imageprovider
 imageprovider is file name inside server 0 and server 1 respectively
@@ -6,10 +7,18 @@ from bash file we are giving ip1 and in this file it is appended to ip1_0 and ip
 
 At the argument "--filepath " give the path of the file containing shares from build_deb.... folder
 Server-0
-./bin/training_all_labels --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares --config-file-model file_config_model0 --actual-labels Actual_all_labels --current-path ${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 2 --w1t-filename SharesForW1T0 --w2t-filename SharesForW2T0
+./bin/training_all_labels --my-id 0 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol
+beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares
+--config-file-model file_config_model0 --actual-labels Actual_all_labels --current-path
+${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 2 --w1t-filename SharesForW1T0 --w2t-filename
+SharesForW2T0
 
 Server-1
-./bin/training_all_labels --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares --config-file-model file_config_model1 --actual-labels Actual_all_labels --current-path ${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 2 --w1t-filename SharesForW1T1 --w2t-filename SharesForW2T1
+./bin/training_all_labels --my-id 1 --party 0,::1,7000 --party 1,::1,7001 --arithmetic-protocol
+beavy --boolean-protocol yao --fractional-bits 13 --config-file-input Sample_shares
+--config-file-model file_config_model1 --actual-labels Actual_all_labels --current-path
+${BASE_DIR}/build_debwithrelinfo_gcc --sample-size 2 --w1t-filename SharesForW1T1 --w2t-filename
+SharesForW2T1
 
 */
 // MIT License
@@ -33,12 +42,6 @@ Server-1
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
-
-
-
-
-
 
 #include <algorithm>
 #include <chrono>
@@ -209,7 +212,7 @@ struct Options {
   int sample_size;
   Matrix image_file[20], actual_labels;
   Matrix X, Xtranspose;
-  Matrix W1T; //theta
+  Matrix W1T;  // theta
   Matrix W2T;
   Matrix row;
   Matrix col;
@@ -315,9 +318,10 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << "Sample size should match actual labels \n";
   }
 
-    t1 = path + "/" + options.W1T_filename;
-  //t1 = path + "/server" + std::to_string(options.my_id) + "/Image_shares/" + options.W1T_filename;
-  // Read 10 * 784 size theta
+  t1 = path + "/" + options.W1T_filename;
+  // t1 = path + "/server" + std::to_string(options.my_id) + "/Image_shares/" +
+  // options.W1T_filename;
+  //  Read 10 * 784 size theta
   std::cout << "Path from where W1 transpose files are read:" << t1 << "\n";
   Theta1_n.Set_data(t1);
   options.W1T.row = Theta1_n.get_rows();
@@ -516,45 +520,40 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   Y_dims.height_ = options.actual_labels.row;
   Y_dims.width_ = options.actual_labels.col;
   std::cout << Y_dims.height_ << " " << Y_dims.width_ << std::endl;
-  const MOTION::tensor::GemmOp gemm_op2 = {
-      .input_A_shape_ = {options.W2T.row, options.W2T.col},
-      .input_B_shape_ = gemm_op1.compute_output_shape(),
-      .output_shape_ = {Y_dims.height_, Y_dims.width_}};
+  const MOTION::tensor::GemmOp gemm_op2 = {.input_A_shape_ = {options.W2T.row, options.W2T.col},
+                                           .input_B_shape_ = gemm_op1.compute_output_shape(),
+                                           .output_shape_ = {Y_dims.height_, Y_dims.width_}};
   const auto W2T_dims = gemm_op2.get_input_A_tensor_dims();
 
-  const MOTION::tensor::GemmOp gemm_op3 = {
-      .input_A_shape_ = {Y_dims.height_, Y_dims.width_},
-      .input_B_shape_ = gemm_op1.compute_output_shape(),
-      .output_shape_ = {W2T_dims.height_, W2T_dims.width_},
-      .transB_ = true};
-  
+  const MOTION::tensor::GemmOp gemm_op3 = {.input_A_shape_ = {Y_dims.height_, Y_dims.width_},
+                                           .input_B_shape_ = gemm_op1.compute_output_shape(),
+                                           .output_shape_ = {W2T_dims.height_, W2T_dims.width_},
+                                           .transB_ = true};
+
   std::cout << "Gemm op 3 dimensions: \n";
   std::cout << "Input A: " << Y_dims.height_ << " " << Y_dims.width_ << "\n";
-  std::cout << "Input B: " << gemm_op1.compute_output_shape()[0] << " " << gemm_op1.compute_output_shape()[1] << "\n";
-  std::cout << "Output: " << W2T_dims.height_<< " " << W2T_dims.width_ << "\n";
+  std::cout << "Input B: " << gemm_op1.compute_output_shape()[0] << " "
+            << gemm_op1.compute_output_shape()[1] << "\n";
+  std::cout << "Output: " << W2T_dims.height_ << " " << W2T_dims.width_ << "\n";
 
-  const MOTION::tensor::GemmOp gemm_op4 = {
-      .input_A_shape_ = {W2T_dims.height_, W2T_dims.width_},
-      .input_B_shape_ = {Y_dims.height_, Y_dims.width_},
-      .output_shape_ = {W2T_dims.width_, Y_dims.width_},
-      .transA_ = true};
+  const MOTION::tensor::GemmOp gemm_op4 = {.input_A_shape_ = {W2T_dims.height_, W2T_dims.width_},
+                                           .input_B_shape_ = {Y_dims.height_, Y_dims.width_},
+                                           .output_shape_ = {W2T_dims.width_, Y_dims.width_},
+                                           .transA_ = true};
 
   std::cout << "Gemm op 4 dimensions: \n";
   std::cout << "Input A: " << W2T_dims.height_ << " " << W2T_dims.width_ << "\n";
-  std::cout << "Input B: " << Y_dims.height_ << " "  << Y_dims.width_ << "\n";
+  std::cout << "Input B: " << Y_dims.height_ << " " << Y_dims.width_ << "\n";
   std::cout << "Output: " << W2T_dims.width_ << " " << Y_dims.height_ << "\n";
 
+  const MOTION::tensor::HammOp hamm_op1 = {.input_A_shape_ = gemm_op4.compute_output_shape(),
+                                           .input_B_shape_ = gemm_op1.compute_output_shape(),
+                                           .output_shape_ = gemm_op1.compute_output_shape()};
 
-  const MOTION::tensor::HammOp hamm_op1 = {
-      .input_A_shape_ = gemm_op4.compute_output_shape(),
-      .input_B_shape_ = gemm_op1.compute_output_shape(),
-      .output_shape_ = gemm_op1.compute_output_shape()};
-  
-  const MOTION::tensor::GemmOp gemm_op5 = {
-      .input_A_shape_ = hamm_op1.compute_output_shape(),
-      .input_B_shape_ = {options.X.row, options.X.col},
-      .output_shape_ = {options.W1T.row, options.W1T.col},
-      .transB_ = true};
+  const MOTION::tensor::GemmOp gemm_op5 = {.input_A_shape_ = hamm_op1.compute_output_shape(),
+                                           .input_B_shape_ = {options.X.row, options.X.col},
+                                           .output_shape_ = {options.W1T.row, options.W1T.col},
+                                           .transB_ = true};
 
   /////////////////////////////////////////////////////////////////////////
   MOTION::tensor::TensorCP tensor_X, tensor_Y, tensor_W1T, tensor_W2T, tensor_X0, tensor_Xtranspose;
@@ -610,14 +609,14 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   input_promises_X0[1].set_value(options.image_file[0].delta);
   /////////////////////////////Sigmoid//////////////////////////////////
 
-  
-  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation,make_relu;
-  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&), std::size_t> make_indicator, make_sigmoid;
+  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&)> make_activation,
+      make_relu;
+  std::function<MOTION::tensor::TensorCP(const MOTION::tensor::TensorCP&, std::size_t)>
+      make_indicator, make_sigmoid;
   // -RELU(-X)u
   make_activation = [&](const auto& input) {
-  //  const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
-    const auto boolean_tensor =
-        boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, input);
+    //  const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
+    const auto boolean_tensor = boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, input);
     const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor);
     return boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
   };
@@ -627,40 +626,46 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
     const auto negated_tensor = arithmetic_tof.make_tensor_negate(input);
     const auto boolean_tensor =
         boolean_tof.make_tensor_conversion(MOTION::MPCProtocol::Yao, negated_tensor);
-    const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor); // -RELU(-X)
+    const auto relu_tensor = boolean_tof.make_tensor_relu_op(boolean_tensor);  // -RELU(-X)
     const auto finBoolean_tensor =
         boolean_tof.make_tensor_conversion(options.arithmetic_protocol, relu_tensor);
     return arithmetic_tof.make_tensor_negate(finBoolean_tensor);
   };
-  
+
   make_sigmoid = [&](const auto& input, std::size_t input_size) {
-    const std::vector<uint64_t>constant_vector1(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(-0.5, options.fractional_bits));
-    const auto input_const_add = arithmetic_tof.make_tensor_constAdd_op(
-        input, constant_vector1);
+    const std::vector<uint64_t> constant_vector1(
+        input_size,
+        MOTION::new_fixed_point::encode<uint64_t, float>(-0.5, options.fractional_bits));
+    const auto input_const_add = arithmetic_tof.make_tensor_constAdd_op(input, constant_vector1);
     const auto first_relu_output = make_activation(input_const_add);
-    const std::vector<uint64_t>constant_vector2(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
-    const auto input_const_add2 = arithmetic_tof.make_tensor_constAdd_op(
-        first_relu_output, constant_vector2);
+    const std::vector<uint64_t> constant_vector2(
+        input_size, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
+    const auto input_const_add2 =
+        arithmetic_tof.make_tensor_constAdd_op(first_relu_output, constant_vector2);
     const auto negated_tensor = arithmetic_tof.make_tensor_negate(input_const_add2);
     const auto final_relu_output = make_activation(negated_tensor);
     return arithmetic_tof.make_tensor_negate(final_relu_output);
   };
 
   make_indicator = [&](const auto& input, std::size_t input_size) {
-    const auto first_relu_output = make_activation(input);    // Returns -RELU(-X)
+    const auto first_relu_output = make_activation(input);  // Returns -RELU(-X)
 
-    // Declaring a constant uint64 vector of same size as input and initializing every element with encoded 9000
-    std::vector<uint64_t> const_vector(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(9000, options.fractional_bits));
+    // Declaring a constant uint64 vector of same size as input and initializing every element with
+    // encoded 9000
+    std::vector<uint64_t> const_vector(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(
+                                                       9000, options.fractional_bits));
 
     // Multiplying the tensor with the constant vector (element wise)
-    const auto mult_output = arithmetic_tof.make_tensor_constMul_op(first_relu_output, const_vector, options.fractional_bits);
+    const auto mult_output = arithmetic_tof.make_tensor_constMul_op(first_relu_output, const_vector,
+                                                                    options.fractional_bits);
     // Reached 9000 * -RELU(-X)
     // Adding an encoded one to the tensor
-    std::vector<uint64_t> const_vector2(input_size, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
-    const auto add_output = arithmetic_tof.make_tensor_constAdd_op(mult_output,const_vector2);
+    std::vector<uint64_t> const_vector2(
+        input_size, MOTION::new_fixed_point::encode<uint64_t, float>(1, options.fractional_bits));
+    const auto add_output = arithmetic_tof.make_tensor_constAdd_op(mult_output, const_vector2);
     // Reached 1 + 9000 * -RELU(-X)
 
-    return make_relu(add_output); // make_relu returns RELU(Y)
+    return make_relu(add_output);  // make_relu returns RELU(Y)
     // Returning RELU( 1 + 9000 * -RELU(-X) )
   };
 
@@ -669,7 +674,7 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   auto tensor_Z1 =
       arithmetic_tof.make_tensor_gemm_op(gemm_op1, tensor_W1T, tensor_X, options.fractional_bits);
   auto tensor_A1 = make_relu(tensor_Z1);
-  auto tensor_Z2 = 
+  auto tensor_Z2 =
       arithmetic_tof.make_tensor_gemm_op(gemm_op2, tensor_W2T, tensor_A1, options.fractional_bits);
   std::cout << "gemm op 2" << std::endl;
   auto tensor_A2 = make_sigmoid(tensor_Z2, gemm_op2.compute_output_size());
@@ -678,52 +683,67 @@ auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBack
   std::cout << "negation" << std::endl;
   auto tensor_H = arithmetic_tof.make_tensor_add_op(tensor_A2, negated_Y);
   std::cout << "addition" << std::endl;
-  auto tensor_dLdW2T = arithmetic_tof.make_tensor_gemm_op(gemm_op3, tensor_H, tensor_A1,
-                                                      options.fractional_bits);
+  auto tensor_dLdW2T =
+      arithmetic_tof.make_tensor_gemm_op(gemm_op3, tensor_H, tensor_A1, options.fractional_bits);
   std::cout << "gemm op 3" << std::endl;
-  auto tensor_gemm_op4_output = arithmetic_tof.make_tensor_gemm_op(gemm_op4, tensor_W2T, tensor_H,
-                                                      options.fractional_bits);
+  auto tensor_gemm_op4_output =
+      arithmetic_tof.make_tensor_gemm_op(gemm_op4, tensor_W2T, tensor_H, options.fractional_bits);
   std::cout << "gemm op 4" << std::endl;
   auto tensor_indicator_Z1 = make_indicator(tensor_Z1, gemm_op1.compute_output_size());
   std::cout << "indicator matrix" << std::endl;
-  auto tensor_hadamard_output = arithmetic_tof.make_tensor_hamm_op(hamm_op1, tensor_gemm_op4_output, tensor_indicator_Z1,
-                                                      options.fractional_bits);                                                                    
+  auto tensor_hadamard_output = arithmetic_tof.make_tensor_hamm_op(
+      hamm_op1, tensor_gemm_op4_output, tensor_indicator_Z1, options.fractional_bits);
   std::cout << "Hadamard" << std::endl;
-  auto tensor_dLdW1T = arithmetic_tof.make_tensor_gemm_op(gemm_op5, tensor_hadamard_output, tensor_X,
-                                                      options.fractional_bits);
+  auto tensor_dLdW1T = arithmetic_tof.make_tensor_gemm_op(gemm_op5, tensor_hadamard_output,
+                                                          tensor_X, options.fractional_bits);
   std::cout << "Gemm op 5" << std::endl;
   float alpham = 0.005;
-  auto encoded_alpham = MOTION::new_fixed_point::encode<uint64_t, float>(alpham, options.fractional_bits);
+  auto encoded_alpham =
+      MOTION::new_fixed_point::encode<uint64_t, float>(alpham, options.fractional_bits);
   std::cout << "Encoded alpha m:" << encoded_alpham << "\n";
-  std::vector<uint64_t> constant_vector2(gemm_op3.get_output_tensor_dims().height_ * gemm_op3.get_output_tensor_dims().width_, encoded_alpham);
-  auto tensor_dLdW2_alpham = arithmetic_tof.make_tensor_constMul_op(tensor_dLdW2T, constant_vector2, options.fractional_bits);
+  std::vector<uint64_t> constant_vector2(
+      gemm_op3.get_output_tensor_dims().height_ * gemm_op3.get_output_tensor_dims().width_,
+      encoded_alpham);
+  auto tensor_dLdW2_alpham = arithmetic_tof.make_tensor_constMul_op(tensor_dLdW2T, constant_vector2,
+                                                                    options.fractional_bits);
   auto tensor_negated_dLdW2_alpham = arithmetic_tof.make_tensor_negate(tensor_dLdW2_alpham);
   auto Updated_W2T = arithmetic_tof.make_tensor_add_op(tensor_W2T, tensor_negated_dLdW2_alpham);
 
-  std::vector<uint64_t> constant_vector1(gemm_op5.get_output_tensor_dims().height_ * gemm_op5.get_output_tensor_dims().width_, encoded_alpham);
-  auto tensor_dLdW1_alpham = arithmetic_tof.make_tensor_constMul_op(tensor_dLdW1T, constant_vector1, options.fractional_bits);
+  std::vector<uint64_t> constant_vector1(
+      gemm_op5.get_output_tensor_dims().height_ * gemm_op5.get_output_tensor_dims().width_,
+      encoded_alpham);
+  auto tensor_dLdW1_alpham = arithmetic_tof.make_tensor_constMul_op(tensor_dLdW1T, constant_vector1,
+                                                                    options.fractional_bits);
   auto tensor_negated_dLdW1_alpham = arithmetic_tof.make_tensor_negate(tensor_dLdW1_alpham);
   auto Updated_W1T = arithmetic_tof.make_tensor_add_op(tensor_W1T, tensor_negated_dLdW1_alpham);
-  
+
   std::cout << "Gemm operation ends \n";
-  ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future, main_output_future,
-      main_output;
+  ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future, main_output_future1,
+      main_output_future2, main_output;
 
   if (options.my_id == 0) {
     arithmetic_tof.make_arithmetic_tensor_output_other(Updated_W2T);
   } else {
-    main_output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(Updated_W2T);
+    main_output_future1 = arithmetic_tof.make_arithmetic_64_tensor_output_my(Updated_W2T);
+  }
+
+  if (options.my_id == 0) {
+    arithmetic_tof.make_arithmetic_tensor_output_other(Updated_W1T);
+  } else {
+    main_output_future2 = arithmetic_tof.make_arithmetic_64_tensor_output_my(Updated_W1T);
   }
 
   tensor_W2T = Updated_W2T;
   tensor_W1T = Updated_W1T;
 
-  return std::move(main_output_future);
+  return make_pair(std::move(main_output_future1), std::move(main_output_future2));
 }
 
 void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
   int iterations = 3;
-  ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
+  std::pair<ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>>,
+            ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>>>
+      output_future;
   for (int i = 0; i < iterations; i++) {
     std::cout << "iteration " << i + 1 << "  *****************\n";
     output_future = create_composite_circuit(options, backend);
@@ -732,7 +752,8 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
   backend.run();
   std::cout << "Backend.run ends \n";
   if (options.my_id == 1) {
-    auto main = output_future.get();
+    auto main1 = output_future.first.get();
+    auto main2 = output_future.second.get();
     //   std::vector<long double> mod_x;
     //   // std::string path = std::filesystem::current_path();
     //   std::string path = options.currentpath;
@@ -740,11 +761,12 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
     //   std::ofstream x;
     //   x.open(filename, std::ios_base::app);
     //   x << options.imageprovider << "\n";
+    /*
     int k = 783;
     int z = 1;
-    for (int i = 0; i < main.size(); ++i) {
+    for (int i = 0; i < main1.size(); ++i) {
       long double temp =
-          MOTION::new_fixed_point::decode<uint64_t, long double>(main[i], options.fractional_bits);
+          MOTION::new_fixed_point::decode<uint64_t, long double>(main1[i], options.fractional_bits);
       std::cout << temp << ",";
       if (i > k) {
         std::cout
@@ -753,6 +775,9 @@ void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend
         k = z * 784 - 1;
       }
     }
+    */
+    std::cout << main1.size() << std::endl;
+    std::cout << main2.size() << std::endl;
 
     // if (options.layer_id == 2) {
     //   std::cout << temp << ",";
@@ -816,3 +841,6 @@ int main(int argc, char* argv[]) {
   }
   return EXIT_SUCCESS;
 }
+apps-fileview.texmex_20231005.00_p0
+training_all_labels.cpp
+Displaying training_all_labels.cpp.
