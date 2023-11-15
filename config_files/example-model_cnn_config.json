@@ -1,0 +1,23 @@
+{
+    "no_of_layers" : 6,
+    "Layers" : {
+        "1" : { 
+            "Weights" : {"type": "CN", "kernels": 32, "channels": 3, "rows" : 3, "columns" : 3, "pads": [1,1,1,1], "strides": [1,1], "file_name" : "CIFAR10/W1.csv"}, 
+            "Bias" : {"rows" : 32, "columns" : 1, "file_name" : "CIFAR10/B1.csv"}},
+        "2" : {
+            "Weights" : {"type": "CN", "kernels": 32, "channels": 32, "rows" : 5, "columns" : 5, "pads": [1,1,1,1], "strides": [2,2], "file_name" : "CIFAR10/W2.csv"}, 
+            "Bias" : {"rows" : 32, "columns" : 1, "file_name" : "CIFAR10/B2.csv"}},
+        "3" : {
+            "Weights" : {"type": "CN", "kernels": 64, "channels": 32, "rows" : 5, "columns" : 5, "pads": [2,2,2,2], "strides": [2,2], "file_name" : "CIFAR10/W3.csv"}, 
+            "Bias" : {"rows" : 64, "columns" : 1, "file_name" : "CIFAR10/B3.csv"}},
+        "4" : {
+            "Weights" : {"type": "CN", "kernels": 64, "channels": 64, "rows" : 3, "columns" : 3, "pads": [0,0,0,0], "strides": [1,1], "file_name" : "CIFAR10/W4.csv"}, 
+            "Bias" : {"rows" : 64, "columns" : 1, "file_name" : "CIFAR10/B4.csv"}},
+        "5" : {
+            "Weights" : {"rows" : 512, "columns" : 2304, "file_name" : "CIFAR10/W5.csv"}, 
+            "Bias" : {"rows" : 512, "columns" : 1, "file_name" : "CIFAR10/B5.csv"}},
+        "6" : {
+            "Weights" : {"rows" : 10, "columns" : 512, "file_name" : "CIFAR10/W6.csv"}, 
+            "Bias" : {"rows" : 10, "columns" : 1, "file_name" : "CIFAR10/B6.csv"}}
+    }
+}
