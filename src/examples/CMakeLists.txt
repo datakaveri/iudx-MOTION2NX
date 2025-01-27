@@ -32,6 +32,7 @@ add_subdirectory(accuracy_testing)
 add_subdirectory(conversion_1)
 add_subdirectory(logistic_regression_5piece_sigmoid)
 add_subdirectory(server)
+add_subdirectory(Secure_NN)
 
 if (MOTION_BUILD_ONNX_ADAPTER)
   add_subdirectory(onnx2motion)

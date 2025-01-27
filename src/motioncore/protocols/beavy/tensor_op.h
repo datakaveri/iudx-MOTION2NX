@@ -97,7 +97,30 @@ class ArithmeticBEAVYTensorInputSender : public NewGate {
   ArithmeticBEAVYTensorP<T> output_;
   constexpr static std::size_t bit_size_ = ENCRYPTO::bit_size_v<T>;
 };
+/***************************CRG-KH*************************/
+template <typename T>
+class CRG_ArithmeticBEAVYTensorInputSender : public NewGate {
+ public:
+  CRG_ArithmeticBEAVYTensorInputSender(std::size_t gate_id, BEAVYProvider&,
+                                 const tensor::TensorDimensions& dimensions,
+                                 ENCRYPTO::ReusableFiberFuture<std::vector<T>>&&);
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  std::shared_ptr<const ArithmeticBEAVYTensor<T>> get_output_tensor() const noexcept {
+    return output_;
+  }
 
+ private:
+  BEAVYProvider& beavy_provider_;
+  const tensor::TensorDimensions dimensions_;
+  std::size_t input_id_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> input_future_;
+  ArithmeticBEAVYTensorP<T> output_;
+  constexpr static std::size_t bit_size_ = ENCRYPTO::bit_size_v<T>;
+};
+/***************************CRG-KH*************************/
 template <typename T>
 class ArithmeticBEAVYTensorInputReceiver : public NewGate {
  public:
@@ -119,6 +142,29 @@ class ArithmeticBEAVYTensorInputReceiver : public NewGate {
   ENCRYPTO::ReusableFiberFuture<std::vector<T>> public_share_future_;
   constexpr static std::size_t bit_size_ = ENCRYPTO::bit_size_v<T>;
 };
+/*****************CRG-KH***********************************/
+template <typename T>
+class CRG_ArithmeticBEAVYTensorInputReceiver : public NewGate {
+ public:
+  CRG_ArithmeticBEAVYTensorInputReceiver(std::size_t gate_id, BEAVYProvider&,
+                                   const tensor::TensorDimensions& dimensions);
+  bool need_setup() const noexcept override { return true; }
+  bool need_online() const noexcept override { return true; }
+  void evaluate_setup() override;
+  void evaluate_online() override;
+  std::shared_ptr<const ArithmeticBEAVYTensor<T>> get_output_tensor() const noexcept {
+    return output_;
+  }
+
+ private:
+  BEAVYProvider& beavy_provider_;
+  const tensor::TensorDimensions dimensions_;
+  std::size_t input_id_;
+  ArithmeticBEAVYTensorP<T> output_;
+  ENCRYPTO::ReusableFiberFuture<std::vector<T>> public_share_future_;
+  constexpr static std::size_t bit_size_ = ENCRYPTO::bit_size_v<T>;
+};
+/*****************CRG-KH***********************************/
 
 template <typename T>
 class ArithmeticBEAVYTensorInputShares : public NewGate {

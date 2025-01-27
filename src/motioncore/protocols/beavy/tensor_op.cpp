@@ -96,13 +96,17 @@ void ArithmeticBEAVYTensorInputSender<T>::evaluate_setup() {
   const auto data_size = dimensions_.get_data_size();
   auto& my_secret_share = output_->get_secret_share();
   auto& my_public_share = output_->get_public_share();
+  
   my_secret_share = Helpers::RandomVector<T>(data_size);
+
   output_->set_setup_ready();
   auto& mbp = beavy_provider_.get_motion_base_provider();
   auto& rng = mbp.get_my_randomness_generator(1 - my_id);
   rng.GetUnsigned<T>(input_id_, data_size, my_public_share.data());
+
   __gnu_parallel::transform(std::begin(my_public_share), std::end(my_public_share),
-                            std::begin(my_secret_share), std::begin(my_public_share), std::plus{});
+                            std::begin(my_secret_share), std::begin(my_public_share),
+                            std:: plus{});
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
@@ -129,11 +133,11 @@ void ArithmeticBEAVYTensorInputSender<T>::evaluate_online() {
     throw std::runtime_error("size of input vector != product of expected dimensions");
   }
 
-  // compute public share
-  auto& my_public_share = output_->get_public_share();
-  __gnu_parallel::transform(std::begin(input), std::end(input), std::begin(my_public_share),
-                            std::begin(my_public_share), std::plus{});
-  output_->set_online_ready();
+  // // compute public share
+ auto& my_public_share = output_->get_public_share();
+   __gnu_parallel::transform(std::begin(input), std::end(input), std::begin(my_public_share),
+                             std::begin(my_public_share), std::plus{});
+   output_->set_online_ready();
   beavy_provider_.broadcast_ints_message(gate_id_, my_public_share);
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -147,6 +151,143 @@ void ArithmeticBEAVYTensorInputSender<T>::evaluate_online() {
 
 template class ArithmeticBEAVYTensorInputSender<std::uint32_t>;
 template class ArithmeticBEAVYTensorInputSender<std::uint64_t>;
+
+/***************************CRG-KH***********************************************/
+template <typename T>
+CRG_ArithmeticBEAVYTensorInputSender<T>::CRG_ArithmeticBEAVYTensorInputSender(
+    std::size_t gate_id, BEAVYProvider& beavy_provider, const tensor::TensorDimensions& dimensions,
+    ENCRYPTO::ReusableFiberFuture<std::vector<T>>&& input_future)
+    : NewGate(gate_id),
+      beavy_provider_(beavy_provider),
+      dimensions_(dimensions),
+      input_id_(beavy_provider.get_next_input_id(1)),
+      input_future_(std::move(input_future)),
+      output_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions)) {
+  if (beavy_provider_.get_num_parties() != 2) {
+    throw std::logic_error("only two parties are currently supported");
+  }
+  output_->get_public_share().resize(dimensions.get_data_size());
+  output_->get_secret_share().resize(dimensions.get_data_size());
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: CRG_ArithmeticBEAVYTensorInputSender<T> created", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void CRG_ArithmeticBEAVYTensorInputSender<T>::evaluate_setup() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}: CRG_ArithmeticBEAVYTensorInputSender<T>::evaluate_setup start", gate_id_));
+    }
+  }
+
+  const auto my_id = beavy_provider_.get_my_id();
+  const auto data_size = dimensions_.get_data_size();
+  //std::cout<<"KH data size: "<<data_size<<"\n";
+  auto& my_secret_share = output_->get_secret_share();
+  auto& my_public_share = output_->get_public_share();
+  
+  my_secret_share = Helpers::RandomVector<T>(data_size);
+  
+  output_->set_setup_ready();
+  auto& mbp = beavy_provider_.get_motion_base_provider();
+  auto& rng = mbp.get_my_randomness_generator(1 - my_id);
+  rng.GetUnsigned<T>(input_id_, data_size, my_public_share.data());
+
+  // writing party-0's public share to a file, which is same as common randomness for part-1 (KH)
+  if (!my_id)
+    {
+    std::string homedir = getenv("BASE_DIR");
+    std::cout << homedir << std::endl;
+    
+    std::string file_name_64 = homedir + "/build_debwithrelinfo_gcc/64_crg_";
+    std::string file_name_bit = homedir + "/build_debwithrelinfo_gcc/bit_crg_";
+    std::string file_name_p = homedir + "/build_debwithrelinfo_gcc/p_crg_";
+
+    file_name_64 += std::to_string(my_id);
+    file_name_bit += std::to_string(my_id);
+    file_name_p += std::to_string(my_id);
+
+    std::ofstream file_64(file_name_64, std::ios::out);
+    if (!file_64){
+      std::cout << "Error in opening the file : " << file_name_64 << "\n";
+    }
+
+    std::ofstream file_bit(file_name_bit, std::ios::out);
+    if (!file_bit){
+      std::cout << "Error in opening the file : " << file_name_bit << "\n";
+    }
+    
+    std::ofstream file_p(file_name_p, std::ios::out);
+    if (!file_p){
+      std::cout << "Error in opening the file : " << file_name_p << "\n";
+    }
+
+    // std::cout<<"Printing Public shares  to file\n";
+    for(int i = 0; i < data_size; i++){
+      file_64 << my_public_share[i]<< std::endl;
+      file_bit << (my_public_share[i] & 1) << std::endl;
+      file_p << my_public_share[i] % 67 << std::endl;
+      }
+    }
+
+  __gnu_parallel::transform(std::begin(my_public_share), std::end(my_public_share),
+                            std::begin(my_secret_share), std::begin(my_public_share),
+                            std:: plus{});
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}: CRG_ArithmeticBEAVYTensorInputSender<T>::evaluate_setup end", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void CRG_ArithmeticBEAVYTensorInputSender<T>::evaluate_online() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}: CRG_ArithmeticBEAVYTensorInputSender<T>::evaluate_online start", gate_id_));
+    }
+  }
+//in online we dont compute /Delta x, we just need public shares in a file that
+// we got in offline phase we dont do anything here, no need to wait for input and broadcast 
+//\Delta x
+  // wait for input value
+  // const auto input = input_future_.get();
+  // if (input.size() != output_->get_dimensions().get_data_size()) {
+  //   throw std::runtime_error("size of input vector != product of expected dimensions");
+  // }
+
+  // // compute public share
+ auto& my_public_share = output_->get_public_share();
+  // __gnu_parallel::transform(std::begin(input), std::end(input), std::begin(my_public_share),
+  //                           std::begin(my_public_share), std::plus{});
+   output_->set_online_ready();
+  //beavy_provider_.broadcast_ints_message(gate_id_, my_public_share);
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}: CRG_ArithmeticBEAVYTensorInputSender<T>::evaluate_online end", gate_id_));
+    }
+  }
+}
+
+template class CRG_ArithmeticBEAVYTensorInputSender<std::uint32_t>;
+template class CRG_ArithmeticBEAVYTensorInputSender<std::uint64_t>;
+/****************************CRG-KH********************************************/
 
 template <typename T>
 ArithmeticBEAVYTensorInputReceiver<T>::ArithmeticBEAVYTensorInputReceiver(
@@ -182,9 +323,14 @@ void ArithmeticBEAVYTensorInputReceiver<T>::evaluate_setup() {
 
   const auto my_id = beavy_provider_.get_my_id();
   auto& mbp = beavy_provider_.get_motion_base_provider();
+  
   auto& rng = mbp.get_their_randomness_generator(1 - my_id);
   rng.GetUnsigned<T>(input_id_, output_->get_dimensions().get_data_size(),
                      output_->get_secret_share().data());
+  
+  int len =  output_->get_dimensions().get_data_size();
+  std::cout << "Printing their randomness \n";
+  
   output_->set_setup_ready();
 
   if constexpr (MOTION_VERBOSE_DEBUG) {
@@ -205,7 +351,7 @@ void ArithmeticBEAVYTensorInputReceiver<T>::evaluate_online() {
           "Gate {}: ArithmeticBEAVYTensorInputReceiver<T>::evaluate_online start", gate_id_));
     }
   }
-
+  
   output_->get_public_share() = public_share_future_.get();
   output_->set_online_ready();
 
@@ -220,6 +366,119 @@ void ArithmeticBEAVYTensorInputReceiver<T>::evaluate_online() {
 
 template class ArithmeticBEAVYTensorInputReceiver<std::uint32_t>;
 template class ArithmeticBEAVYTensorInputReceiver<std::uint64_t>;
+/******************CRG-KH**********************************/
+template <typename T>
+CRG_ArithmeticBEAVYTensorInputReceiver<T>::CRG_ArithmeticBEAVYTensorInputReceiver(
+    std::size_t gate_id, BEAVYProvider& beavy_provider, const tensor::TensorDimensions& dimensions)
+    : NewGate(gate_id),
+      beavy_provider_(beavy_provider),
+      dimensions_(dimensions),
+      input_id_(beavy_provider.get_next_input_id(1)),
+      output_(std::make_shared<ArithmeticBEAVYTensor<T>>(dimensions)) {
+  const auto my_id = beavy_provider_.get_my_id();
+  public_share_future_ =
+      beavy_provider_.register_for_ints_message<T>(1 - my_id, gate_id_, dimensions.get_data_size());
+  output_->get_secret_share().resize(dimensions.get_data_size());
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(
+          fmt::format("Gate {}: CRG_ArithmeticBEAVYTensorInputReceiver<T> created", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void CRG_ArithmeticBEAVYTensorInputReceiver<T>::evaluate_setup() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}: CRG_ArithmeticBEAVYTensorInputReceiver<T>::evaluate_setup start", gate_id_));
+    }
+  }
+
+  const auto my_id = beavy_provider_.get_my_id();
+  auto& mbp = beavy_provider_.get_motion_base_provider();
+  
+  auto& rng = mbp.get_their_randomness_generator(1 - my_id);
+  rng.GetUnsigned<T>(input_id_, output_->get_dimensions().get_data_size(),
+                     output_->get_secret_share().data());
+
+  if (my_id)
+  {
+    size_t data_size = output_->get_dimensions().get_data_size();
+    std::string homedir = getenv("BASE_DIR");
+    std::cout << homedir << std::endl;
+    
+    std::string file_name_64 = homedir + "/build_debwithrelinfo_gcc/64_crg_";
+    std::string file_name_bit = homedir + "/build_debwithrelinfo_gcc/bit_crg_";
+    std::string file_name_p = homedir + "/build_debwithrelinfo_gcc/p_crg_";
+
+    file_name_64 += std::to_string(my_id);
+    file_name_bit += std::to_string(my_id);
+    file_name_p += std::to_string(my_id);
+
+    std::ofstream file_64(file_name_64, std::ios::out);
+    if (!file_64){
+      std::cout << "Error in opening the file : " << file_name_64 << "\n";
+    }
+
+    std::ofstream file_bit(file_name_bit, std::ios::out);
+    if (!file_bit){
+      std::cout << "Error in opening the file : " << file_name_bit << "\n";
+    }
+    
+    std::ofstream file_p(file_name_p, std::ios::out);
+    if (!file_p){
+      std::cout << "Error in opening the file : " << file_name_p << "\n";
+    }
+
+    // std::cout<<"Printing Public shares  to file\n";
+    for(int i = 0; i < data_size; i++){
+      file_64 <<  output_->get_secret_share().data()[i]<< std::endl;
+      file_bit << ( output_->get_secret_share().data()[i] & 1) << std::endl;
+      file_p <<  output_->get_secret_share().data()[i] % 67 << std::endl;
+      }
+  }
+  output_->set_setup_ready();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}:CRG_ArithmeticBEAVYTensorInputReceiver<T>::evaluate_setup end", gate_id_));
+    }
+  }
+}
+
+template <typename T>
+void CRG_ArithmeticBEAVYTensorInputReceiver<T>::evaluate_online() {
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}: CRG_ArithmeticBEAVYTensorInputReceiver<T>::evaluate_online start", gate_id_));
+    }
+  }
+  //Receiver does not wait for \Delta x, vecause he need just public share of x
+  //output_->get_public_share() = public_share_future_.get();
+  output_->set_online_ready();
+
+  if constexpr (MOTION_VERBOSE_DEBUG) {
+    auto logger = beavy_provider_.get_logger();
+    if (logger) {
+      logger->LogTrace(fmt::format(
+          "Gate {}: CRG_ArithmeticBEAVYTensorInputReceiver<T>::evaluate_online end", gate_id_));
+    }
+  }
+}
+template class CRG_ArithmeticBEAVYTensorInputReceiver<std::uint32_t>;
+template class CRG_ArithmeticBEAVYTensorInputReceiver<std::uint64_t>;
+/****************CRG-KH*************************************************/
+
+
 
 // Definition of tensor input to take shares directly
 template <typename T>
@@ -815,6 +1074,7 @@ ArithmeticBEAVYTensorGemm<T>::~ArithmeticBEAVYTensorGemm() = default;
 
 template <typename T>
 void ArithmeticBEAVYTensorGemm<T>::evaluate_setup() {
+  std::cout << "Entered gemm evaluate Setup\n";
   if constexpr (MOTION_VERBOSE_DEBUG) {
     auto logger = beavy_provider_.get_logger();
     if (logger) {
@@ -822,7 +1082,7 @@ void ArithmeticBEAVYTensorGemm<T>::evaluate_setup() {
           fmt::format("Gate {}: ArithmeticBEAVYTensorGemm<T>::evaluate_setup start", gate_id_));
     }
   }
-
+  
   const auto output_size = gemm_op_.compute_output_size();
 
   output_->get_secret_share() = Helpers::RandomVector<T>(output_size);

@@ -30,8 +30,8 @@
 using namespace std::chrono;
 
 std::vector<std::uint64_t> R;
-std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum, prod1;
+std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 bool helpernode_ready_flag = false;
 int operations_done_flag = 0;
 std::uint64_t fractional_bits;

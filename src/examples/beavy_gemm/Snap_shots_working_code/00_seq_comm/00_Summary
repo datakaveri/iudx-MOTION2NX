@@ -1,0 +1,14 @@
+In this we observed that we can not wait for a message in the existing framework
+we used synchronization flags to establish this
+
+send message 1
+wait for the ack for message 1 - we will wait on flag and once we receive ack we set the flag
+then 2nd message can be sent
+
+send message 2
+wait for the ack for message 2
+
+send message 3
+wait for the ack for message 3
+
+

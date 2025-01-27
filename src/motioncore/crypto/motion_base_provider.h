@@ -58,6 +58,7 @@ class MotionBaseProvider : public ENCRYPTO::enable_wait_setup {
     return *my_randomness_generators_.at(party_id);
   }
   SharingRandomnessGenerator& get_their_randomness_generator(std::size_t party_id) {
+    std :: cout << "motion_base_provider.h :: SharingRandomnessGenerator& get_their_randomness_generator l 61\n";
     assert(party_id != my_id_);
     return *their_randomness_generators_.at(party_id);
   }

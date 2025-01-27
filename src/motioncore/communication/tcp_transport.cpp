@@ -201,6 +201,7 @@ std::vector<std::unique_ptr<Transport>> TCPSetupHelper::setup_connections() {
   std::vector<std::future<tcp::socket>> futs;
   for (std::size_t party_id = 0; party_id < my_id_; ++party_id) {
     auto party_config = parties_config_.at(party_id);
+    //std::cout << "In TCP_Transport \n";
     futs.emplace_back(std::async(std::launch::async, [this, party_id, party_config] {
       return impl_->connect_task(party_id, std::get<0>(party_config), std::get<1>(party_config));
     }));
