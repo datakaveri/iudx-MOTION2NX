@@ -278,8 +278,10 @@ A_L.erase(A_L.begin(), A_L.begin()+2);
  InitializeModuloPrimeOps();
  B_odd.resize(A_L.size());
  ShareConvert(A_L, B_odd);
-
- for(int i = 0; i<A_L.size(); i++)
+std::cout << "******************************* \n";
+std::cout << A_L.size() << " L Shares \n ";
+std::cout << "******************************* \n";
+for(int i = 0; i<A_L.size(); i++)
   {
   
     std::cout << A_L[i]<< "\n";
@@ -289,6 +291,7 @@ A_L.erase(A_L.begin(), A_L.begin()+2);
   }
 std::cout << "******************************* \n";
 std::cout << " (L-1) Shares \n ";
+std::cout << "******************************* \n";
 for(int i = 0; i<A_L.size(); i++)
   {
     //std::cout << A_L[i]<< "\n";

@@ -500,20 +500,40 @@ a_L_0[4] = 2213172897949116083;
 a_L_0[5] = 5764390665001582668;
 
 a_L_1[0] = 16594397121368495523;
-a_L_1[1] = 1981042751959509990
-a_L_1[2] = 7360060051673316814
-a_L_1[3] = 7580388614975892547
-a_L_1[4] = 16233571175760468301
-a_L_1[5] = 12682353408708009908
+a_L_1[1] = 1981042751959509990;
+a_L_1[2] = 7360060051673316814;
+a_L_1[3] = 7580388614975892547;
+a_L_1[4] = 16233571175760468301;
+a_L_1[5] = 12682353408708009908;
+
+b_odd_0[0] = 2548752759948599083; 
+b_odd_0[1] = 15762832721726715362;
+b_odd_0[2] = 12984923881478175837; 
+b_odd_0[3] = 4111831938452549098; 
+b_odd_0[4] = 6772230162212272042; 
+b_odd_0[5] = 8305267294763083617;
+
+b_odd_1[0] = 15897991313760952533; 
+b_odd_1[1] = 2683911351982844446;
+b_odd_1[2] = 5461820192231392163; 
+b_odd_1[3] = 14334912135257027095; 
+b_odd_1[4] = 11674513911497312341; 
+b_odd_1[5] = 10141476778946508958; 
 
 
   
 
   for(int i = 0; i<len; i++)
   {
-    std::cout << << a_L_0[i] + a_L_1[i] << "\n";
-    //std::cout << a_Lmiusone_0[i] << " , " << a_Lmiusone_1[i] << " , " << a_Lmiusone_0[i] + a_Lmiusone_1[i] << " \n";
-    // std::cout << a_Lmiusone_0[i] << " , " << a_Lmiusone_1[i] << " , " << AddModuloOdd(a_Lmiusone_0[i], a_Lmiusone_1[i]) << " \n";
+    auto x =  a_L_0[i] + a_L_1[i];
+    std::cout << "Modulo L decoded : ";
+    auto temp_x = MOTION::new_fixed_point::decode<uint64_t, long double>(x, 13);
+    std::cout << temp_x << "\n";
+    
+    auto y = AddModuloOdd(b_odd_0[i], b_odd_1[i]);
+    
+    auto temp_y = MOTION::new_fixed_point::decode<uint64_t, long double>(y, 13);
+    std::cout <<"Modulo Odd decoded : " << temp_y << "\n";
     // if (AddModuloOdd(a_Lmiusone_0[i], a_Lmiusone_1[i]) != a[i])
     //    std::cout << "L-1 shares are not created correct at i : " << i << "\n";
   }
