@@ -6,8 +6,8 @@ using namespace std::chrono;
 
 /************************************************************************************************/
 // Aim : Read the Arithmatic shares and convert them into ABY shares perform multiplication
-//Input :  "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_0", Y_OutputShare_0
-//Output : /home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/ABY_shares_0
+//Input :  ${BASE_DIR} + "/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_0", Y_OutputShare_0
+//Output : ${BASE_DIR} + "/build_debwithrelinfo_gcc/3PC_Relu/ABY_shares_0
 //********************************************************************************************
 
 namespace po = boost::program_options;
@@ -101,15 +101,17 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   const std::string helper_node_info = vm["helper_node"].as<std::string>();
   const auto conn_info_helpernode = parse_helpernode_info(helper_node_info);
 
+  const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+
   options.tcp_config.resize(3);
   options.tcp_config[id0] = conn_info0;
   options.tcp_config[id1] = conn_info1;
   options.tcp_config[2] = conn_info_helpernode;
-  options.Xarith_shares_file = "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_"+std::to_string(my_id);
-  options.Xaby_shares_file = "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/X_ABY_shares_"+std::to_string(my_id);
-  options.Yarith_shares_file = "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/Y_OutputShare_"+std::to_string(my_id);
-  options.Yaby_shares_file = "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/Y_ABY_shares_"+std::to_string(my_id);
-  options.output_share_file = "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/Z_Arith_shares_"+std::to_string(my_id);
+  options.Xarith_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_" + std::to_string(my_id);
+  options.Xaby_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/X_ABY_shares_" + std::to_string(my_id);
+  options.Yarith_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Y_OutputShare_" + std::to_string(my_id);
+  options.Yaby_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Y_ABY_shares_" + std::to_string(my_id);
+  options.output_share_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Z_Arith_shares_" + std::to_string(my_id);
 return options;
 }
 
