@@ -64,9 +64,9 @@ std::uint64_t RandomNumOverOddRing(E& engine, int l = 0, std::uint64_t p = std::
 //******** END : RandomNumberGenerators***********************
 //used at P0 and P1
 void GenerateRandomPermutation(std::vector<std::uint64_t>& nums, std::size_t start,  std::size_t end, std::uint64_t seed = 1234) {
-  std::cout << " Entered GenerateRandomPermutation \n ";
+    // std::cout << " Entered GenerateRandomPermutation \n ";
     std::mt19937 gen(seed); // Initialize  with the given seed
-    std::shuffle(nums.begin(), nums.begin()+end, gen); // Shuffle the vector with the seeded generator
+    std::shuffle(nums.begin()+start, nums.begin()+end, gen); // Shuffle the vector with the seeded generator
 
     // std::cout << "A random permutation of the given set is: ";
     // for (int num : nums) {
@@ -501,8 +501,6 @@ __gnu_parallel::transform(op1_begin, op1_end, op2_begin, ans_begin, std::multipl
 std::cout << "##### Exiting ParallelMatrixMult ##### \n\n";
 }
 
-
-
 void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
   int tSize = 0, resident = 0, share = 0;
   std::ifstream buffer("/proc/self/statm");
@@ -531,13 +529,14 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
 
     std::ofstream file2;
     file2.open(t2, std::ios_base::app);
-    file2 << "Helper Node Multiplication layer : \n";
+    file2 << "3PC ReLU at Party 1: \n";
     file2 << "RSS - " << rss << " kB\n";
     file2 << "Shared Memory - " << shared_mem << " kB\n";
     file2 << "Private Memory - " << rss - shared_mem << "kB\n";
     file2.close();
   }
 }
+
 //matrix Multiplication  ans = a * b
 int MatrixMultiplication(std::vector<uint64_t> &a,std::vector<uint64_t> &b, std::vector<uint64_t> &ans)
 {   
@@ -595,6 +594,44 @@ int MatrixMultiplication(std::vector<uint64_t> &a,std::vector<uint64_t> &b, std:
      }
   std::cout << "##### Exiting matrix multiplication. ##### \n \n";
   return 0;
+}
+
+// HadamardMatrixMultiplication: Computes the hadamard product of a and b, first two elements of a and b store the dimensions of the matrix
+// Input  : Two vectors a and b of std::uint64_t, and an empty vector result of type std::uint64_t
+// Output : Updates result to store the product with the first two elements being the dimensions of the matrix.
+int HadamardMatrixMultiplication(std::vector<std::uint64_t>& a, std::vector<std::uint64_t>& b, std::vector<std::uint64_t>& result) {
+  std::cout << "Entering HadamardMatrixMultiplication." << std::endl;
+  // Checking for dimension match of matrices a and b
+  if (a[0] != b[0]) {
+    std::cerr << "Error: Hadamard multiplication. Number of rows in matrix A: " << a[0] << " do not match the number of rows in matrix B: " << b[0] << std::endl;
+    return 0;
+  } else if (a[1] != b[1]) {
+    std::cerr << "Error: Hadamard multiplication. Number of columns in matrix A: " << a[1] << " do not match the number of columns in matrix B: " << b[1] << std::endl;
+    return 0;
+  }
+
+  // Defining the matrix result size
+  result.resize(a[0] * a[1] + 2);
+
+  auto rows = a[0];
+  auto cols = a[1];
+
+  result[0] = rows;
+  result[1] = cols;
+
+  auto aBegin = a.begin();
+  auto aEnd = a.end();
+  advance(aBegin, 2);
+
+  auto bBegin = b.begin();
+  advance(bBegin, 2);
+
+  auto resultBegin = result.begin();
+  advance(resultBegin, 2);
+
+  __gnu_parallel::transform(aBegin, aEnd, bBegin, resultBegin, std::multiplies{});
+  std::cout << "Exiting HadamardMatrixMultiplication.\n" << std::endl;
+  return 1;
 }
 
 void OTGeneration(std::vector<uint64_t> &v1, std::vector<uint64_t> &v2, std::vector<uint64_t> &ot0, std::vector<uint64_t> &ot1)
@@ -681,22 +718,22 @@ int ArithMatrixMultiplication(std::vector<uint64_t> &X_arith, std::vector<uint64
     }
   ParallelAddition(Y_ABY_public, y_temp_vec, Y_ABY_public);
 
-  //Syncing up with helper node,
-  std::vector<std::uint8_t> started{(std::uint8_t)HelperNodeSync};
-  std::cout<<"Sending Probe message helper node.\n";
-  try{
-      comm_layer->send_message(helpernode_id, started);
-  }
-  catch (std::runtime_error& e) {
-      std::cerr << "Error occurred while sending the start message to helper node: " << e.what() << "\n";
-      return EXIT_FAILURE;
-  }
-  //Waiting to receive the acknowledgement from helpernode
-  while(!helpernode_ready_flag)
-      {
-        std::cout<<"h";
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
-      }
+  // //Syncing up with helper node,
+  // std::vector<std::uint8_t> started{(std::uint8_t)HelperNodeSync};
+  // std::cout<<"Sending Probe message helper node.\n";
+  // try{
+  //     comm_layer->send_message(helpernode_id, started);
+  // }
+  // catch (std::runtime_error& e) {
+  //     std::cerr << "Error occurred while sending the start message to helper node: " << e.what() << "\n";
+  //     return EXIT_FAILURE;
+  // }
+  // //Waiting to receive the acknowledgement from helpernode
+  // while(!helpernode_ready_flag)
+  //     {
+  //       std::cout<<"h";
+  //       boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  //     }
   //Sending private shares to the Helper node
   try{
       comm_layer->send_message(helpernode_id, X_msg_Private_Shares);
@@ -720,25 +757,25 @@ int ArithMatrixMultiplication(std::vector<uint64_t> &X_arith, std::vector<uint64
       }
 
   std::vector<std::uint64_t> dxdy; //deltax * deltay
-  MatrixMultiplication(X_ABY_private, Y_ABY_private, dxdy);
+  HadamardMatrixMultiplication(X_ABY_private, Y_ABY_private, dxdy);
   // std::cout << "\n ** dXdY ** \n";
   // for(int i = 0; i < dxdy.size(); i++)
   //    std::cout <<  dxdy[i] << " ,  ";
   
-  std::vector<std::uint64_t> DxDy;
-  MatrixMultiplication(X_ABY_public, Y_ABY_public, DxDy);
+  std::vector<std::uint64_t> DxDy; //Deltax * Deltay
+  HadamardMatrixMultiplication(X_ABY_public, Y_ABY_public, DxDy);
   // std::cout << "\n ** DXDY** \n";
   // for(int i = 0; i < DxDy.size(); i++)
   //    std::cout <<  DxDy[i] << " ,  ";
   
   std::vector<std::uint64_t> Dxdy; //DeltaX * deltay
-  MatrixMultiplication(X_ABY_public, Y_ABY_private, Dxdy);
+  HadamardMatrixMultiplication(X_ABY_public, Y_ABY_private, Dxdy);
   // std::cout << "\n **DXdY ** \n";
   // for(int i = 0; i < Dxdy.size(); i++)
   //    std::cout <<  Dxdy[i] << " ,  ";
   
   std::vector<std::uint64_t> dxDy; //deltax * Deltay
-  MatrixMultiplication(X_ABY_private, Y_ABY_public, dxDy);
+  HadamardMatrixMultiplication(X_ABY_private, Y_ABY_public, dxDy);
   //  std::cout << "\n ** dXDY ** \n";
   // for(int i = 0; i < dxDy.size(); i++)
   //    std::cout <<  dxDy[i] << " ,  ";
@@ -764,6 +801,9 @@ int ArithMatrixMultiplication(std::vector<uint64_t> &X_arith, std::vector<uint64
   return 0;
 }
 
+// PrivateCompare: Computes beta XOR (x > r)
+// Input  : A vector bit_share_x of length ((length of a) * BIT_SIZE) storing bit shares of a at Party 0, vectors r and beta of type std::uint64_t common to Party 0 and Party 1 and vector c storing the intermediate value of PrivateCompare at Party 0
+// Output : Updates vector c to store the value which is to be sent to Party 2
 int PrivateCompare(std::vector<std::uint64_t> &bit_share_x, std::vector<std::uint64_t> &r, std::vector<std::uint64_t> &beta, std::vector<std::uint64_t> &c) 
 {
 std::cout << "Enetered PrivateCompare  \n";  
@@ -812,14 +852,17 @@ for(int i = 0; i < len; i++)
   }
 GenerateRandomPermutation(c, i*BIT_SIZE, (i+1)*BIT_SIZE);
 }
+std::cout << "Exited PrivateCompare.\n" << std::endl;
 return 0;
 }
 
-
+// ShareConvert: Converts shares of a in L world to shares of a in L-1 world
+// Input  : A vector a_L of type std::uint64_t storing shares of a in L world, an empty vector of type std::uint64_t b_odd to store the L-1 shares.
+// Output : Updates b_odd to store odd shares of a.
 int ShareConvert(std::vector<std::uint64_t> &a_L, std::vector<std::uint64_t> &b_odd)
 {
 
-  std::cout << "ShareConvert \n";
+  std::cout << "Entered ShareConvert.\n";
   std::size_t len = a_L.size();
   //Common to both parties starts
   std::vector<uint64_t> r(len, 0), r0(len, 0), r1(len, 0),r_min1(len,0); //r = r0+r1
@@ -840,6 +883,8 @@ int ShareConvert(std::vector<std::uint64_t> &a_L, std::vector<std::uint64_t> &b_
 
    //Syncing up with helper node,
   std::vector<std::uint8_t> started{(std::uint8_t)HelperNodeSync};
+  auto start = std::chrono::high_resolution_clock::now();
+
   std::cout<<"Sending Probe message helper node.\n";
   try{
       comm_layer->send_message(helpernode_id, started);
@@ -854,6 +899,18 @@ int ShareConvert(std::vector<std::uint64_t> &a_L, std::vector<std::uint64_t> &b_
         std::cout<<"h";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
       }
+
+  auto end = std::chrono::high_resolution_clock::now();
+
+  const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+  std::string statFilePath = baseDirectory + "/build_debwithrelinfo_gcc/stats/ackStats1";
+  std::ofstream statFilePathFile;
+  statFilePathFile.open(statFilePath, std::ios_base::app);
+  if (!statFilePathFile.is_open()) {
+    std::cerr << "Error: Unable to open the file path.\n";
+  }
+  statFilePathFile << "Helper message acknowledgement @ S1 for ReLU: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
+  statFilePathFile.close();
 
   //Sending a tilde to P2
   std::cout<<"Sending a_tilde to helper node.\n";
@@ -891,7 +948,322 @@ AddModuloOdd(theta_odd, del_odd, theta_odd, len);
 for (int i = 0; i<len; i++) alpha[i] = (1-my_id)*(alpha[i] + 1);
 SubtractModuloOdd(theta_odd, alpha, theta_odd, len);
 SubtractModuloOdd(a_L, theta_odd, b_odd, len );
+std::cout << "Exited ShareConvert.\n" << std::endl; 
 return 0;
+}
+
+// ComputeMSB: Takes shares of a in L world and returns shares of most significant bit MSB(a) in L world.
+// Input  : Vector a_L_0 of type std::uint64_t storing shares of a at P0 in L world, an empty vector MSB_a_L of type std::uint64_t, dimensions of matrix (rows, cols)
+// Output : Updates MSB_a_L to store MSB shares.
+int ComputeMSB(std::vector<std::uint64_t>& a_L_1, std::vector<std::uint64_t>& MSB_a_L, std::size_t& aLMinusOneRows, std::size_t& aLMinusOneCols) {
+  std::cout << "Entered ComputeMSB." << std::endl;
+
+  // Common Randomness
+  std::size_t len = a_L_1.size();
+  std::vector<std::uint64_t> beta(len, 0);
+
+  int beta_seed = 1234;
+  CommonRandBitVector(beta, len, beta_seed);
+
+  // Step 0
+  // Send acknowledgement message to helpernode after completion of ShareConvert
+  std::vector<std::uint64_t> helpernode_ComputeMSB_ready{(std::uint64_t)len};
+  std::cout << "Sending compute MSB ready message to helper node." << "\n";
+  SendVetor(helpernode_ComputeMSB_ready, helpernode_id, ComputeMSBReady);
+
+  while (!helpernode_computeMSB_ready_flag) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+
+  std::cout << "Received acknowledgement from helper node." << std::endl;
+
+  while ((!MSB_Odd_flag) || (!MSB_P_flag) || (!MSB_L_LSB_flag)) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(600));
+  }
+
+  // Compute y_L_1 and r_L_1
+  std::vector<std::uint64_t> y_L_1(len, 0), r_L_1(len, 0);
+  AddModuloOdd(a_L_1, a_L_1, y_L_1, len);
+  AddModuloOdd(y_L_1, MSB_x_Odd, r_L_1, len);
+
+  // Reconstruct r shares
+  SendVetor(r_L_1, other_party, MSB_R);
+
+  while (!MSB_R_flag) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+
+  std::vector<std::uint64_t> rVec(len, 0);
+  AddModuloOdd(r_L_1, R_Shares, rVec, len);
+
+  // Private Compare
+  std::vector<std::uint64_t> c(len * BIT_SIZE, 0);
+  PrivateCompare(MSB_x_P, rVec, beta, c);
+
+  SendVetor(c, helpernode_id, MSB_PC);
+
+  // Waiting for helpernode to receive shares of betaP
+  while (!MSB_PC_flag) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+
+  std::vector<std::uint64_t> encodedBeta(len, 0), encodedRBit(len, 0);
+  for (int i = 0; i < len; i++) {
+    encodedBeta[i] = MOTION::new_fixed_point::encode<uint64_t, long double>(beta[i], fractional_bits);
+    encodedRBit[i] = MOTION::new_fixed_point::encode<uint64_t, long double>(rVec[i] & 1, fractional_bits);
+  }
+  
+  // Computing the gamma and delta shares for hadamard matrix multiplication
+  std::vector<std::uint64_t> gammaL(len + 2, 0), deltaL(len + 2, 0);
+  for (int i = 2; i < len + 2; i++) {
+    gammaL[i] = encodedBeta[i - 2] + betaP[i - 2] - 2 * MOTION::new_fixed_point::truncate(encodedBeta[i - 2] * betaP[i - 2], fractional_bits);
+    deltaL[i] = MSB_x_L_LSB[i - 2] + encodedRBit[i - 2] - 2 * MOTION::new_fixed_point::truncate(MSB_x_L_LSB[i - 2] * encodedRBit[i - 2], fractional_bits);
+  }
+
+  std::vector<std::uint64_t> thetaL(len + 2, 0);
+  // Hadamard matrix multiplication using ABY2.0 shares
+  // Add dimensions (rows, cols) to gamma_L, delta_L, theta_L
+  gammaL[0] = aLMinusOneRows; 
+  gammaL[1] = aLMinusOneCols;
+  deltaL[0] = aLMinusOneRows;
+  deltaL[1] = aLMinusOneCols;
+  ArithMatrixMultiplication(gammaL, deltaL, thetaL);
+
+  gammaL.erase(gammaL.begin(), gammaL.begin() + 2);
+  deltaL.erase(deltaL.begin(), deltaL.begin() + 2);
+  thetaL.erase(thetaL.begin(), thetaL.begin() + 2);
+
+  // Compute final MSB shares
+  for (int i = 0; i < len; i++) {
+    MSB_a_L[i] = gammaL[i] + deltaL[i] - 2 * thetaL[i];
+  }
+  
+  std::cout << "Exited ComputeMSB." << std::endl;
+  return 0;
+}
+
+// DerivativeRelu: Takes shares of a in L world and returns shares of ReLU'(a) in L world.
+// ReLU'(a) = 1 if MSB(a) = 0, otherwise ReLU'(a) = 0.
+// Input  : Vector a_L_1 of type std::uint64_t storing shares of a at P1 in L world, an empty vector a_DRelu_1 of type std::uint64_t, dimensions of matrix (rows, cols)
+// Output : Updates a_DRelu_1 to store ReLU' shares.
+int DerivativeRelu(std::vector<std::uint64_t>& a_L_1, std::vector<std::uint64_t>& a_DRelu_1, std::size_t rows, std::size_t cols) {
+  std::cout << "Entering DerivativeReLU. " << std::endl;
+  std::size_t len = a_L_1.size();
+
+  // Step 1-2: Convert shares of 2 * a_0 into odd shares
+  std::vector<std::uint64_t> c_L_1(len, 0);
+  for (int i = 0; i < len; i++) {
+    c_L_1[i] = 2 * a_L_1[i];
+  }
+
+  std::vector<std::uint64_t> yOdd_1, MSBShares_1;
+  yOdd_1.resize(len);
+  ShareConvert(c_L_1, yOdd_1);
+
+  // Step 3: ComputeMSB of odd shares
+  MSBShares_1.resize(len);
+  ComputeMSB(yOdd_1, MSBShares_1, rows, cols);
+
+  for (int i = 0; i < len; i++) {
+    a_DRelu_1[i] = MOTION::new_fixed_point::encode<uint64_t, long double>(1, fractional_bits) - MSBShares_1[i];
+  }
+
+  std::cout << "Exiting DerivativeReLU.\n " << std::endl;
+  return 0;
+}
+
+// ReLU: Takes shares of a in L world and returns shares of ReLU(a) in L world
+// Input  : Vector a_L_1 of type std::uint64_t in L world, empty vector a_Relu_1 in L world, dimensions of matrix (rows, cols).
+// Output : Updates a_Relu_1 to store ReLU shares.
+int ReLU(std::vector<std::uint64_t>& a_L_1, std::vector<std::uint64_t>& a_Relu_1, std::size_t rows, std::size_t cols) {
+  std::cout << "Entering ReLU." << std::endl;
+  std::size_t len = a_L_1.size();
+  std::vector<std::uint64_t> a_DRelu_1(len, 0);
+  
+  // Step 1
+  DerivativeRelu(a_L_1, a_DRelu_1, rows, cols);
+  
+  // Step 2
+  a_L_1.insert(a_L_1.begin(), cols);
+  a_L_1.insert(a_L_1.begin(), rows);
+
+  a_DRelu_1.insert(a_DRelu_1.begin(), cols);
+  a_DRelu_1.insert(a_DRelu_1.begin(), rows);
+
+  // Step 0
+  // Send acknowledgement message to helpernode after completion of DRelu
+  std::vector<std::uint64_t> helpernode_Relu_ready{(std::uint64_t)0};
+  std::cout << "Sending Derivative ReLU ready message to helper node." << "\n";
+  SendVetor(helpernode_Relu_ready, helpernode_id, ReluReady);
+
+  while (!helpernode_ReLU_ready_flag) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+
+  std::cout << "Received Derivative ReLU acknowledgement from helper node." << std::endl;
+
+  std::vector<std::uint64_t> a_L_ABY_public, a_L_ABY_private;
+  std::vector<std::uint64_t> a_DRelu_ABY_public, a_DRelu_ABY_private;
+  std::vector<std::uint64_t>  Z_ABY_public, Z_ABY_private;
+  std::vector<std::uint8_t> a_L_msg_ABY_shares, a_DRelu_msg_ABY_shares;
+  std::vector<std::uint8_t> a_L_msg_Private_Shares, a_DRelu_msg_Private_Shares;
+
+  GeneratePrivateShares_ABY(a_L_1, a_L_ABY_private);
+  a_L_ABY_public.resize(a_L_1.size());
+  ParallelAddition(a_L_1, a_L_ABY_private, a_L_ABY_public, 2);
+  ConvertVetorIntoMessage(a_L_ABY_public, a_L_msg_ABY_shares, (std::uint8_t)Relu_XArithToABY);
+  std::cout << "X-ABY Publicshare message will be seding to the other party is : " << a_L_msg_ABY_shares.size()  << "\n";
+
+  GeneratePrivateShares_ABY(a_DRelu_1, a_DRelu_ABY_private);
+  a_DRelu_ABY_public.resize(a_DRelu_1.size());
+  ParallelAddition(a_DRelu_1, a_DRelu_ABY_private, a_DRelu_ABY_public, 2); 
+  ConvertVetorIntoMessage(a_DRelu_ABY_public, a_DRelu_msg_ABY_shares, (std::uint8_t)Relu_YArithToABY);
+
+  //Prepare private shares messages from vectors deltaX0, deltaY0 to send helper node
+  ConvertVetorIntoMessage(a_L_ABY_private, a_L_msg_Private_Shares, (std::uint8_t)Relu_X_PrivateShares);
+  ConvertVetorIntoMessage(a_DRelu_ABY_private, a_DRelu_msg_Private_Shares, (std::uint8_t)Relu_Y_PrivateShares);
+
+   //%%%%% Sending X_ABY shares from my party to other party nad woaut for message from other party 
+  std::cout << "Sending Public shares message to Server : " << 1-my_id << " Message size : "<< a_L_msg_ABY_shares.size() << "\n";
+  try{
+      comm_layer->send_message(1-my_id, a_L_msg_ABY_shares);
+    }
+  catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending a_L_msg_ABY_shares to node other part: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+
+  std::cout << "Waiting for Public shares message from Server : " << 1-my_id << "\n";
+  while(!XABY_receive_flag)
+    {
+      std::cout<<"X";
+      boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+    }
+  ParallelAddition(a_L_ABY_public, Relu_x_temp_vec, a_L_ABY_public);
+
+  //%%%%% Sending Y_ABY shares from my party to other party nad woaut for message from other party 
+  std::cout << "Sending Y Public shares message to Server : " << 1-my_id << " Message size : "<< a_DRelu_msg_ABY_shares.size() << "\n";
+  try{
+      comm_layer->send_message(1-my_id, a_DRelu_msg_ABY_shares);
+    }
+  catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending X_msg_ABY_shares to node other part: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+
+  std::cout << "Waiting for Public shares message from Server : " << 1-my_id << "\n";
+  while(!YABY_receive_flag)
+    {
+      std::cout<<"A";
+      boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+    }
+  ParallelAddition(a_DRelu_ABY_public, Relu_y_temp_vec, a_DRelu_ABY_public);
+
+  try{
+      comm_layer->send_message(helpernode_id, a_L_msg_Private_Shares);
+  }
+  catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending the a_L_msg_Private_Shares message to helper node: " << e.what() << "\n";
+      return EXIT_FAILURE;
+  }
+  try{
+      comm_layer->send_message(helpernode_id, a_DRelu_msg_Private_Shares);
+  }
+  catch (std::runtime_error& e) {
+      std::cerr << "Error occurred while sending the a_DRelu_msg_Private_Shares message to helper node: " << e.what() << "\n";
+      return EXIT_FAILURE;
+  }
+ 
+  while(!OT_flag)
+      {
+      std::cout<<"o";
+      boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+      }
+
+  std::vector<std::uint64_t> dxdy; //deltax * deltay
+  HadamardMatrixMultiplication(a_L_ABY_private, a_DRelu_ABY_private, dxdy);
+  
+  std::vector<std::uint64_t> DxDy; //Deltax * Deltay
+  HadamardMatrixMultiplication(a_L_ABY_public, a_DRelu_ABY_public, DxDy);
+  
+  std::vector<std::uint64_t> Dxdy; //DeltaX * deltay
+  HadamardMatrixMultiplication(a_L_ABY_public, a_DRelu_ABY_private, Dxdy);
+  
+  std::vector<std::uint64_t> dxDy; //deltax * Deltay
+  HadamardMatrixMultiplication(a_L_ABY_private, a_DRelu_ABY_public, dxDy);
+
+  a_Relu_1.resize(dxdy.size());
+  a_Relu_1[0] = dxdy[0];
+  a_Relu_1[1] = dxdy[1];
+ 
+  for(int i = 2; i < a_Relu_1.size(); i++)
+    {
+     a_Relu_1[i] = dxdy[i] + Relu_OT_vec[i] + (DxDy[i]>>1) - Dxdy[i] - dxDy[i];
+    }
+
+  std::cout << "\n *** Truncate **** \n";
+  for(int i = 2; i < a_Relu_1.size(); i++)
+  {
+     a_Relu_1[i] =  MOTION::new_fixed_point::truncate(a_Relu_1[i], fractional_bits);
+  }
+
+  // Delete the dimensions (rows, cols) of the matrix.
+  // a_Relu_1.erase(a_Relu_1.begin(), a_Relu_1.begin() + 2);
+
+  std::cout << "Exiting ReLU." << std::endl;
+  return 0;
+}
+
+int ArithToABYShareGenerator(std::vector<std::uint64_t> Relu_Arith_Shares, std::vector<std::uint64_t>& Relu_Public_Shares, std::vector<std::uint64_t>& Relu_Private_Shares) {
+  auto start = std::chrono::high_resolution_clock::now();
+  std::vector<std::uint8_t> otherPartySyncMessage{(std::uint8_t)OtherPartySync};
+  try {
+    comm_layer->send_message(1 - my_id, otherPartySyncMessage);
+  }
+  catch (std::exception& e) {
+    std::cerr << "Error while establishing connection with other party: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  while (!OtherPartySync_Flag) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+  std::size_t len = Relu_Arith_Shares.size();
+
+  std::vector<std::uint8_t> Relu_ABY_Public_Shares;
+
+  GeneratePrivateShares_ABY(Relu_Arith_Shares, Relu_Private_Shares);
+
+  Relu_Public_Shares.resize(len);
+  ParallelAddition(Relu_Arith_Shares, Relu_Private_Shares, Relu_Public_Shares, 2);
+
+  ConvertVetorIntoMessage(Relu_Public_Shares, Relu_ABY_Public_Shares, (std::uint8_t)ArithToABY);
+
+  try {
+    comm_layer->send_message(1 - my_id, Relu_ABY_Public_Shares);
+  }
+  catch (std::runtime_error& e) {
+    std::cerr << "Error occurred while sending public shares to: " << 1 - my_id << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  while (!ArithToABY_Flag) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+
+  ParallelAddition(Relu_Public_Shares, Relu_Public_Shares_Other_Party, Relu_Public_Shares, 2);
+
+  return 0;
 }
 
 

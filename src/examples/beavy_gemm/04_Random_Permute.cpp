@@ -76,8 +76,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
   
-  
-  options.permutefile =  "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/permute";
+  const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+  options.permutefile =  baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/permute";
   options.fractional_bits = vm["fractional-bits"].as<size_t>();
   return options;
 }
@@ -85,7 +85,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
 
 void GenerateRandomPermutation(std::vector<int>& nums, std::size_t start = 0, std::size_t end = 0, std::uint64_t seed = 0)  {
     std::mt19937 gen(seed); // Initialize  with the given seed
-    std::shuffle(nums.begin()+start, nums.begin()+end+1, gen); // Shuffle the vector with the seeded generator
+    std::shuffle(nums.begin()+start, nums.begin()+end, gen); // Shuffle the vector with the seeded generator
 
     std::cout << "A random permutation of the given set is: ";
     for (int num : nums) {
@@ -106,7 +106,7 @@ for(int i = 0; i < nums.size(); i++)
    {
     nums[i] = i;
    }
-GenerateRandomPermutation(nums, 2, 6, 12);
+GenerateRandomPermutation(nums, 0, 10, 12);
 // std::random_device rd;
 // std::mt19937 gen(rd());
 // for (int i = 0; i < 100; i++) {

@@ -80,7 +80,7 @@ std::uint64_t RandomNumOverOddRing(E& engine, int l = 0, std::uint64_t p = std::
 void GenerateRandomPermutation(std::vector<std::uint64_t>& nums, std::size_t start,  std::size_t end, std::uint64_t seed = 1234) {
   std::cout << " Entered GenerateRandomPermutation \n ";
     std::mt19937 gen(seed); // Initialize  with the given seed
-    std::shuffle(nums.begin(), nums.begin()+end, gen); // Shuffle the vector with the seeded generator
+    std::shuffle(nums.begin()+start, nums.begin()+end, gen); // Shuffle the vector with the seeded generator
 
     // std::cout << "A random permutation of the given set is: ";
     // for (int num : nums) {
@@ -155,7 +155,7 @@ void GenerateModuloOddShares(std::vector<std::uint64_t> &x0, std::vector<std::ui
 }
 //**********************END L-1 operations************************
 //*********************** START PRIME operations*****************
-// Initializes the addition, subtraction and multiplication tables over modulo prime
+// InitializeModuloPrimeOps: Initializes the addition, subtraction and multiplication tables over modulo prime
 // a + b, a - b, a * b ; a,b {0,1, ... ,PRIME_NUM -1 }
 void InitializeModuloPrimeOps()
 {
@@ -234,6 +234,9 @@ for(int i = 0; i< len; i++)
  }
 }
 
+// GenerateSharesOverL: Generates arithmetic shares of vector a in L world and stores them in vectors a0 and a1
+// Input  : Empty vectors of type std::uint64_t a0 and a1, vector of type std::uint64_t a to generate shares of, and length of the vector len
+// Output : Updates vectors a0 and a1 containing arithmetic shares of a at party 0 and party 1 respectively
 void GenerateSharesOverL(std::vector<uint64_t>& a0, std::vector<uint64_t>& a1, std::vector<uint64_t>& a, std::size_t len)
 {
 std:: cout << " Entered GenerateSharesOverL \n";
@@ -245,6 +248,7 @@ for(int i = 0; i < len; i++)
     a0[i] = RandomNumDistribution(gen);
     a1[i] = a[i] - a0[i];
   }
+std::cout << "Exiting GenerateSharesOverL \n";
 }
 std::vector<std::uint64_t> PrivateCompare(std::vector<std::uint64_t> &bit_share_x0, std::vector<std::uint64_t> &r, std::vector<std::uint64_t> &beta, std::size_t len, int party_id) 
 {
@@ -290,13 +294,12 @@ for(int i = 0; i < len; i++)
              c[ind] = SubtractModuloPrime((k != 0), c[ind]);
          }
     //std::cout << "c at ind : "<< ind << " is " << c[ind] << "\n";
-    //c[ind] = MultiplyModuloPrime(c[ind], RandomNonZeroNumOverPrime(gen_s));
+    c[ind] = MultiplyModuloPrime(c[ind], RandomNonZeroNumOverPrime(gen_s));
   }
-//GenerateRandomPermutation(c, i*BIT_SIZE, (i+1)*BIT_SIZE);
+GenerateRandomPermutation(c, i*BIT_SIZE, (i+1)*BIT_SIZE);
 }
 return c;
 }
-
 
 void PrivateCompare_P2(std::vector<std::uint64_t>& c0, std::vector<std::uint64_t>& c1, std::vector<std::uint64_t>& beta_prime, std::size_t len )
 {
@@ -346,6 +349,163 @@ void AddVectorsOverL(std::vector<uint64_t>& a, std::vector<uint64_t>& b, std::ve
   std:: cout << " AddVectorsOverL \n ";
   for(int i = 0;i < len; i++) ans[i] = a[i] + b[i];
     
+}
+
+// WriteArithToFile: Write arithmetic shares into a file specified as second argument
+// Input  : Arith shares and file path
+// Output : After writing to file succefully returns zero
+int WriteArithToFile(std::vector<uint64_t>&pub, std::string file_path)
+{
+std::ofstream output_file;
+std::cout << "##### Entered  WriteArithToFile ...##### \n";
+  try {
+    output_file.open(file_path);
+    if (!output_file) {
+      std::cerr << "Unable to open file to write ABY.\n";
+      throw std::ifstream::failure("Error opening ABY share file to write.");
+    }
+  }
+  catch(std::exception& e){
+      std::cerr<<"Error during opening ABY share file: "<<e.what()<<std::endl;
+      return EXIT_FAILURE;
+    }
+  output_file << pub[0] << " " << pub[1] << std::endl;
+  for(int i = 2; i < pub.size(); i++)
+     {
+      output_file << pub[i] << std::endl;
+     }
+  std::cout << "##### Exiting  WriteArithToFile ##### \n\n";
+  return 0;
+}
+
+// ReadSharesIntoVec: Reads arithmetic shares from the given filepath into a vector
+// Neglects the first two values that is the dimensions of the matrix (rows, columns) and reads the shares into the vector.
+int ReadSharesIntoVec(std::string file_path, std::vector<uint64_t>&vec, int& rows, int& cols)
+{
+std::ifstream input_file;
+std::cout << "##### Entered ReadSharesIntoVec ...##### \n";
+
+  try {
+    input_file.open(file_path);
+    if (!input_file) {
+      std::cerr << "Unable to open Arithmatic share file.\n";
+      throw std::ifstream::failure("Error opening Arithmatic share file.");
+    }
+  }
+  catch(std::exception& e){
+      std::cerr<<"Error during opening Arithmatic share file: "<<e.what()<<std::endl;
+      return EXIT_FAILURE;
+    }
+  int num_r = 0; 
+  int num_c = 0;
+  
+  // reading the first line and getting the number of rows and columns
+  try{
+    input_file >> num_r >> num_c;
+    rows = num_r;
+    cols = num_c;
+    vec.resize(rows * cols);
+    }
+    catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading rows and columns from input shares file.\n";
+      exit(1);
+    }
+    if (input_file.eof()) {
+      std::cerr << "Input shares file doesn't contain rows and columns" << std::endl;
+      exit(1);
+    }
+  std::cout << "Total num elements : " << num_r*num_c << "\n";
+  int num_vals = num_r*num_c;
+  vec.resize(num_vals);
+  std::uint64_t temp;
+  int k = 0;
+
+  while (k < num_r*num_c) {
+      try{    
+        input_file >> temp;
+        vec[k] = temp;
+      }
+      catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the Arithmatic shares.\n";
+      exit(1);
+      }
+      if (input_file.eof()) {
+        std::cerr << "Arithmatic shares file contains less number of elements" << std::endl;
+        exit(1);
+      }
+      k++;
+    }
+  std :: cout << "Number of elements read into vector : " << vec.size() << "\n";
+  input_file.close();
+  // if (k != num_r*num_c) 
+  //   std::cout << "The number of elements expeted are : " << num_r*num_c << ", but present in file are : " << k << "\n";
+  std :: cout << "##### Exiting ReadSharesIntoVec ##### \n\n";
+  return 1;
+}
+
+int ReadABYSharesIntoVec(std::string file_path, std::vector<uint64_t>&publicShares, std::vector<std::uint64_t>& privateShares, int& rows, int& cols)
+{
+std::ifstream input_file;
+std::cout << "##### Entered ReadABYSharesIntoVec ...##### \n";
+
+  try {
+    input_file.open(file_path);
+    if (!input_file) {
+      std::cerr << "Unable to open ABY share file.\n";
+      throw std::ifstream::failure("Error opening ABY share file.");
+    }
+  }
+  catch(std::exception& e){
+      std::cerr<<"Error during opening ABY share file: "<<e.what()<<std::endl;
+      return EXIT_FAILURE;
+    }
+  int num_r = 0; 
+  int num_c = 0;
+  
+  // reading the first line and getting the number of rows and columns
+  try{
+    input_file >> num_r >> num_c;
+    rows = num_r;
+    cols = num_c;
+    }
+    catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading rows and columns from input shares file.\n";
+      exit(1);
+    }
+    if (input_file.eof()) {
+      std::cerr << "Input shares file doesn't contain rows and columns" << std::endl;
+      exit(1);
+    }
+  std::cout << "Total num elements : " << num_r*num_c << "\n";
+  int num_vals = num_r*num_c;
+  publicShares.resize(num_vals);
+  privateShares.resize(num_vals);
+  std::uint64_t tempPublic, tempPrivate;
+  int k = 0;
+
+  while (k < num_r*num_c) {
+      try{    
+        input_file >> tempPublic >> tempPrivate;
+        publicShares[k] = tempPublic;
+        privateShares[k] = tempPrivate;
+      }
+      catch (std::ifstream::failure e) {
+      std::cerr << "Error while reading the ABY shares.\n";
+      exit(1);
+      }
+      if (input_file.eof()) {
+        std::cerr << "ABY shares file contains less number of elements" << std::endl;
+        exit(1);
+      }
+      k++;
+    }
+  std::cout << "Number of elements read into public shares vector : " << publicShares.size() << "\n";
+  std::cout << "Number of elements read into private shares vector : " << privateShares.size() << "\n";
+  input_file.close();
+  // if (k != num_r*num_c) 
+  //   std::cout << "The number of elements expeted are : " << num_r*num_c << ", but present in file are : " << k << "\n";
+  std :: cout << "##### Exiting ReadABYSharesIntoVec ##### \n\n";
+  return 1;
 }
 
 void ShareConvert_P2(std::vector<uint64_t>& a_tilde0, std::vector<uint64_t>& a_tilde1, std::vector<uint64_t>& x0_bit, std::vector<uint64_t>& x1_bit, std::vector<uint64_t>& delta0, std::vector<uint64_t>& delta1,std::size_t len)
@@ -434,11 +594,20 @@ void ShareConvert(std::vector<uint64_t>& a_L_shares0, std::vector<uint64_t>& a_L
   SubtractModuloOdd(a_L_shares1, theta_1, a_Lmiusone_shares1, len);
 }
 
+/************** ShareConvert End ***********************/
 
-/************** ShareConvert End*/
 struct Options {
   std::string permutefile;
   std::size_t fractional_bits;
+  std::string a_L_shares_0;
+  std::string a_L_shares_1;
+  std::string a_Relu_shares_0;
+  std::string a_Relu_shares_1;
+  std::string a_Relu_Public_shares_0;
+  std::string a_Relu_Private_shares_0;
+  std::string a_Relu_Public_shares_1;
+  std::string a_Relu_Private_shares_1;
+  std::string a_Clear_Values;
 };
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -465,78 +634,86 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
   
-  
-  options.permutefile =  "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/permute";
+  const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+
+  options.permutefile =  baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/permute";
   options.fractional_bits = vm["fractional-bits"].as<size_t>();
+
+  options.a_L_shares_0 = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_0";
+  options.a_L_shares_1 = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_1";
+  options.a_Relu_shares_0 = baseDirectory + "/build_debwithrelinfo_gcc/server0/outputshare_0";
+  options.a_Relu_shares_1 = baseDirectory + "/build_debwithrelinfo_gcc/server1/outputshare_1";
+  options.a_Relu_Public_shares_0 = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Relu_ABY_Public_Shares_0";
+  options.a_Relu_Private_shares_0 = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Relu_ABY_Private_Shares_0";
+  options.a_Relu_Public_shares_1 = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Relu_ABY_Public_Shares_1";
+  options.a_Relu_Private_shares_1 = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Relu_ABY_Private_Shares_1";
+  options.a_Clear_Values = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/ClearValues";
   return options;
 }
 int main(int argc, char* argv[]) 
 {
+  auto options = parse_program_options(argc, argv);
   std::random_device rd;
   std::mt19937 gen(rd()); 
   InitializeModuloPrimeOps();
-  std::size_t len = 6;
-  std::vector<float> data(len, 0.0);
-  std::vector<std::uint64_t> a(len, 0),  a_L_0(len, 0), a_L_1(len, 0);
-  std::vector<std::uint64_t> b_odd_0(len, 0), b_odd_1(len, 0);
-  data[0] = 10;
-  data[1] = LMINUS_ONE -1;
-  data[2] = 0.5;
-  data[3] = 0.1;
-  data[4] = -1;
-  for(int i = 0; i < len; i++)
-  {
-   a[i] = MOTION::new_fixed_point::encode<uint64_t, long double>(data[i], 13);
-  }
+  int rows, cols;
   
-//   GenerateSharesOverL(a_L_0, a_L_1, a, len); 
-//   ShareConvert(a_L_0, a_L_1, a_Lmiusone_0, a_Lmiusone_1, len, 0);
+  std::vector<std::uint64_t> a_L_0, a_L_1, a_L_0_prv, a_L_1_prv;
+  std::vector<std::uint64_t> a_Relu_0, a_Relu_1;
+  std::vector<std::uint64_t> a_Relu_Public_shares_0, a_Relu_Private_shares_0, a_Relu_Public_shares_1, a_Relu_Private_shares_1;
 
-a_L_0[0] = 1852346952341056093;
-a_L_0[1] = 16465701321750049818;
-a_L_0[2] = 11086684022036251186;
-a_L_0[3] = 10866355458733683645;
-a_L_0[4] = 2213172897949116083;
-a_L_0[5] = 5764390665001582668;
+  // ReadSharesIntoVec(options->a_Relu_shares_0, a_Relu_0, rows, cols);
+  // ReadSharesIntoVec(options->a_Relu_shares_1, a_Relu_1, rows, cols);
+  // ReadSharesIntoVec(options->a_Relu_Public_shares_0, a_Relu_Public_shares_0, rows, cols);
+  // ReadSharesIntoVec(options->a_Relu_Private_shares_0, a_Relu_Private_shares_0, rows, cols);
+  // ReadSharesIntoVec(options->a_Relu_Public_shares_1, a_Relu_Public_shares_1, rows, cols);
+  // ReadSharesIntoVec(options->a_Relu_Private_shares_1, a_Relu_Private_shares_1, rows, cols);
 
-a_L_1[0] = 16594397121368495523;
-a_L_1[1] = 1981042751959509990;
-a_L_1[2] = 7360060051673316814;
-a_L_1[3] = 7580388614975892547;
-a_L_1[4] = 16233571175760468301;
-a_L_1[5] = 12682353408708009908;
+  ReadABYSharesIntoVec(options->a_Relu_shares_0, a_Relu_Public_shares_0, a_Relu_Private_shares_0, rows, cols);
+  ReadABYSharesIntoVec(options->a_Relu_shares_1, a_Relu_Public_shares_1, a_Relu_Private_shares_1, rows, cols);
 
-b_odd_0[0] = 2548752759948599083; 
-b_odd_0[1] = 15762832721726715362;
-b_odd_0[2] = 12984923881478175837; 
-b_odd_0[3] = 4111831938452549098; 
-b_odd_0[4] = 6772230162212272042; 
-b_odd_0[5] = 8305267294763083617;
-
-b_odd_1[0] = 15897991313760952533; 
-b_odd_1[1] = 2683911351982844446;
-b_odd_1[2] = 5461820192231392163; 
-b_odd_1[3] = 14334912135257027095; 
-b_odd_1[4] = 11674513911497312341; 
-b_odd_1[5] = 10141476778946508958; 
-
-
-  
-
-  for(int i = 0; i<len; i++)
-  {
-    auto x =  a_L_0[i] + a_L_1[i];
-    std::cout << "Modulo L decoded : ";
-    auto temp_x = MOTION::new_fixed_point::decode<uint64_t, long double>(x, 13);
-    std::cout << temp_x << "\n";
-    
-    auto y = AddModuloOdd(b_odd_0[i], b_odd_1[i]);
-    
-    auto temp_y = MOTION::new_fixed_point::decode<uint64_t, long double>(y, 13);
-    std::cout <<"Modulo Odd decoded : " << temp_y << "\n";
-    // if (AddModuloOdd(a_Lmiusone_0[i], a_Lmiusone_1[i]) != a[i])
-    //    std::cout << "L-1 shares are not created correct at i : " << i << "\n";
+  std::ifstream ClearValuesFile;
+  try {
+    ClearValuesFile.open(options->a_Clear_Values);
+    if (!ClearValuesFile) {
+      std::cerr << "Error: Unable to open the clear values file." << std::endl;
+    }
   }
+  catch (std::exception& e) {
+    std::cerr << "Error: Unable to open the clear values file: " << e.what() << std::endl;
+  }
+
+  for (int i = 0; i < a_Relu_Public_shares_0.size(); i++) {
+    if (a_Relu_Public_shares_0[i] != a_Relu_Public_shares_1[i]) {
+      std::cout << "Public shares do not match." << std::endl;
+    }
+  }
+  std::vector<float> data(rows, 0);
+  std::size_t len2 = 0;
+  ClearValuesFile >> len2;
+  data.resize(len2);
+
+  float temp;
+  std::size_t len = rows * cols;
+  for (int i = 0; i < len; i++)
+  {
+    // auto SumOverL = MOTION::new_fixed_point::decode<uint64_t, long double>(a_L_0[i] + a_L_1[i], FIXED_POINT);
+    ClearValuesFile >> temp;
+    data[i] = temp;
+    auto SumReluOverL = MOTION::new_fixed_point::decode<uint64_t, long double>(a_Relu_Public_shares_0[i] - a_Relu_Private_shares_0[i] - a_Relu_Private_shares_1[i], FIXED_POINT);
+    float expectedRelu;
+    if (temp >= 0) {
+      expectedRelu = temp;
+    } else {
+      expectedRelu = 0;
+    }
+
+    std::cout << "Number: " << data[i] << ", Expected ReLU Value: " << expectedRelu << ", Actual ReLU value: " << SumReluOverL << ", Absolute Error: " << abs(expectedRelu - SumReluOverL) << ", Relative error: " << (abs(expectedRelu - SumReluOverL) / data[i]) << std::endl;
+
+
+    std::cout << "\n";
+  }
+
 return EXIT_SUCCESS;
 
 }

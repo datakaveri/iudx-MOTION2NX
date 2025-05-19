@@ -33,7 +33,7 @@ const auto FIXED_POINT = 13;
 
 
 /*******************************************************************************/
-//This file implements standalone code for PrivaeCompare
+//This file implements standalone code for PrivateCompare
 //x - owner is Party2, creates L-1 shares and prime shares for each bit in x
 // L shares for x[0] and communicates Party 0 and Party 1
 // Assumes at Party 0 and Party1  have following data
@@ -77,7 +77,7 @@ std::uint64_t RandomNumOverOddRing(E& engine, int l = 0, std::uint64_t p = std::
 void GenerateRandomPermutation(std::vector<std::uint64_t>& nums, std::size_t start,  std::size_t end, std::uint64_t seed = 1234) {
   std::cout << " Entered GenerateRandomPermutation \n ";
     std::mt19937 gen(seed); // Initialize  with the given seed
-    std::shuffle(nums.begin(), nums.begin()+end, gen); // Shuffle the vector with the seeded generator
+    std::shuffle(nums.begin()+start, nums.begin()+end, gen); // Shuffle the vector with the seeded generator
 
     // std::cout << "A random permutation of the given set is: ";
     // for (int num : nums) {
@@ -256,7 +256,8 @@ for(int i = 0; i < len; i++)
           if (party_id ==  1) // k = 0 at p0, p1, c[ind], -c[ind]; k>0 c[ind], 1-c[ind]
              c[ind] = SubtractModuloPrime((k != 0), c[ind]);
          }
-    std::cout << "c at ind : "<< ind << " is " << c[ind] << "\n";
+    // std::cout << "c at ind : "<< ind << " is " << c[ind] << "\n";
+
     c[ind] = MultiplyModuloPrime(c[ind], RandomNonZeroNumOverPrime(gen_s));
   }
 GenerateRandomPermutation(c, i*BIT_SIZE, (i+1)*BIT_SIZE);
@@ -314,8 +315,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
   
-  
-  options.permutefile =  "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/permute";
+  const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+  options.permutefile =  baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/permute";
   options.fractional_bits = vm["fractional-bits"].as<size_t>();
   return options;
 }
@@ -326,44 +327,68 @@ int main(int argc, char* argv[])
   std::random_device rd;
   std::mt19937 gen(rd()); 
   InitializeModuloPrimeOps();
-  int len = 4;
+  int len = 8;
   std::vector<std::uint64_t> x(len,0);
-  std::vector<std::uint64_t> r(len,0), beta(len,0);
+  std::vector<float> data(len, 0);
+  std::vector<std::uint64_t> r(len,0), beta(len,0), a(len, 0.0);
   std::vector<std::uint64_t> x0(len,0), x1(len,0);
   std::vector<std::uint64_t> beta_prime(len,0);
   std::vector<std::uint64_t> c0(len*BIT_SIZE, 0), c1(len*BIT_SIZE, 0);
   std::vector<std::uint64_t> bit_shares_x0(len*BIT_SIZE, 0), bit_shares_x1(len*BIT_SIZE, 0);
   std::vector<std::uint64_t> lsb_share_x0(len, 0), lsb_share_x1(len, 0);
-  x[0] = 8;
+  data[0] = 8;
   r[0] = LMINUS_ONE;
   beta[0] = 0;
 
-  x[1] = 10;
+  data[1] = 10;
   r[1] = 2;
   beta[1] = 1;
 
-  x[2] = 10;
+  data[2] = 10;
   r[2] = 20;
   beta[2] = 1;
 
+  data[3] = LMINUS_ONE;
   r[3] = 800;
-  x[3] = LMINUS_ONE;
   beta[3] = 1;
+
+  data[4] = -1;
+  r[4] = 100;
+  beta[4] = 0;
+
+  data[5] = -6;
+  r[5] = 7.5;
+  beta[5] = 1;
+
+  data[6] = -100;
+  r[6] = LMINUS_ONE;
+  beta[6] = 0;
+
+  data[7] = LMINUS_ONE;
+  r[7] = -10;
+  beta[7] = 1;
+
+  for (int i = 0; i < len; i++) {
+    x[i] = MOTION::new_fixed_point::encode<uint64_t, long double>(data[i], 13);
+    r[i] = MOTION::new_fixed_point::encode<uint64_t, long double>(r[i], 13);
+    std::cout << x[i] <<  " " << r[i] << "\n";
+  }
+
 GenerateBitSharesOverPrime(bit_shares_x0, bit_shares_x1, x, len);
 
-  for(int i = 0; i< len; i++)
-  {
-    for(int k = 0; k < BIT_SIZE; k++)
-    {
+  // for(int i = 0; i< len; i++)
+  // {
+  //   for(int k = 0; k < BIT_SIZE; k++)
+  //   {
      
-      auto bt = (x[i] >> BIT_SIZE-1 - k) & 1; 
-      if (addModPrime[bit_shares_x0[i*BIT_SIZE + k]][bit_shares_x1[i*BIT_SIZE + k]] != bt)
-          std::cout << " Error at i : " << i << ", bit pos : " << k << "\n";
+  //     auto bt = (x[i] >> BIT_SIZE-1 - k) & 1; 
+  //     if (addModPrime[bit_shares_x0[i*BIT_SIZE + k]][bit_shares_x1[i*BIT_SIZE + k]] != bt)
+  //         std::cout << " Error at i : " << i << ", bit pos : " << k << "\n";
       
-      //std:: cout << addModPrime[bit_shares_x0[i*BIT_SIZE + k]][bit_shares_x1[i*BIT_SIZE + k]] << " , " << bt <<"\n";
+  //     //std:: cout << addModPrime[bit_shares_x0[i*BIT_SIZE + k]][bit_shares_x1[i*BIT_SIZE + k]] << " , " << bt <<"\n";
       
-    }
-  } 
+  //   }
+  // } 
 c0 = PrivateCompare(bit_shares_x0, r, beta, len, 0);
 // for(int i = 0; i< c0.size(); i++)
 //     std::cout << c0[i] << "\n";

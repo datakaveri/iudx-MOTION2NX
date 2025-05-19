@@ -100,7 +100,7 @@ void testMemoryOccupied(bool WriteToFiles, int my_id, std::string path) {
 
     std::ofstream file2;
     file2.open(t2, std::ios_base::app);
-    file2 << "RelU : \n";
+    file2 << "Argmax: \n";
     file2 << "RSS - " << rss << " kB\n";
     file2 << "Shared Memory - " << shared_mem << " kB\n";
     file2 << "Private Memory - " << rss - shared_mem << "kB\n";

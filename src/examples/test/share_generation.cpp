@@ -53,8 +53,8 @@ void generate_numbers() {
 void share_generation(int rows, int columns, std::vector<float> data) {
   auto p = std::filesystem::current_path();
   auto q = std::filesystem::current_path();
-  p += "/server0/outputshare_0";
-  q += "/server1/outputshare_1";
+  p += "/motion2nx_relu/server0/outputshare_0";
+  q += "/motion2nx_relu/server1/outputshare_1";
   // p += "/SharesForW1T0";
   // q += "/SharesForW1T1";
   // p += "/server0/Image_shares/Sample_shares2";
@@ -124,21 +124,25 @@ int main() {
   // generate_random_numbers();
 
   // generate_numbers();
-  int r = 20000;
+  int r = 32768;
   int c = 1;
 
   std::ifstream file1;
   std::string home_dir = getenv("BASE_DIR");
   // std::string path = home_dir + "/build_debwithrelinfo_gcc/random_numbers";
-  std::string path = home_dir + "/build_debwithrelinfo_gcc/test_numbers";
+  // std::string path = home_dir + "/build_debwithrelinfo_gcc/test_numbers";
+  std::string path = home_dir + "/build_debwithrelinfo_gcc/motion2nx_relu/test_numbers";
 
   file1.open(path);
+  if (!file1) {
+    std::cerr << "Error detected." << std::endl;
+  }
   float x;
   std::vector<float> arr;
 
-  for (int i = 0; i < 20000; i++) {
+  for (int i = 0; i < r * c; i++) {
+    x = 2 * i;
     file1 >> x;
-    std::cout << x << " ";
     arr.push_back(x);
   }
 

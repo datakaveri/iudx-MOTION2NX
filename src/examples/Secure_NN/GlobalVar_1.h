@@ -4,16 +4,42 @@ bool helpernode_ready_flag = false;
 bool XABY_receive_flag = false;
 bool YABY_receive_flag = false;
 bool OT_flag = false;
+
 //ShareConvert related flags
 bool SC_P_flag = false; //Prime shares
 bool SC_D_flag = false; // delta shares
 bool SC_PC_flag = false; // c shares to compute 
+
+// ComputeMSB related flags
+bool helpernode_computeMSB_ready_flag = false;  // Flag set after ShareConvert completion
+bool MSB_Odd_flag = false;          // x shares in odd world
+bool MSB_P_flag = false;            // x Prime shares
+bool MSB_L_LSB_flag = false;        // x LSB shares
+bool MSB_R_flag = false;            // Shares of r
+bool MSB_PC_flag = false;           // PC Shares for ComputeMSB
+
+// ReLU related flags
+bool helpernode_ReLU_ready_flag = false;
+// XABY_receive_flag, YABY_receive_flag and OT_flag are also used for Hadamard Matrix Multiplication in ReLU.
+// These flags are reset after their use in ComputeMSB to false.
+
+// ArithToABY related flags
+bool OtherPartySync_Flag = false;           // Flag to establish connection
+bool ArithToABY_Flag = false;               // Transfer of shares
+
 std::vector<std::uint64_t> x_pr_bit, del_odd, etaP_odd;
+std::vector<std::uint64_t> MSB_x_Odd, MSB_x_P, MSB_x_L_LSB;
+std::vector<std::uint64_t> R_Shares, betaP;
 
-
-
+// Vectors used in ComputeMSB for Hadamard Matrix Multiplication
 std::vector<std::uint64_t> x_temp_vec, y_temp_vec;
 std::vector<std::uint64_t> OT_vec;
+
+// Vectors used in ReLU for Hadamard Matrix Multiplication
+std::vector<std::uint64_t> Relu_x_temp_vec, Relu_y_temp_vec, Relu_OT_vec;
+
+// Vectors used in ArithToABY 
+std::vector<std::uint64_t> Relu_Public_Shares_Other_Party;
 
 std::uint64_t fractional_bits;
 
@@ -21,7 +47,7 @@ int my_id = 1;
 int other_party = 0;
 
 int helpernode_id = 2; 
-enum MessageType {SC, SC_P, SC_D, SC_PC, XArithToABY, YArithToABY, HelperNodeSync, X_PrivateShares, Y_PrivateShares, OT};
+enum MessageType {SC, SC_P, SC_D, SC_PC, XArithToABY, YArithToABY, HelperNodeSync, X_PrivateShares, Y_PrivateShares, OT, ComputeMSBReady, MSB_Odd, MSB_P, MSB_L_LSB, MSB_R, MSB_PC, ReluReady, Relu_XArithToABY, Relu_YArithToABY, Relu_X_PrivateShares, Relu_Y_PrivateShares, Relu_OT, OtherPartySync, ArithToABY};
 
 std::unique_ptr<MOTION::Communication::CommunicationLayer> comm_layer;
 

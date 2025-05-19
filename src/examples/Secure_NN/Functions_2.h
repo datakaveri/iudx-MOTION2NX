@@ -34,7 +34,6 @@
 
 using namespace std::chrono;
 
-
 template <typename E>
 std::uint64_t RandomNumDistribution(E& engine) {
   std::uniform_int_distribution<unsigned long long> distribution(
@@ -123,7 +122,7 @@ void AddVectorsOverL(std::vector<uint64_t>& a, std::vector<uint64_t>& b, std::ve
   for(int i = 0;i < len; i++) 
   {
     ans[i] = a[i] + b[i];
-    std::cout << ans[i] << "\n";
+    // std::cout << ans[i] << "\n";
   }
     
 }
@@ -138,6 +137,38 @@ void WrapAround(std::vector<std::uint64_t> &a0, std::vector<std::uint64_t> &a1, 
     {
         ans[i] = WrapAround(a0[i], a1[i]);
     }
+}
+
+void GenerateSharesOverL(std::vector<uint64_t>& a0, std::vector<uint64_t>& a1, std::vector<uint64_t>& a, std::size_t len)
+{
+std:: cout << " Entered GenerateSharesOverL \n";
+std::random_device rd;
+std::mt19937 gen(rd());
+for(int i = 0; i < len; i++)
+  {
+    a0[i] = RandomNumDistribution(gen);
+    a1[i] = a[i] - a0[i];
+  }
+}
+
+void GenerateLSBSharesOverL(std::vector<std::uint64_t> &lsb_shares_x0, std::vector<std::uint64_t> &lsb_shares_x1, std::vector<std::uint64_t> &x, std::size_t len = 1)
+{
+std:: cout << " Entered GenerateLSBSharesOverL \n";
+std::random_device rd;
+std::mt19937 gen(rd());
+//bit_shares_x1[i*BIT_SIZE + k] = bt - bit_shares_x0[i*BIT_SIZE + k]
+for(int i = 0; i< len; i++)
+ {
+   lsb_shares_x0[i] = RandomNumDistribution(gen);
+   auto lsb = x[i] & 1;
+  //  std :: cout << "lsb of : " << std::hex << x[i] << " is : " << lsb << "\n"; 
+  //  std :: cout << "lsb of : " << std::hex << x[i] << " is : " << x[i]%2 << "\n"; 
+   std::uint64_t temp = lsb * (1 << FIXED_POINT);
+   lsb_shares_x1[i] = temp - lsb_shares_x0[i];
+   if (lsb_shares_x0[i] + lsb_shares_x1[i] != temp)
+       std::cout << "Error in GenerateLSBSharesOverL" << lsb_shares_x0[i] + lsb_shares_x1[i] << " , " << temp <<"\n";
+   //std::cout << lsb_shares_x0[i] + lsb_shares_x1[i] << " , " << temp <<"\n";
+ }
 }
 
 void GenerateBitSharesOverPrime(std::vector<std::uint64_t> &bit_shares_x0, std::vector<std::uint64_t> &bit_shares_x1, std::vector<std::uint64_t> &x, std::size_t len = 1)
@@ -196,9 +227,21 @@ void GenerateModuloOddShares(std::vector<std::uint64_t> &x0, std::vector<std::ui
   std::random_device rd;
   std::mt19937 gen(rd()); 
   for(int i = 0; i < len; i++)
-     x0[i] = RandomNumOverOddRing(gen);
+     // x0[i] = RandomNumOverOddRing(gen);
+     x0[i] = 0;
   SubtractModuloOdd(x, x0, x1, len);
 }
+
+void GenerateRandVecModOdd(std::vector<std::uint64_t>& x, std::size_t len) {
+  std::cout << "Entered GenerateRandVecModOdd" << std::endl;
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  for (int i = 0; i < len; i++) {
+    // x[i] = RandomNumOverOddRing(gen);
+    x[i] = 0;
+  }
+}
+
 //ReadSharesIntoVec : Reads arithmatic shares from file_path into a vector
 //first 2 values are dimensions, remaning are share values
 int ReadSharesIntoVec(std::string file_path, std::vector<uint64_t>&vec)
@@ -487,13 +530,14 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
 
     std::ofstream file2;
     file2.open(t2, std::ios_base::app);
-    file2 << "Helper Node Multiplication layer : \n";
+    file2 << "3PC ReLU at Party 2: \n";
     file2 << "RSS - " << rss << " kB\n";
     file2 << "Shared Memory - " << shared_mem << " kB\n";
     file2 << "Private Memory - " << rss - shared_mem << "kB\n";
     file2.close();
   }
 }
+
 //matrix Multiplication  ans = a * b
 int MatrixMultiplication(std::vector<uint64_t> &a,std::vector<uint64_t> &b, std::vector<uint64_t> &ans)
 {   
@@ -553,6 +597,44 @@ int MatrixMultiplication(std::vector<uint64_t> &a,std::vector<uint64_t> &b, std:
   return 0;
 }
 
+// HadamardMatrixMultiplication: Computes the hadamard product of a and b, first two elements of a and b store the dimensions of the matrix
+// Input  : Two vectors a and b of std::uint64_t, and an empty vector result of type std::uint64_t
+// Output : Updates result to store the product with the first two elements being the dimensions of the matrix.
+int HadamardMatrixMultiplication(std::vector<std::uint64_t>& a, std::vector<std::uint64_t>& b, std::vector<std::uint64_t>& result) {
+  std::cout << "Entering HadamardMatrixMultiplication." << std::endl;
+  // Checking for dimension match of matrices a and b
+  if (a[0] != b[0]) {
+    std::cerr << "Error: Hadamard multiplication. Number of rows in matrix A: " << a[0] << " do not match the number of rows in matrix B: " << b[0] << std::endl;
+    return 0;
+  } else if (a[1] != b[1]) {
+    std::cerr << "Error: Hadamard multiplication. Number of columns in matrix A: " << a[1] << " do not match the number of columns in matrix B: " << b[1] << std::endl;
+    return 0;
+  }
+
+  // Defining the matrix result size
+  result.resize(a[0] * a[1] + 2);
+
+  auto rows = a[0];
+  auto cols = a[1];
+
+  result[0] = rows;
+  result[1] = cols;
+
+  auto aBegin = a.begin();
+  auto aEnd = a.end();
+  advance(aBegin, 2);
+
+  auto bBegin = b.begin();
+  advance(bBegin, 2);
+
+  auto resultBegin = result.begin();
+  advance(resultBegin, 2);
+
+  __gnu_parallel::transform(aBegin, aEnd, bBegin, resultBegin, std::multiplies{});
+  std::cout << "Exiting HadamardMatrixMultiplicaton." << std::endl;
+  return 1;
+}
+
 void OTGeneration(std::vector<uint64_t> &v1, std::vector<uint64_t> &v2, std::vector<uint64_t> &ot0, std::vector<uint64_t> &ot1)
 {
   std::cout << " \n ###### Entered OTGeneration ..  ##### \n ";
@@ -567,32 +649,7 @@ void OTGeneration(std::vector<uint64_t> &v1, std::vector<uint64_t> &v2, std::vec
 
 int HelperArithMatrixMultiplication()
 {
-
- while((!server0_ready_flag) || (!server1_ready_flag))
-      {
-        std::cout<<".";
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(400));
-      }
-
-    // Sending acknowledgement message to server 0 and 1, after receiving the start message.
-    std::cout<<"Sending acknowledgement message to server 0 and 1\n";
-    std::vector<std::uint8_t> ack{(std::uint8_t)HelperNodeSync};
-    try{
-    comm_layer->send_message(server1,ack); 
-    }
-    catch (std::runtime_error& e) {
-      std::cerr << "Error occurred while sending the ack message to server 1: " << e.what() << "\n";
-      return EXIT_FAILURE;
-    }
-    try{
-      comm_layer->send_message(server0,ack);
-    }
-    catch (std::runtime_error& e) {
-      std::cerr << "Error occurred while sending the ack message to server 0: " << e.what() << "\n";
-      return EXIT_FAILURE;
-    }
-    std::cout<<"Sent acknowledgement message to server 0 and 1\n";
-   //waiting for all the private shares to be received 
+   // Waiting for all the private shares to be received 
     while(!X0_Priv_Share_Flag || !X1_Priv_Share_Flag || !Y0_Priv_Share_Flag || !Y1_Priv_Share_Flag)
     {
      std::cout<<".";
@@ -603,15 +660,14 @@ int HelperArithMatrixMultiplication()
   std::vector<std::uint64_t> OT_0, OT_1; 
   std::vector<std::uint8_t> OT0_msg, OT1_msg;
 
-  if (!MatrixMultiplication(X0_Priv, Y1_Priv, X0Y1))
+  if (HadamardMatrixMultiplication(X0_Priv, Y1_Priv, X0Y1))
       std::cout << "";
-  else std::cout << "Could nOt Perform Matrix multiplication \n ";
+  else std::cout << "Could Not Perform Matrix multiplication \n ";
   std::cout << " \nX0Y1 \n";
   
-
-  if (!MatrixMultiplication(X1_Priv, Y0_Priv, X1Y0))
+  if (HadamardMatrixMultiplication(X1_Priv, Y0_Priv, X1Y0))
       std::cout << "";
-  else std::cout << "Could nOt Perform Matrix multiplication \n ";
+  else std::cout << "Could Not Perform Matrix multiplication \n ";
   
   OTGeneration(X0Y1, X1Y0, OT_0, OT_1);
   ConvertVetorIntoMessage(OT_0, OT0_msg, OT);
@@ -676,6 +732,7 @@ int ShareConvert()
   std::cout << "Entered ShareConvert  \n";
   // send x0_bit, delta_0 to P0 and  x1_bit,delta_1 to P1
   // and call PrivateCompare_2() that is waiting receiv shares from P0 and P1
+  auto start = std::chrono::high_resolution_clock::now();
   while((!server0_ready_flag) || (!server1_ready_flag))
       {
         std::cout<<".";
@@ -694,6 +751,19 @@ int ShareConvert()
       return EXIT_FAILURE;
     }
     std::cout<<"Sent acknowledgement message to server 0 and 1\n";
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+    std::string statFilePath = baseDirectory + "/build_debwithrelinfo_gcc/stats/ackStats2";
+    std::ofstream statFilePathFile;
+    statFilePathFile.open(statFilePath, std::ios_base::app);
+    if (!statFilePathFile.is_open()) {
+      std::cerr << "Error: Unable to open the file path.\n";
+    }
+    statFilePathFile << "Helper message acknowledgement @ S2 for ReLU: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
+    statFilePathFile.close();
+
    //wait for a_tilede, a1_tilde from P0 and P1
    while((!SC0_flag) || (!SC1_flag))
       {
@@ -702,7 +772,6 @@ int ShareConvert()
       }
     
   //Received a0_tilde and a1_tilde from P0 and P1
-
   std::size_t len = a0_tilde.size();  
   std::vector<uint64_t> x(len, 0), delta(len, 0);
   std::vector<uint64_t> del0_odd(len, 0), del1_odd(len, 0); //delta shares to be sent to P0 and dP1
@@ -728,6 +797,154 @@ int ShareConvert()
   std::vector<std::uint64_t> betaP0_odd(len, 0), betaP1_odd(len,0);
   GenerateModuloOddShares(betaP0_odd, betaP1_odd, betaP, len);
   SendToP0P1(betaP0_odd, betaP1_odd, (uint8_t)SC_PC);
+  return 0;
+}
+
+int ComputeMSB() {
+  std::cout << "Entered ComputeMSB." << "\n";
+
+  // Wait for initial message from P0 and P1 and send acknowledgement to P0 and P1
+  while ((!server0_compute_msb_ready_flag) || (!server1_compute_msb_ready_flag)) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+
+  std::cout<<"Sending acknowledgement message to server 0 and 1\n";
+  std::vector<std::uint8_t> ack{(std::uint8_t)ComputeMSBReady};
+  try {
+    comm_layer->send_message(server1, ack); 
+    comm_layer->send_message(server0, ack);
+  }
+  catch (std::runtime_error& e) {
+    std::cerr << "Error occurred while sending the ack message to server 0 or 1: " << e.what() << "\n";
+    return EXIT_FAILURE;
+  }
+  std::cout << "Sent message successfully to server 0 and server 1." << std::endl;
+
+  if (MSB_len0[0] != MSB_len1[0]) {
+    std::cerr << "Dimensions of the shares do not match." << std::endl;
+  }
+
+  // Step 1
+  // Select x over odd ring
+  std::size_t len = MSB_len0[0];      
+  std::vector<std::uint64_t> xOverOdd(len, 0);
+  std::vector<std::uint64_t> xOddShares0(len, 0), xOddShares1(len, 0);
+  std::vector<std::uint64_t> xPrimeBitShares0(len * BIT_SIZE, 0), xPrimeBitShares1(len * BIT_SIZE, 0);
+  std::vector<std::uint64_t> xLSBBitShares0(len, 0), xLSBBitShares1(len, 0);
+
+  // Generating odd shares of x over L - 1 and generate random value of x over L - 1
+  GenerateRandVecModOdd(xOddShares0, len);
+  GenerateRandVecModOdd(xOddShares1, len);
+  AddModuloOdd(xOddShares0, xOddShares1, xOverOdd, len);
+  // Generating bit shares over p = 67
+  GenerateBitSharesOverPrime(xPrimeBitShares0, xPrimeBitShares1, xOverOdd, len);
+  // Generating LSB shares of x over L
+  GenerateLSBSharesOverL(xLSBBitShares0, xLSBBitShares1, xOverOdd, len);
+
+  // Send respective shares to P0 and P1
+  // Sending odd shares
+  SendToP0P1(xOddShares0, xOddShares1, (std::uint8_t)MSB_Odd);
+  // Sending prime shares
+  SendToP0P1(xPrimeBitShares0, xPrimeBitShares1, (std::uint8_t)MSB_P);
+  // Sending LSB shares to party 0 and party 1
+  SendToP0P1(xLSBBitShares0, xLSBBitShares1, (std::uint8_t)MSB_L_LSB);
+
+  // Step 4-5
+  // Private Compare @ P2, followed by generating shares of betaP and sending them
+  // to P0 and P1 respectively
+  while ((!MSB_PC_0_flag) || (!MSB_PC_1_flag)) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(400));
+  }
+  std::vector<std::uint64_t> betaP(len, 0);
+  PrivateCompare(MSB_c0, MSB_c1, betaP);
+
+  for (int i = 0; i < len; i++) {
+    betaP[i] = MOTION::new_fixed_point::encode<uint64_t, long double>(betaP[i], 13);
+  }
+
+  std::vector<std::uint64_t> betaP_0(len, 0), betaP_1(len, 0);
+  GenerateSharesOverL(betaP_0, betaP_1, betaP, len);
+  SendToP0P1(betaP_0, betaP_1, (std::uint8_t)MSB_PC);
+
+  // Step 9
+  // Hadamard product of ABY2.0 shares of gammaL and deltaL using helper node
+  HelperArithMatrixMultiplication();
+
+  return 0;
+}
+
+int DerivativeRelu() {
+  ShareConvert();
+  ComputeMSB();
+  return 0;
+}
+
+int ReLU() {
+  std::cout << "Entered ReLU." << std::endl;
+  DerivativeRelu();
+  X0_Priv_Share_Flag = false;
+  X1_Priv_Share_Flag = false;
+  Y0_Priv_Share_Flag = false;
+  Y1_Priv_Share_Flag = false;
+
+  // Wait for initial message from P0 and P1 and send acknowledgement to P0 and P1
+  while ((!server0_relu_ready_flag) || (!server1_relu_ready_flag)) {
+    std::cout << ".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+  }
+
+  std::cout<<"Sending Relu acknowledgement message to server 0 and 1\n";
+  std::vector<std::uint8_t> ack{(std::uint8_t)ReluReady};
+  try {
+    comm_layer->send_message(server1, ack); 
+    comm_layer->send_message(server0, ack);
+  }
+  catch (std::runtime_error& e) {
+    std::cerr << "Error occurred while sending the ack message to server 0 or 1: " << e.what() << "\n";
+    return EXIT_FAILURE;
+  }
+
+  while(!X0_Priv_Share_Flag || !X1_Priv_Share_Flag || !Y0_Priv_Share_Flag || !Y1_Priv_Share_Flag)
+  {
+    std::cout<<".";
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(400)); 
+  }
+
+  std::vector<std::uint64_t> X0Y1, X1Y0;
+  std::vector<std::uint64_t> OT_0, OT_1; 
+  std::vector<std::uint8_t> OT0_msg, OT1_msg;
+
+  if (HadamardMatrixMultiplication(Relu_X0_Priv, Relu_Y1_Priv, X0Y1))
+      std::cout << "";
+  else std::cout << "Could Not Perform Matrix multiplication \n ";
+
+  if (HadamardMatrixMultiplication(Relu_X1_Priv, Relu_Y0_Priv, X1Y0))
+      std::cout << "";
+  else std::cout << "Could Not Perform Matrix multiplication \n ";
+
+  OTGeneration(X0Y1, X1Y0, OT_0, OT_1);
+  ConvertVetorIntoMessage(OT_0, OT0_msg, Relu_OT);
+  ConvertVetorIntoMessage(OT_1, OT1_msg, Relu_OT);
+
+  try{
+      comm_layer->send_message(server0, OT0_msg);
+    }
+  catch (std::runtime_error& e) {
+      std::cerr << "Error while sending OT message to server 0: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+  
+  try{
+      comm_layer->send_message(server1, OT1_msg);
+    }
+  catch (std::runtime_error& e) {
+      std::cerr << "Error while sending OT message to server 1: " << e.what() << "\n";
+      return EXIT_FAILURE;
+    }
+
+  std::cout << "Exited ReLU." << std::endl;
   return 0;
 }
 

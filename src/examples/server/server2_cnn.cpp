@@ -2,6 +2,7 @@
 ./bin/server2_cnn --party 0,127.0.0.1,4009 --party 1,127.0.0.1,4010 --helper_node 127.0.0.1,4011
 */
 #include <bits/stdc++.h>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -41,8 +42,45 @@ namespace po = boost::program_options;
 struct Options {
   std::size_t my_id;
   std::uint16_t my_port;
+  std::string current_path;
   MOTION::Communication::tcp_parties_config tcp_config;
 };
+
+void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
+  int tSize = 0, resident = 0, share = 0;
+  std::ifstream buffer("/proc/self/statm");
+  buffer >> tSize >> resident >> share;
+  buffer.close();
+
+  long page_size_kb =
+      sysconf(_SC_PAGE_SIZE) / 1024;  // in case x86-64 is configured to use 2MB pages
+  double rss = resident * page_size_kb;
+  std::cout << "RSS - " << rss << " kB\n";
+  double shared_mem = share * page_size_kb;
+  std::cout << "Shared Memory - " << shared_mem << " kB\n";
+  std::cout << "Private Memory - " << rss - shared_mem << "kB\n";
+  std::cout << std::endl;
+  if (WriteToFiles == 1) {
+    // Generate path for the AverageMemoryDetails file and MemoryDetails file
+    std::string t1 = path + "/" + "AverageMemoryDetails" + std::to_string(my_id);
+    std::string t2 = path + "/" + "MemoryDetails" + std::to_string(my_id);
+
+    // Write to the AverageMemoryDetails files
+    std::ofstream file1;
+    file1.open(t1, std::ios_base::app);
+    file1 << rss;
+    file1 << "\n";
+    file1.close();
+
+    std::ofstream file2;
+    file2.open(t2, std::ios_base::app);
+    file2 << "Convolution layer at party 1: \n";
+    file2 << "RSS - " << rss << " kB\n";
+    file2 << "Shared Memory - " << shared_mem << " kB\n";
+    file2 << "Private Memory - " << rss - shared_mem << "kB\n";
+    file2.close();
+  }
+}
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
   Options options;
@@ -53,7 +91,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("party", po::value<std::vector<std::string>>()->multitoken(),
      "(party id, IP, port), e.g., --party 1,127.0.0.1,7777")
     ("helper_node", po::value<std::string>()->multitoken(),
-     "(helpernode IP, port), e.g., --helper_node 127.0.0.1,7777") 
+     "(helpernode IP, port), e.g., --helper_node 127.0.0.1,7777")
+    ("current-path", po::value<std::string>()->required(), "currentpath") 
   ;
  
   po::variables_map vm;
@@ -115,6 +154,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.tcp_config[id0] = conn_info0;
   options.tcp_config[id1] = conn_info1;
   options.tcp_config[2] = conn_info_helpernode;
+  options.current_path = vm["current-path"].as<std::string>();
 
   // clang-format on;
   return options;
@@ -338,19 +378,6 @@ void operations()
   adduint64(r[i],msg_R); //r  server0
   }
   std::cout<<"\n";
-  
-  // std::cout<<msg_Z.size()<<" "<<msg_R.size()<<"\n";
-  // for(int i=0;i<msg_Z.size();i++)
-  // {
-  //   std::cout<<msg_Z[i]<<" ";
-  // }
-  // std::cout<<"\n";
-
-  //   for(int i=0;i<msg_R.size();i++)
-  // {
-  //   std::cout<<msg_R[i]<<" ";
-  // }
-  // std::cout<<"\n";
 
   operations_done_flag = true; 
 }
@@ -399,6 +426,7 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
       conv_channels=getuint64(message,2);
       conv_rows=getuint64(message,3);
       conv_cols=getuint64(message,4);
+      std::cout << conv_kernels << " " << conv_channels << " " << conv_rows << " " << conv_cols << std::endl;
       for (int i=5; i<9; i++)
        {
         pads[i-5]=getuint64(message,i);
@@ -524,13 +552,15 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
 
 int main(int argc, char* argv[]) {
   std::cout<<"Started the helper node.\n";
-
+  int WriteToFiles = 1;
   int my_id = 2;
   auto options = parse_program_options(argc, argv);
   if (!options.has_value()) {
     std::cerr<<"No options given.\n";
     return EXIT_FAILURE;
   }
+
+  auto startComm = std::chrono::high_resolution_clock::now();
   std::unique_ptr<MOTION::Communication::CommunicationLayer> comm_layer;
   std::shared_ptr<MOTION::Logger> logger;
   try{
@@ -560,6 +590,8 @@ int main(int argc, char* argv[]) {
       std::cerr << "Error occurred while starting the communication: " << e.what() << "\n";
       return EXIT_FAILURE;
     }
+    auto endComm = std::chrono::high_resolution_clock::now();
+
     std::cout<<"Start Receiving messages in parallel\n";
     comm_layer->register_fallback_message_handler(
         [](auto party_id) { return std::make_shared<TestMessageHandler>(); });
@@ -620,6 +652,7 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
     comm_layer->shutdown();
+    testMemoryOccupied(WriteToFiles, my_id, options->current_path);
   }
   catch (std::runtime_error& e) {
     std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
