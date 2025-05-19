@@ -60,9 +60,26 @@ then
         mkdir -p $debug_2
 fi
 
+
+#################################################
+cd $build_path
+
+if [ -f AverageMemory2 ]; then
+   rm AverageMemory2
+   # echo "Memory Details0 are removed"
+fi
+
+if [ -f AverageTime2 ]; then
+   rm AverageTime2
+   # echo "Average Memory Details0 are removed"
+fi
+
+################################################
+
 echo "Helper node starts"
 
 # layer_types=($(cat "$build_path/layer_types0"))
+start=$(date +%s)
 
 ############################ Inputs for inferencing tasks #######################################################################################
 # ####################################### Matrix multiplication layer 1 ###########################################################################
@@ -71,7 +88,7 @@ do
 
 if [ ${layer_types[layer_id]} -eq 1 ];then 
 
-   $build_path/bin/server2_cnn --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference > $debug_2/helpernode_layer${layer_id}.txt &
+   $build_path/bin/server2_cnn --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path > $debug_2/helpernode_layer${layer_id}.txt &
    pid1=$!
 
    wait $pid1
@@ -80,7 +97,7 @@ if [ ${layer_types[layer_id]} -eq 1 ];then
 
 elif [ ${layer_types[layer_id]} -eq 0 ];then
 
-   $build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference > $debug_2/helpernode_layer${layer_id}.txt &
+   $build_path/bin/server2 --party 0,$cs0_host,$cs0_port_inference --party 1,$cs1_host,$cs1_port_inference --helper_node $helpernode_host,$helpernode_port_inference --current-path $build_path > $debug_2/helpernode_layer${layer_id}.txt &
    pid2=$!
    wait $pid2
    check_exit_statuses $?
@@ -88,6 +105,19 @@ elif [ ${layer_types[layer_id]} -eq 0 ];then
 
 fi
 done
+  end=$(date +%s)
+
+Mem=`cat AverageMemory2`
+Time=`cat AverageTime2`
+
+Mem=$(printf "%.2f" $Mem)
+Convert_KB_to_GB=$(printf "%.14f" 9.5367431640625E-7)
+Mem2=$(echo "$Convert_KB_to_GB * $Mem" | bc -l)
+
+Memory=$(printf "%.3f" $Mem2)
+
+echo "Memory requirement:" `printf "%.3f" $Memory` "GB"
+echo "Elapsed Time: $(($end-$start)) seconds"
 
 sleep 3
 done

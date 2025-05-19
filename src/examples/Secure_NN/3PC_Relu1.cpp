@@ -1,14 +1,15 @@
-//./bin/3PC_Relu0 --party 0,127.0.0.1,4009 --party 1,127.0.0.1,4010 --helper_node 127.0.0.1,4011 --current-path ${BASE_DIR}/build_debwithrelinfo_gcc
+// ./bin/3PC_Relu1 --party 0,127.0.0.1,4009 --party 1,127.0.0.1,4010 --helper_node 127.0.0.1,4011 --current-path ${BASE_DIR}/build_debwithrelinfo_gcc
+
 #include "Functions_1.h"
 #include "GlobalVar_1.h"
 
 using namespace std::chrono;
 
-/************************************************************************************************/
-// Aim : Read the Arithmatic shares and convert them into ABY shares perform multiplication
-//Input :  ${BASE_DIR} + "/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_0", Y_OutputShare_0
-//Output : ${BASE_DIR} + "/build_debwithrelinfo_gcc/3PC_Relu/ABY_shares_0
-//********************************************************************************************
+//***********************************************************************************************/
+// Aim    : Read the Arithmatic shares and convert them into ABY shares perform multiplication
+// Input  : ${BASE_DIR} + "/build_debwithrelinfo_gcc/server1/outputshare_1"
+// Output : ${BASE_DIR} + "/build_debwithrelinfo_gcc/server1/outputshare_1"
+//***********************************************************************************************/
 
 namespace po = boost::program_options;
 
@@ -16,9 +17,7 @@ struct Options {
   std::string current_path;
   MOTION::Communication::tcp_parties_config tcp_config;
   std::string Xarith_shares_file;
-  std::string Yarith_shares_file;
-  std::string Xaby_shares_file;
-  std::string Yaby_shares_file;
+  std::string X_Relu_ABY_Shares_File;
   std::string output_share_file;
   std::size_t fractional_bits;
 };
@@ -107,11 +106,9 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
   options.tcp_config[id0] = conn_info0;
   options.tcp_config[id1] = conn_info1;
   options.tcp_config[2] = conn_info_helpernode;
-  options.Xarith_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_" + std::to_string(my_id);
-  options.Xaby_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/X_ABY_shares_" + std::to_string(my_id);
-  options.Yarith_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Y_OutputShare_" + std::to_string(my_id);
-  options.Yaby_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Y_ABY_shares_" + std::to_string(my_id);
-  options.output_share_file = baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/Z_Arith_shares_" + std::to_string(my_id);
+  options.Xarith_shares_file = baseDirectory + "/build_debwithrelinfo_gcc/server" + std::to_string(my_id) + "/outputshare_" + std::to_string(my_id);
+  options.output_share_file = baseDirectory + "/build_debwithrelinfo_gcc/server" + std::to_string(my_id) + "/outputshare_" + std::to_string(my_id);
+  options.X_Relu_ABY_Shares_File = baseDirectory + "/build_debwithrelinfo_gcc/server" + std::to_string(my_id) + "/outputshare_" + std::to_string(my_id);
 return options;
 }
 
@@ -120,9 +117,9 @@ return options;
 // registered for and the id of the sending party.
 // This method may be called concurrently with different values of party_id.
 // The client is responsible for the necessary synchronization,see  message_handler.h for more info
-//for this reason we have to use synchronization on our own
+// for this reason we have to use synchronization on our own
 // virtual void received_message(std::size_t party_id, std::vector<std::uint8_t>&& message) = 0;
-//Note that above is a virtual function
+// Note that above is a virtual function
 class TestMessageHandler : public MOTION::Communication::MessageHandler
 {
   void received_message(std::size_t party_id, std::vector<std::uint8_t>&& message) override 
@@ -232,6 +229,145 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler
           std::cerr << "Received message " << OT << " from unknown party id " << party_id << "\n";
          }
         break;
+    case ComputeMSBReady:
+        if (party_id == helpernode_id) {
+          std::cout << "Server 0 is ready for ComputeMSB. \n";
+          helpernode_computeMSB_ready_flag = true;
+        }
+        else {
+          std::cerr << "Received message " << ComputeMSBReady << " from unknown party id: " << party_id << "\n";
+        }
+        break;
+    case MSB_Odd:
+          if (party_id == helpernode_id) {
+            std::cout << "Received message from: " << party_id << ", Message Type: MSB_Odd." << std::endl;
+            ConvertMessageIntoVector(message, MSB_x_Odd);
+            MSB_Odd_flag = true;
+            return;
+          }
+          else {
+            std::cerr << "Received message " << MSB_Odd << " from unknown party id: " << party_id << std::endl;
+          }
+          break;
+    case MSB_P:
+          if (party_id == helpernode_id) {
+            std::cout << "Received message from: " << party_id << ", Message Type: MSB_P." << std::endl;
+            ConvertMessageIntoVector(message, MSB_x_P);
+            MSB_P_flag = true;
+            return;
+          }
+          else {
+            std::cerr << "Received message " << MSB_P << " from unknown party id: " << party_id << std::endl;
+          }
+          break;
+    case MSB_L_LSB:
+          if (party_id == helpernode_id) {
+            std::cout << "Received message from: " << party_id << ", Message Type: MSB_L_LSB." << std::endl;
+            ConvertMessageIntoVector(message, MSB_x_L_LSB);
+            MSB_L_LSB_flag = true;
+            return;
+          }
+          else {
+            std::cerr << "Received message " << MSB_L_LSB <<" from unknown party id: " << party_id << std::endl;
+          }
+          break;
+    case MSB_R:
+          if (party_id == other_party) {
+            std::cout << "Received message from: " << party_id << ", Message Type: MSB_R." << std::endl;
+            ConvertMessageIntoVector(message, R_Shares);
+            MSB_R_flag = true;
+            return;
+          }
+          else {
+            std::cerr << "Received message " << MSB_R << " from unknown party id: " << party_id << std::endl;
+          }
+          break;
+    case MSB_PC:
+          if (party_id == helpernode_id) {
+            std::cout << "Received message from: " << party_id << ", Message Type: MSB_PC." << std::endl;
+            ConvertMessageIntoVector(message, betaP);
+            MSB_PC_flag = true;
+            return;
+          }
+          else {
+            std::cerr << "Received message " << MSB_PC << " from unknown party id: " << party_id << std::endl;
+          }
+          break;
+    case ReluReady:
+          // Since Hadamard Matrix Multiplication is to be executed again during the execution of ReLU,
+          // XABY_receive_flag, YABY_receive_flag and OT_flag are reset to false to be used again.
+          XABY_receive_flag = false;
+          YABY_receive_flag = false;
+          OT_flag = false;
+          if (party_id == helpernode_id) {
+            std::cout << "Received message from: " << party_id << ", Message type: ReluReady." << std::endl;
+            helpernode_ReLU_ready_flag = true;
+            return;
+          } else {
+            std::cerr << "Received message from unknown party id: " << party_id << std::endl;
+          }
+          break;
+    case Relu_XArithToABY:  // Received part public shares from other_party 
+        if(party_id == other_party)
+          {
+            std::cout << "Message received from : " << party_id << ", Message type: " << +message[0]<<".\n";
+            ConvertMessageIntoVector(message, Relu_x_temp_vec);
+            XABY_receive_flag = true;
+            return;
+          }
+        else
+          {
+            std::cerr<<"Received the message : " << msg_type << " from unknown party : " << party_id<<std::endl;
+            return;
+          }
+      break;
+    case Relu_YArithToABY:  // Received part public shares from other_party 
+        if(party_id == other_party)
+          {
+            std::cout << "In messages Handler: received from : " << party_id << ", message type :" << +message[0]<<"\n";
+            ConvertMessageIntoVector(message, Relu_y_temp_vec);
+            YABY_receive_flag = true;
+            return;
+          }
+        else
+          {
+            std::cerr<<"Received the message : " << msg_type << "from unknown party : " << party_id<<std::endl;
+            return;
+          }
+        break;
+      case Relu_OT: // Received OT shares from helper node in ReLU.
+        if (party_id == helpernode_id) {
+          std::cout << "Message received from: " << party_id << ", Message type: " << +message[0] << std::endl; 
+          ConvertMessageIntoVector(message, Relu_OT_vec);
+          OT_flag = true;
+          return;
+        } else {
+          std::cerr << "Received the message: " << msg_type << " from unknown party: " << party_id << std::endl;
+        }
+        break;
+      case OtherPartySync: // Received acknowledgement from other party
+        if (party_id == (1 - my_id))
+        {
+          std::cout << "Message received from other party: " << 1 - my_id << ", Message type: OtherPartySync." << std::endl;
+          OtherPartySync_Flag = true;
+        }
+        else {
+          std::cout << "Message received from unknown party: " << party_id << ", Message type: OtherPartySync." << std::endl;
+          return;
+        }
+        break;
+      case ArithToABY: // Received public shares from other_party
+        if (party_id == (1 - my_id))
+        {
+          std::cout << "Message received from other party: " << 1 - my_id << ", Message type: ArithToABY." << std::endl;
+          ConvertMessageIntoVector(message, Relu_Public_Shares_Other_Party);
+          ArithToABY_Flag = true;
+        }
+        else {
+          std::cout << "Message received from unknown party: " << party_id << ", Message type: ArithToABY." << std::endl;
+          return;
+        }
+        break;
    }
   }
 };
@@ -239,8 +375,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler
 int main(int argc, char* argv[]) {
   auto start = high_resolution_clock::now();
   auto options = parse_program_options(argc, argv);
-  std::vector<std::uint64_t>  X_arith,  Y_arith, Z_arith;
-  std::vector<std::uint64_t>  A_L, B_odd;
+  std::vector<std::uint64_t> X_arith, Y_arith, Z_arith;
+  std::vector<std::uint64_t> A_L;
+  std::vector<std::uint64_t> A_Relu;
+  std::vector<std::uint64_t> A_Relu_Public_Shares, A_Relu_Private_Shares;
   int WriteToFiles = 1;
 
   if (!options.has_value()) {
@@ -252,6 +390,7 @@ int main(int argc, char* argv[]) {
   std::shared_ptr<MOTION::Logger> logger;
   
   //%%%%%%%% Setting up COMM LAYER for sending and receiving messages
+  auto startComm = high_resolution_clock::now();
   try{
       MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
       comm_layer = std::make_unique<MOTION::Communication::CommunicationLayer>(
@@ -268,58 +407,102 @@ int main(int argc, char* argv[]) {
       std::cerr << "Error occurred while starting the communication: " << e.what() << "\n";
       return EXIT_FAILURE;
     }
+    auto endComm = high_resolution_clock::now();
+  
+    const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+    std::string statFilePath = baseDirectory + "/build_debwithrelinfo_gcc/stats/ackStats1";
+    std::ofstream statFilePathFile;
+    statFilePathFile.open(statFilePath, std::ios_base::app);
+    if (!statFilePathFile.is_open()) {
+      std::cerr << "Error: Unable to open the file path.\n";
+    }
+    statFilePathFile << "Starting communication layer @ S1 for ReLU: " << std::chrono::duration_cast<milliseconds>(endComm - startComm).count() << std::endl;
+    statFilePathFile.close();
+
   comm_layer->register_fallback_message_handler([](auto party_id) { return std::make_shared<TestMessageHandler>(); });
 
-//Read_Arithmatic shares from  "..build_debwithrelinfo_gcc/3PC_Relu/OutputShare_0"
+  // Read arithmetic shares from  "..build_debwithrelinfo_gcc/3PC_Relu/X_OutputShare_1"
   if (ReadSharesIntoVec(options->Xarith_shares_file, A_L))
     std::cout<< " ";
-  else std::cout << "Could not read Arithmatic shares (A_arth_L) into a vector \n";
+  else std::cout << "Could not read arithmetic shares (A_L) into a vector.\n";
  
- //deleteing rows and columns info from vector
-A_L.erase(A_L.begin(), A_L.begin()+2);
- InitializeModuloPrimeOps();
- B_odd.resize(A_L.size());
- ShareConvert(A_L, B_odd);
-std::cout << "******************************* \n";
-std::cout << A_L.size() << " L Shares \n ";
-std::cout << "******************************* \n";
-for(int i = 0; i<A_L.size(); i++)
-  {
-  
-    std::cout << A_L[i]<< "\n";
-    //std::cout << a_Lmiusone_0[i] << " , " << a_Lmiusone_1[i] << " , " << a_Lmiusone_0[i] + a_Lmiusone_1[i] << " \n";
-    //std::cout << B_odd[i]  << " \n";
-    
+  // Deleting rows and columns info from vector
+  std::size_t rows = A_L[0];
+  std::size_t cols = A_L[1];
+  A_L.erase(A_L.begin(), A_L.begin()+2);
+  InitializeModuloPrimeOps();
+
+  // Compute ReLU shares.
+  A_Relu.resize(A_L.size());
+  auto startRelu = high_resolution_clock::now();
+  ReLU(A_L, A_Relu, rows, cols);
+  ArithToABYShareGenerator(A_Relu, A_Relu_Public_Shares, A_Relu_Private_Shares);
+  auto endRelu = high_resolution_clock::now();
+
+  // // Write the ReLU shares computed at Party 0 to ReLU output file.
+  // std::cout << options->output_share_file << std::endl;
+  // std::ofstream ReluOutputFile;
+  // try {
+  //   ReluOutputFile.open(options->output_share_file);
+  //   if (!ReluOutputFile) {
+  //     std::cerr << "Error: Error opening ReLU output file." << std::endl;
+  //   }
+  // } catch (std::exception& error) {
+  //   std::cerr << "Error: Error opening ReLU output share file: " << error.what() << std::endl;
+  // }
+
+  // ReluOutputFile << rows <<  " " << cols << std::endl;
+  // for (int index = 0; index < rows * cols; index++) {
+  //   ReluOutputFile << A_Relu[index] << std::endl;
+  // }
+
+  // if (ReluOutputFile.eof()) {
+  //   ReluOutputFile.close();
+  // }
+
+  // Write the ReLU shares computed at Party 1 to ReLU output file.
+  std::ofstream ReluOutputFile;
+  try {
+    ReluOutputFile.open(options->X_Relu_ABY_Shares_File);
+    if (!ReluOutputFile) {
+      std::cerr << "Error: Error opening ReLU output file." << std::endl;
+    }
+  } catch (std::exception& error) {
+    std::cerr << "Error: Error opening ReLU output share file: " << error.what() << std::endl;
   }
-std::cout << "******************************* \n";
-std::cout << " (L-1) Shares \n ";
-std::cout << "******************************* \n";
-for(int i = 0; i<A_L.size(); i++)
-  {
-    //std::cout << A_L[i]<< "\n";
-    //std::cout << a_Lmiusone_0[i] << " , " << a_Lmiusone_1[i] << " , " << a_Lmiusone_0[i] + a_Lmiusone_1[i] << " \n";
-    std::cout << B_odd[i]  << " \n";
-    
+
+  std::size_t rowsABYShares = A_Relu_Public_Shares[0];
+  std::size_t colsABYShares = A_Relu_Public_Shares[1];
+
+  // Verifying that the dimensions of the arithmetic shares and the ABY2.0 shares match
+  if ((rows != rowsABYShares) || (cols != colsABYShares)) {
+    std::cerr << "Dimensions of the arithmetic shares and the ABY shares do not match." << std::endl;
+    std::cerr << "Rows: " << rows << " " << rowsABYShares << std::endl;
+    std::cerr << "Columns: " << cols << " " << colsABYShares << std::endl;
+    return EXIT_FAILURE;
   }
 
 
-  // //Do the above for Y shares
-  // if (ReadSharesIntoVec(options->Yarith_shares_file, Y_arith))
-  //   std::cout<< " ";
-  // else std::cout << "Could not read Y Arithmatic shares into a vector \n";  
-//ArithMatrixMultiplication(X_arith, Y_arith, Z_arith);
-//WriteArithToFile(Z_arith, options->output_share_file);
-comm_layer->shutdown();
-  testMemoryOccupied(WriteToFiles,0, options->current_path);
+  ReluOutputFile << rows <<  " " << cols << std::endl;
+  for (int index = 2; index < A_Relu_Public_Shares.size(); index++) {
+    ReluOutputFile << A_Relu_Public_Shares[index] << " " << A_Relu_Private_Shares[index] << std::endl;
+  }
+
+  if (ReluOutputFile.eof()) {
+    ReluOutputFile.close();
+  }
+
+  comm_layer->shutdown();
+  testMemoryOccupied(WriteToFiles, my_id, options->current_path);
   std::cout<<std::endl;
   std::cout <<"**************************************************************\n"; 
   auto stop = high_resolution_clock::now();
   auto duration = duration_cast<milliseconds>(stop - start);
   
-  std::cout<<"Duration:"<<duration.count()<<"\n";
+  std::cout<<"Duration at Server 1: "<<duration.count()<<"\n";
 
-  std::string t1 = options->current_path + "/" + "AverageTimeDetails0";
-  std::string t2 = options->current_path + "/" + "MemoryDetails0";
+  std::string t1 = options->current_path + "/" + "AverageTimeDetails" + std::to_string(my_id);
+  std::string t2 = options->current_path + "/" + "MemoryDetails" + std::to_string(my_id);
 
   std::ofstream file2;
   file2.open(t2, std::ios_base::app);
@@ -345,5 +528,15 @@ comm_layer->shutdown();
     file1 << "\n";
     }
   file1.close();
+
+  statFilePathFile.open(statFilePath, std::ios_base::app);
+  if (!statFilePathFile.is_open()) {
+    std::cerr << "Error: Unable to open the file path.\n";
+  }
+  statFilePathFile << "ReLU execution time @ S1 for ReLU: " << duration_cast<milliseconds>(endRelu - startRelu).count() << std::endl;
+  statFilePathFile << "Total ReLU execution time @ S1 for ReLU: " << duration.count() << "\n" << std::endl;
+  statFilePathFile.close();
+
+
   return EXIT_SUCCESS;
 }

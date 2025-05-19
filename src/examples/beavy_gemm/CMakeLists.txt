@@ -14,6 +14,11 @@ add_executable(04_Random_Permute 04_Random_Permute.cpp)
 add_executable(05_PrivateCompare 05_PrivateCompare.cpp)
 add_executable(06_ShareConvert 06_ShareConvert.cpp)
 add_executable(07_ComputeMSB 07_ComputeMSB.cpp)
+add_executable(08_HadamardProd 08_HadamardProd.cpp)
+add_executable(09_Relu 09_Relu.cpp)
+add_executable(10_ABYToArithShareGenerator 10_ABYToArithShareGenerator.cpp)
+add_executable(11_TestABYShareGenerator 11_TestABYShareGenerator.cpp)
+add_executable(12_PrivateCompare_multithread 12_PrivateCompare_multithread.cpp)
 
 add_executable(main
 main.cpp
@@ -38,6 +43,11 @@ target_compile_features(04_Random_Permute PRIVATE cxx_std_20)
 target_compile_features(05_PrivateCompare PRIVATE cxx_std_20)
 target_compile_features(06_ShareConvert PRIVATE cxx_std_20)
 target_compile_features(07_ComputeMSB PRIVATE cxx_std_20)
+target_compile_features(08_HadamardProd PRIVATE cxx_std_20)
+target_compile_features(09_Relu PRIVATE cxx_std_20)
+target_compile_features(10_ABYToArithShareGenerator PRIVATE cxx_std_20)
+target_compile_features(11_TestABYShareGenerator PRIVATE cxx_std_20)
+target_compile_features(12_PrivateCompare_multithread PRIVATE cxx_std_20)
 
 target_compile_features(main PRIVATE cxx_std_20)
 
@@ -123,6 +133,40 @@ Boost::log
 Boost::program_options
 )
 target_link_libraries(07_ComputeMSB
+MOTION::motion
+Boost::json
+Boost::log
+Boost::program_options
+)
+target_link_libraries(08_HadamardProd
+MOTION::motion
+Boost::json
+Boost::log
+Boost::program_options
+)
+
+target_link_libraries(09_Relu
+MOTION::motion
+Boost::json
+Boost::log
+Boost::program_options
+)
+
+target_link_libraries(10_ABYToArithShareGenerator
+MOTION::motion
+Boost::json
+Boost::log
+Boost::program_options
+)
+
+target_link_libraries(11_TestABYShareGenerator
+MOTION::motion
+Boost::json
+Boost::log
+Boost::program_options
+)
+
+target_link_libraries(12_PrivateCompare_multithread
 MOTION::motion
 Boost::json
 Boost::log

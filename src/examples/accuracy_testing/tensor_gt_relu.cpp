@@ -130,6 +130,7 @@ struct Options {
   //////////////////////////changes////////////////////////////
   Matrix input;
   std::uint64_t num_elements;
+  std::uint64_t row_size;
   std::uint64_t column_size;
   std::string currentpath;
   //////////////////////////////////////////////////////////////
@@ -163,10 +164,11 @@ std::string read_filepath(std::ifstream& indata) {
   std::string str;
 
   char num;
-  while (indata) {
-    std::getline(indata, str);
-  }
-  // std::cout << str << std::endl;
+  // while (indata) {
+  //   std::getline(indata, str);
+  //   std::cout << str << std::endl;
+  // }
+  std::getline(indata, str);
   return str;
 }
 
@@ -194,20 +196,22 @@ int input_shares(Options* options, std::string p) {
     return EXIT_FAILURE;
   }
 
-  int num_elements, column_size;
+  int num_elements, row_size, column_size;
   try {
-    num_elements = read_file(indata1);
+    row_size = read_file(indata1);
     column_size = read_file(indata1);
+    num_elements = row_size * column_size;
   } catch (std::ifstream::failure e) {
     std::cerr << "Error while reading columns from image shares.\n";
     return EXIT_FAILURE;
   }
 
   options->num_elements = num_elements;
+  options->row_size = row_size;
   options->column_size = column_size;
 
   auto k = 0;
-  while (k < options->num_elements * options->column_size * 2) {
+  while (k < options->row_size * options->column_size * 2) {
     std::uint64_t num = read_file(indata1);
     if (indata1.eof()) {
       std::cerr << "File contains less number of elements" << std::endl;
@@ -219,9 +223,9 @@ int input_shares(Options* options, std::string p) {
   indata1.close();
   indata2.open(p);
 
-  options->num_elements = read_file(indata2);
+  options->row_size = read_file(indata2);
   options->column_size = read_file(indata2);
-  // std::cout << options->num_elements << " " << options->column_size << "\n";
+  std::cout << options->row_size << " " << options->column_size << "\n";
   for (int i = 0; i < options->num_elements; ++i) {
     try {
       uint64_t m1 = read_file(indata2);
@@ -240,6 +244,7 @@ int file_read(Options* options) {
   std::string path = options->currentpath;
   // std::string path = std::filesystem::current_path();
   std::string t1 = path + "/" + options->filepath_frombuild;
+  std::cout << "Path: " << t1 << std::endl;
 
   std::ifstream file1;
   try {

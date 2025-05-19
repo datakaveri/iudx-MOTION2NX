@@ -80,7 +80,7 @@ void testMemoryOccupied(int WriteToFiles, int my_id, std::string path) {
 
     std::ofstream file2;
     file2.open(t2, std::ios_base::app);
-    file2 << "Helper Node Multiplication layer : \n";
+    file2 << "Convolution layer at Party 0: \n";
     file2 << "RSS - " << rss << " kB\n";
     file2 << "Shared Memory - " << shared_mem << " kB\n";
     file2 << "Private Memory - " << rss - shared_mem << "kB\n";
@@ -289,6 +289,8 @@ std::vector<std::uint64_t> convolution(std::vector<std::uint64_t> input, std::ve
    output_chnls = kernels;
   output_rows = (img_rows - rows + strides[0]) / strides[0];
   output_columns = (img_cols - cols + strides[1]) / strides[1];
+
+  std::cerr << output_chnls << " " << output_rows << " " << output_columns << std::endl;
 
   std::vector<std::vector<std::uint64_t>> image_segments(output_rows * output_columns,
                                           std::vector<std::uint64_t>(channels * rows * cols));
@@ -524,6 +526,9 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
    indata.open(path_next_layer,std::ios_base::out);
    assert(indata);
    indata<<output_chnls*output_rows*output_columns<<" "<<1<<"\n";
+
+   std::cout << output_chnls * output_rows * output_columns << " Output dimensions" << std::endl;
+
    for(int i=0;i<Final_public.size();i++)
    {
     indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
@@ -730,6 +735,7 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
 
     try{
     file >>image_channels>>image_rows>>image_cols;
+    std::cerr << image_channels << " " << image_rows << " " << image_cols << std::endl; 
     }
     catch (std::ifstream::failure e) {
       std::cerr << "Error while reading rows and columns from input shares file.\n";
@@ -790,10 +796,12 @@ int main(int argc, char* argv[]) {
   }
   int my_id = 0,helpernode_id=2;
   int WriteToFiles = 1;
+
   std::cout << "My party id: " << my_id << "\n";
   std::unique_ptr<MOTION::Communication::CommunicationLayer> comm_layer;
   std::shared_ptr<MOTION::Logger> logger;
 
+  auto startComm = high_resolution_clock::now();
   try{
     try{
       MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
@@ -820,8 +828,12 @@ int main(int argc, char* argv[]) {
       std::cerr << "Error occurred while starting the communication: " << e.what() << "\n";
       return EXIT_FAILURE;
     }
+    auto endComm = high_resolution_clock::now();
+
     // std::vector<std::uint8_t> message1,message2;
     std::vector<std::uint8_t> started{(std::uint8_t)1};
+
+    auto startAckMessage = high_resolution_clock::now();
     std::cout<<"Sending the start connection message to the helper node.\n";
     try{
       comm_layer->send_message(helpernode_id, started);
@@ -831,11 +843,14 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
    
-        std::vector<uint8_t>message_w,message_i;
-    
+    std::vector<uint8_t>message_w,message_i;
   
     read_shares(1,0,message_w,*options); //Weight shares
     read_shares(2,0,message_i,*options); //Image shares
+
+    std::cout << "x: " << xpublic.size() << " " << xsecret.size() << std::endl;
+    std::cout << "w: " << wpublic.size() << " " << wsecret.size() << std::endl;
+    std::cout << "b: " << bpublic.size() << " " << bsecret.size() << std::endl; 
 
     // std::cout<<"Weight shares size: "<<message_w.size()<<"\n";
     // std::cout<<"Input shares size: "<<message_i.size()<<"\n";
@@ -849,6 +864,19 @@ int main(int argc, char* argv[]) {
         std::cout<<"#";
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
       }
+      auto endAckMessage = high_resolution_clock::now();
+
+
+      const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+      std::string statFilePath = baseDirectory + "/build_debwithrelinfo_gcc/stats/ackStats0";
+      std::ofstream statFilePathFile;
+      statFilePathFile.open(statFilePath, std::ios_base::app);
+      if (!statFilePathFile.is_open()) {
+        std::cerr << "Error: Unable to open the file path.\n";
+      }
+      statFilePathFile << "Starting communication layer @ S0 for Convolution Layer: " << duration_cast<milliseconds>(endComm - startComm).count() << std::endl;
+      statFilePathFile << "Helper message acknowledgement @ S0 for Convolution Layer: " << duration_cast<milliseconds>(endAckMessage - startAckMessage).count() << "\n" << std::endl;
+      statFilePathFile.close();
 
 
     std::cout<<"Sending Weight shares to the helper node\n";

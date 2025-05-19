@@ -290,9 +290,9 @@ for(int i = 0; i < len; i++)
              c[ind] = SubtractModuloPrime((k != 0), c[ind]);
          }
     //std::cout << "c at ind : "<< ind << " is " << c[ind] << "\n";
-    //c[ind] = MultiplyModuloPrime(c[ind], RandomNonZeroNumOverPrime(gen_s));
+    c[ind] = MultiplyModuloPrime(c[ind], RandomNonZeroNumOverPrime(gen_s));
   }
-//GenerateRandomPermutation(c, i*BIT_SIZE, (i+1)*BIT_SIZE);
+GenerateRandomPermutation(c, i*BIT_SIZE, (i+1)*BIT_SIZE);
 }
 return c;
 }
@@ -361,6 +361,9 @@ void ShareConvert_P2(std::vector<uint64_t>& a_tilde0, std::vector<uint64_t>& a_t
   std::cout << "******************************************* \n";
 }
 
+// ShareConvert: Converts shares of a in L world to shares of a in L-1 world
+// Input  : Vectors a_L_shares0 and a_L_shares1 of type std::uint64_t storing shares of a in L world at P0 and P1 respectively, empty vectors of type std::uint64_t a_Lmiusone_shares0 and a_Lmiusone_shares1 to store the L-1 shares.
+// Output : Updates a_Lmiusone_shares0 and a_Lmiusone_shares1 to store odd shares of a at P0 and P1 respectively.
 void ShareConvert(std::vector<uint64_t>& a_L_shares0, std::vector<uint64_t>& a_L_shares1,std::vector<uint64_t>& a_Lmiusone_shares0, std::vector<uint64_t>& a_Lmiusone_shares1, std::size_t len, int party)
 {
   std::cout << "ShareConvert \n";
@@ -396,10 +399,20 @@ void ShareConvert(std::vector<uint64_t>& a_L_shares0, std::vector<uint64_t>& a_L
   std::vector<uint64_t> c0(len*BIT_SIZE), c1(len*BIT_SIZE);
   for(int i=0; i < len; i++) r[i] = r[i]-1;
 
+  for (int i = 0; i < len; i++) {
+    std::cout << "eta double prime[i]: " << eta_dp[i] << std::endl;
+    std::cout << "r[i]: " << r[i]  << " " << std::endl;
+  }
+
   c0 = PrivateCompare(x_bit_prime0, r, eta_dp, len, 0);
   c1 = PrivateCompare(x_bit_prime1, r, eta_dp, len, 1);
   std::vector<uint64_t> eta_p(len, 0);
   PrivateCompare_P2(c0, c1, eta_p, len);
+
+  for (int i = 0; i < len; i++) {
+    std::cout << "eta prime: " << eta_p[i] << std::endl;
+  }
+
   //L-1 shares haveto be generated for eta_p and shared with P0 and P1 respectively
   //This has to be executed at P2 in ShareConvert_P2
   std::vector<uint64_t> eta_p_odd0(len, 0), eta_p_odd1(len, 0);
@@ -465,8 +478,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     return std::nullopt;
   }
   
-  
-  options.permutefile =  "/home/iudx/Desktop/Haritha/iudx-MOTION2NX-1/build_debwithrelinfo_gcc/3PC_Relu/permute";
+  const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+  options.permutefile =  baseDirectory + "/build_debwithrelinfo_gcc/3PC_Relu/permute";
   options.fractional_bits = vm["fractional-bits"].as<size_t>();
   return options;
 }
@@ -495,11 +508,12 @@ int main(int argc, char* argv[])
 
   for(int i = 0; i<len; i++)
   {
-    std::cout << a_L_0[i] << " , " << a_L_1[i] << " , " << a_L_0[i] + a_L_1[i] << "\n";
+    std::cout << a_L_0[i] << " , " << a_L_1[i] << " , " << a_L_0[i] + a_L_1[i] << " "  << data[i] << "\n";
     //std::cout << a_Lmiusone_0[i] << " , " << a_Lmiusone_1[i] << " , " << a_Lmiusone_0[i] + a_Lmiusone_1[i] << " \n";
-    std::cout << a_Lmiusone_0[i] << " , " << a_Lmiusone_1[i] << " , " << AddModuloOdd(a_Lmiusone_0[i], a_Lmiusone_1[i]) << " \n";
+    std::cout << a_Lmiusone_0[i] << " , " << a_Lmiusone_1[i] << " , " << AddModuloOdd(a_Lmiusone_0[i], a_Lmiusone_1[i]) << ", " << MOTION::new_fixed_point::decode<uint64_t, long double>(a_Lmiusone_0[i] + a_Lmiusone_1[i], 13) << " \n";
     if (AddModuloOdd(a_Lmiusone_0[i], a_Lmiusone_1[i]) != a[i])
        std::cout << "L-1 shares are not created correct at i : " << i << "\n";
+    std::cout << "\n";
   }
 return EXIT_SUCCESS;
 
