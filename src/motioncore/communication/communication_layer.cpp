@@ -478,6 +478,8 @@ MessageHandler& CommunicationLayer::get_message_handler(std::size_t party_id,
 void CommunicationLayer::register_fallback_message_handler(message_handler_f handler_factory) {
   auto& fbhs = impl_->fallback_message_handlers_;
   fbhs.resize(num_parties_);
+  /***************************RCV-MSG*************************/
+  //std::cout << "%%%% num_parties_ :" << num_parties_ << "\n";
   for (std::size_t party_id = 0; party_id < num_parties_; ++party_id) {
     if (party_id == my_id_) {
       continue;

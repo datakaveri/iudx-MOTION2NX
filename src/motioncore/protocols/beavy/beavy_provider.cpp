@@ -863,6 +863,23 @@ BEAVYProvider::basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensi
 template std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, tensor::TensorCP>
 BEAVYProvider::basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensions&);
 
+/*****************CRG-KH*********************************************/
+template <typename T>
+std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<T>>, tensor::TensorCP>
+BEAVYProvider::CRG_basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensions& dims) {
+  ENCRYPTO::ReusableFiberPromise<std::vector<T>> promise;
+  auto gate_id = gate_register_.get_next_gate_id();
+  auto tensor_op = std::make_unique<CRG_ArithmeticBEAVYTensorInputSender<T>>(gate_id, *this, dims,
+                                                                         promise.get_future());
+  auto output = tensor_op->get_output_tensor();
+  gate_register_.register_gate(std::move(tensor_op));
+  return {std::move(promise), std::dynamic_pointer_cast<const tensor::Tensor>(output)};
+}
+
+template std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, tensor::TensorCP>
+BEAVYProvider::CRG_basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensions&);
+/*****************CRG-KH*******************************************/
+
 template <typename T>
 tensor::TensorCP BEAVYProvider::basic_make_arithmetic_tensor_input_other(
     const tensor::TensorDimensions& dims) {
@@ -872,9 +889,23 @@ tensor::TensorCP BEAVYProvider::basic_make_arithmetic_tensor_input_other(
   gate_register_.register_gate(std::move(tensor_op));
   return std::dynamic_pointer_cast<const tensor::Tensor>(output);
 }
-
 template tensor::TensorCP BEAVYProvider::basic_make_arithmetic_tensor_input_other<std::uint64_t>(
     const tensor::TensorDimensions&);
+
+/***************CRG-KH***************************************/
+template <typename T>
+tensor::TensorCP BEAVYProvider::CRG_basic_make_arithmetic_tensor_input_other(
+    const tensor::TensorDimensions& dims) {
+  auto gate_id = gate_register_.get_next_gate_id();
+ 
+  auto tensor_op = std::make_unique<CRG_ArithmeticBEAVYTensorInputReceiver<T>>(gate_id, *this, dims);
+  auto output = tensor_op->get_output_tensor();
+  gate_register_.register_gate(std::move(tensor_op));
+  return std::dynamic_pointer_cast<const tensor::Tensor>(output);
+}
+template tensor::TensorCP BEAVYProvider::CRG_basic_make_arithmetic_tensor_input_other<std::uint64_t>(
+    const tensor::TensorDimensions&);
+/***************CRG-KH***************************************/
 
 std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint32_t>>, tensor::TensorCP>
 BEAVYProvider::make_arithmetic_32_tensor_input_my(const tensor::TensorDimensions& dims) {
@@ -885,6 +916,12 @@ std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, tensor::
 BEAVYProvider::make_arithmetic_64_tensor_input_my(const tensor::TensorDimensions& dims) {
   return basic_make_arithmetic_tensor_input_my<std::uint64_t>(dims);
 }
+/*****************CRG-KH**********************/
+std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, tensor::TensorCP>
+BEAVYProvider::CRG_make_arithmetic_64_tensor_input_my(const tensor::TensorDimensions& dims) {
+  return CRG_basic_make_arithmetic_tensor_input_my<std::uint64_t>(dims);
+}
+/******************CRG-KH****************************************/
 
 tensor::TensorCP BEAVYProvider::make_arithmetic_32_tensor_input_other(
     const tensor::TensorDimensions& dims) {
@@ -895,6 +932,13 @@ tensor::TensorCP BEAVYProvider::make_arithmetic_64_tensor_input_other(
     const tensor::TensorDimensions& dims) {
   return basic_make_arithmetic_tensor_input_other<std::uint64_t>(dims);
 }
+/***************************CRG-KH**************************/
+tensor::TensorCP BEAVYProvider::CRG_make_arithmetic_64_tensor_input_other(
+    const tensor::TensorDimensions& dims) {
+  return CRG_basic_make_arithmetic_tensor_input_other<std::uint64_t>(dims);
+}
+/********CRG-KH********************************************/
+
 
 // Input tensor to take shares directly
 

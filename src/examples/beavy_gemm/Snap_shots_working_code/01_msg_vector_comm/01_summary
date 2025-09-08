@@ -1,0 +1,28 @@
+server 0
+
+1.reads shares from an input file and convert then into a vector
+  ReadSharesIntoVec
+
+2. Convert the vector into a message that is ready to tranmit over socket
+here we insert a field called message type, to know what type of message it is
+void ConvertVetorIntoMessage(std::vector<uint64_t>&vec, std::vector<uint8_t>&msg, std::uint8_t msg_type = 0)
+
+3. void ConvertMessageIntoVector(std::vector<uint8_t>&msg, std::vector<uint64_t>&vec )
+Once the message is received this function is used to convert into vector
+
+server 0 : r u redy to server 2
+server 1 : r u redy to server 2
+
+server 2 : once server 2 receives BOTH the above messages sends to ack to both of them
+
+This confirms that  servers 0 and 1 established connection with server 2.
+
+server 0 : sends message to server 1, conatining shares
+server 1 : sends message to server 0, conatining shares
+
+server i reading shares arithematic shares and converting them into a meassage and sending to server 1-i.
+server 1-i after receiving them converts message to vector and displays
+----------------------------------------------------------------------------------------------------------
+
+Todo : 
+After servers 0 and 1 receive appropriateshares they should convert them into ABY

@@ -1,0 +1,238 @@
+
+ Started the helper node.
+Setting up the connections.Starting the communication layer
+Entered ReLU.
+Entered ShareConvert  
+........MESSAGE TYPE: 6
+
+Server 1 has started.
+MESSAGE TYPE: 6
+
+Server 0 has started.
+Sending acknowledgement message to server 0 and 1
+Sent acknowledgement message to server 0 and 1
+.MESSAGE TYPE: 0
+
+ShareConvert: a_tilde received from 1.
+##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE: 0
+
+ShareConvert: a_tilde received from 0.
+##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+ AddVectorsOverL 
+ Entered WrapAround 
+  Entered GenerateBitSharesOverPrime 
+ Entered GenerateModuloOddShares 
+Entered SubtractModuloOdd 
+Entered AddModuloOdd 
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+...MESSAGE TYPE: 3
+
+ShareConvert: c1 received from 1.
+##### Entered ConvertMessageIntoVector... #####
+16777216
+MESSAGE TYPE: 3
+
+ShareConvert: c0 received from 0.
+##### Entered ConvertMessageIntoVector... #####
+16777216
+##### Exting ConvertMessageIntoVector.
+
+##### Exting ConvertMessageIntoVector.
+
+Eneterd PrivateCompare  
+ Entered GenerateModuloOddShares 
+Entered SubtractModuloOdd 
+Entered AddModuloOdd 
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+Entered ComputeMSB.
+.MESSAGE TYPE: 10
+
+Server 1 ready for Compute MSB.
+##### Entered ConvertMessageIntoVector... #####
+8
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE: 10
+
+Server 0 ready for Compute MSB.
+##### Entered ConvertMessageIntoVector... #####
+8
+##### Exting ConvertMessageIntoVector.
+
+Sending acknowledgement message to server 0 and 1
+Sent message successfully to server 0 and server 1.
+Entered GenerateRandVecModOdd
+Entered GenerateRandVecModOdd
+Entered AddModuloOdd 
+ Entered GenerateBitSharesOverPrime 
+ Entered GenerateLSBSharesOverL 
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+....MESSAGE TYPE: 15
+
+Received PC Shares from: 1, Message Type: 
+##### Entered ConvertMessageIntoVector... #####
+16777216
+MESSAGE TYPE: 15
+
+Received PC Shares from: 0, Message Type: 
+##### Entered ConvertMessageIntoVector... #####
+16777216
+##### Exting ConvertMessageIntoVector.
+
+##### Exting ConvertMessageIntoVector.
+
+Eneterd PrivateCompare  
+ Entered GenerateSharesOverL 
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+...MESSAGE TYPE: 7
+
+X Private Shares from 1 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE: 8
+
+Y Private Shares from 1 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE: 7
+
+X Private Shares from 0 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE: 8
+
+Y Private Shares from 0 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+Entering HadamardMatrixMultiplication.
+Exiting HadamardMatrixMultiplicaton.
+ 
+X0Y1 
+Entering HadamardMatrixMultiplication.
+Exiting HadamardMatrixMultiplicaton.
+ 
+ ###### Entered OTGeneration ..  ##### 
+ #####Entered GeneratePrivateShares_ABY ... ##### 
+##### Exiting GeneratePrivateShares_ABY ##### 
+
+ ###### Exiting OTGeneration ..  ##### 
+
+ ##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+.MESSAGE TYPE: 16
+
+Server 1 ready for Relu.
+MESSAGE TYPE: 16
+
+Server 0 ready for Relu.
+Sending Relu acknowledgement message to server 0 and 1
+...MESSAGE TYPE: 19
+
+X Private Shares from 1 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE: 20
+
+Y Private Shares from 1 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+.MESSAGE TYPE: 19
+
+X Private Shares from 0 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE: 20
+
+Y Private Shares from 0 received 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+Entering HadamardMatrixMultiplication.
+Exiting HadamardMatrixMultiplicaton.
+Entering HadamardMatrixMultiplication.
+Exiting HadamardMatrixMultiplicaton.
+ 
+ ###### Entered OTGeneration ..  ##### 
+ #####Entered GeneratePrivateShares_ABY ... ##### 
+##### Exiting GeneratePrivateShares_ABY ##### 
+
+ ###### Exiting OTGeneration ..  ##### 
+
+ ##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+Exited ReLU.
+RSS - 191788 kB
+Shared Memory - 6016 kB
+Private Memory - 185772kB
+
+
+**************************************************************
+Duration at Helper Node: 12010

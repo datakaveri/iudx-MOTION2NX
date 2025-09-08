@@ -30,8 +30,8 @@
 using namespace std::chrono;
 
 std::vector<std::uint64_t> R;
-std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 std::vector<std::uint64_t> randomnum, prod1;
+std::vector<std::uint64_t> wpublic, xpublic, wsecret, xsecret, bpublic, bsecret;
 bool helpernode_ready_flag = false;
 int operations_done_flag = 0;
 std::uint64_t fractional_bits;
@@ -375,7 +375,7 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
         }
       std::vector<std::uint64_t>Final_public;
       std::vector<std::uint64_t>secretshare1;
-      std::cout <<"\nReceived message from Party 1 of size "<< message.size() << "\n"; //should be 258
+      std::cerr <<"\nReceived message from Party 1 of size "<< message.size() << "\n"; //should be 258
     
       //to push rows and column 
       for(int i=0;i<2;i++)
@@ -398,10 +398,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
       std::cout<<"Final public:"<<*finalpublic_begin<<"\n";
 
       auto prod1_begin=prod1.begin();
-      advance(prod1_begin,2);
+      advance(prod1_begin, 2);
       
       auto secretshare1_begin = secretshare1.begin();
-      advance(secretshare1_begin,2);
+      advance(secretshare1_begin, 2);
       
       auto randomnum_begin = randomnum.begin();
       auto randomnum_end = randomnum.end();
@@ -433,6 +433,8 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
    assert(indata);
 
    indata<<Final_public[0]<<" "<<Final_public[1]<<"\n";
+
+   std::cerr << "Dimensions: " << Final_public[0] << " " << Final_public[1] << std::endl;
    for(int i=2;i<Final_public.size();i++)
    {
     indata<<Final_public[i]<<" "<<randomnum[i]<<"\n";
@@ -453,13 +455,10 @@ class TestMessageHandler : public MOTION::Communication::MessageHandler {
 }
 }; 
 
+void read_shares(int choice, int my_id, std::vector<uint8_t>&message, const Options& options) { 
+   std::string name = options.WB_file;
 
-void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Options& options)
-{ 
-   std::string name=options.WB_file;
-
-  if(choice==1)
-  { 
+  if (choice == 1) { 
     std::ifstream content;
     std::cout<<"Reading the Weight and Bias shares\n";
     std::string fullpath = options.current_path;
@@ -590,6 +589,7 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
       }
     }
     file.close();
+    std::cerr << wpublic.size() << " " << wsecret.size() << " " << bpublic.size() << " " << bsecret.size() << std::endl;
   }
   else if(choice==2)
   {
@@ -657,6 +657,7 @@ void read_shares(int choice,int my_id, std::vector<uint8_t>&message,const Option
       }
     }
     file.close();
+
   }
 }
 
@@ -674,6 +675,7 @@ int main(int argc, char* argv[]) {
   std::cout << "My party id: " << my_id << "\n";
   std::unique_ptr<MOTION::Communication::CommunicationLayer> comm_layer;
   std::shared_ptr<MOTION::Logger> logger;
+  auto startComm = high_resolution_clock::now();
   try{
     try{
       MOTION::Communication::TCPSetupHelper helper(my_id, options->tcp_config);
@@ -699,7 +701,10 @@ int main(int argc, char* argv[]) {
       std::cerr << "Error occurred while starting the communication: " << e.what() << "\n";
       return EXIT_FAILURE;
     }
+    auto endComm = high_resolution_clock::now();
+
     std::vector<std::uint8_t> message1,message2;
+    auto startAckMessage = high_resolution_clock::now();
     std::vector<std::uint8_t> started{(std::uint8_t)1};
     std::cout<<"Sending the start connection message to the helper node.\n";
     try{
@@ -724,12 +729,25 @@ int main(int argc, char* argv[]) {
         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
       }
 
+      auto endAckMessage = high_resolution_clock::now();
+
+      const std::string baseDirectory = (std::string)std::getenv("BASE_DIR");
+      std::string statFilePath = baseDirectory + "/build_debwithrelinfo_gcc/stats/ackStats0";
+      std::ofstream statFilePathFile;
+      statFilePathFile.open(statFilePath, std::ios_base::app);
+      if (!statFilePathFile.is_open()) {
+        std::cerr << "Error: Unable to open the file path.\n";
+      }
+      statFilePathFile << "Starting communication layer @ S0 for NN Layer: " << duration_cast<milliseconds>(endComm - startComm).count() << std::endl;
+      statFilePathFile << "Helper message acknowledgement @ S0 for NN Layer: " << duration_cast<milliseconds>(endAckMessage - startAckMessage).count() << "\n" << std::endl;
+      statFilePathFile.close();
 
     std::cout<<"Weight shares size: "<<message1.size()<<"\n";
     std::cout<<"Input shares size: "<<message2.size()<<"\n";
     std::cout<<"Sending Weight shares to the helper node\n";
 
     try{
+      std::cerr << "message_w.size(): " << message1.size() << " " << message1[0] << " " << message1[1] << std::endl;
       comm_layer->send_message(helpernode_id, message1);
     }
     catch (std::runtime_error& e) {
@@ -737,7 +755,8 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
 
-    try{  
+    try{
+      std::cerr << "message_i.size(): " << message2.size() << " " << message2[0] << " " << message2[1] << std::endl;
       comm_layer->send_message(helpernode_id, message2);
     }
     catch (std::runtime_error& e) {

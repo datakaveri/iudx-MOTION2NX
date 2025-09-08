@@ -20,6 +20,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+/*
+./bin/beavy_gemm --my-id 0 --party 0,::1,7002 --party 1,::1,7000 --arithmetic-protocol beavy -
+-boolean-protocol yao --cnt-rnd 100
+
+cnt-rnd : count for the random values to be generated:
+The generated values are stored at /build_debwithrelinfo_gcc
+p_crg_0, bit_crg_0, 64_crg_0 for paty 0
+p_crg_1, bit_crg_1, 64_crg_1 for paty 1
+
+*/
+
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -67,6 +78,8 @@ struct Options {
   std::size_t my_id;
   MOTION::Communication::tcp_parties_config tcp_config;
   bool no_run = false;
+
+  std:: size_t num_rand_vals; // Number of common random values we want to generate
 };
 
 std::optional<Options> parse_program_options(int argc, char* argv[]) {
@@ -88,6 +101,7 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     ("sync-between-setup-and-online", po::bool_switch()->default_value(false),
      "run a synchronization protocol before the online phase starts")
     ("no-run", po::bool_switch()->default_value(false), "just build the circuit, but not execute it")
+    ("cnt-rnd", po::value<std::size_t>()->default_value(5), "number of common random numbers")
     ;
   // clang-format on
 
@@ -109,6 +123,8 @@ std::optional<Options> parse_program_options(int argc, char* argv[]) {
     std::cerr << desc << "\n";
     return std::nullopt;
   }
+
+  options.num_rand_vals = vm["cnt-rnd"].as<std::size_t>();
 
   options.my_id = vm["my-id"].as<std::size_t>();
   options.threads = vm["threads"].as<std::size_t>();
@@ -186,70 +202,36 @@ std::unique_ptr<MOTION::Communication::CommunicationLayer> setup_communication(
                                                                      helper.setup_connections());
 }
 
-auto create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
-  // retrieve the gate factories for the chosen protocols
-  auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);  
 
+void create_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
+  // retrieve the gate factories for the chosen protocols
+  auto& arithmetic_tof = backend.get_tensor_op_factory(options.arithmetic_protocol);
+
+  const auto num_rand_vals = options.num_rand_vals;
   const MOTION::tensor::GemmOp gemm_op = {
-      .input_A_shape_ = {1, 10}, .input_B_shape_ = {10, 1}, .output_shape_ = {1, 1}};
-  
+      .input_A_shape_ = {1, num_rand_vals}, .input_B_shape_ = {num_rand_vals, 1}, .output_shape_ = {1, 1}};
 
   const auto input_A_dims = gemm_op.get_input_A_tensor_dims();
   const auto input_B_dims = gemm_op.get_input_B_tensor_dims();
   const auto output_dims = gemm_op.get_output_tensor_dims();
 
-  // share the inputs using the arithmetic protocol
-  // NB: the inputs need to always be specified in the same order:
-  // here we first specify the input of party 0, then that of party 1
-
-  MOTION::tensor::TensorCP tensor_a,tensor_b;
-
+  MOTION::tensor::TensorCP tensor_a, tensor_b;
 
   if (options.my_id == 0) {
-    auto [input_A_promise, tensor_input_A] = arithmetic_tof.make_arithmetic_64_tensor_input_my(input_A_dims);
-    auto tensor_input_B = arithmetic_tof.make_arithmetic_64_tensor_input_other(input_B_dims);
-    std::vector<uint64_t> input_A = {1,2,3,4,5,6,7,8,9,10};
+    auto [input_A_promise, tensor_input_A] = arithmetic_tof.CRG_make_arithmetic_64_tensor_input_my(input_A_dims);
+   
+
+  } else {
+    auto tensor_input_A = arithmetic_tof.CRG_make_arithmetic_64_tensor_input_other(input_A_dims);
     
-    input_A_promise.set_value(input_A);    
-
-    tensor_a = tensor_input_A;
-    tensor_b = tensor_input_B;
-
-  } else {
-    auto tensor_input_A = arithmetic_tof.make_arithmetic_64_tensor_input_other(input_A_dims);
-    auto [input_B_promise, tensor_input_B] = arithmetic_tof.make_arithmetic_64_tensor_input_my(input_B_dims);
-    std::vector<uint64_t> input_B = {10,9,8,7,6,5,4,3,2,1};
-    input_B_promise.set_value(input_B); 
-
-    tensor_a = tensor_input_A;
-    tensor_b = tensor_input_B;   
-
   }
-
-
-  auto output = arithmetic_tof.make_tensor_gemm_op(gemm_op, tensor_a, tensor_b);
-
-  ENCRYPTO::ReusableFiberFuture<std::vector<std::uint64_t>> output_future;
-  if (options.my_id == 0) {
-    arithmetic_tof.make_arithmetic_tensor_output_other(output);
-  } else {
-    output_future = arithmetic_tof.make_arithmetic_64_tensor_output_my(output);
-  }
-  return output_future;
 }
 
-void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend){
-  auto output_future = create_composite_circuit(options, backend);
+void run_composite_circuit(const Options& options, MOTION::TwoPartyTensorBackend& backend) {
+ 
+  create_composite_circuit(options, backend);
   backend.run();
-  if (options.my_id == 1) {
-    auto interm = output_future.get();
-    std::cout << "The result is:\n[";
-    for(int i=0; i<interm.size(); ++i)
-    {
-      std::cout << interm[i] << " , ";
-    }
-    std::cout << "]" << std::endl;
-  }
+  
 }
 
 int main(int argc, char* argv[]) {
@@ -264,8 +246,11 @@ int main(int argc, char* argv[]) {
                                                    boost::log::trivial::severity_level::trace);
     comm_layer->set_logger(logger);
     MOTION::TwoPartyTensorBackend backend(*comm_layer, options->threads,
-                                      options->sync_between_setup_and_online, logger);
+                                          options->sync_between_setup_and_online, logger);
+
     run_composite_circuit(*options, backend);
+
+    
     comm_layer->shutdown();
   } catch (std::runtime_error& e) {
     std::cerr << "ERROR OCCURRED: " << e.what() << "\n";
@@ -274,3 +259,4 @@ int main(int argc, char* argv[]) {
 
   return EXIT_SUCCESS;
 }
+

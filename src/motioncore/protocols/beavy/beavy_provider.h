@@ -186,9 +186,18 @@ class BEAVYProvider : public GateFactory,
   make_arithmetic_32_tensor_input_my(const tensor::TensorDimensions&) override;
   std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, tensor::TensorCP>
   make_arithmetic_64_tensor_input_my(const tensor::TensorDimensions&) override;
+  /*****************************CRG-KH***********************/
+  std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, tensor::TensorCP>
+  CRG_make_arithmetic_64_tensor_input_my(const tensor::TensorDimensions&) override;
+  /*****************************CRG-KH***********************/
+
 
   tensor::TensorCP make_arithmetic_32_tensor_input_other(const tensor::TensorDimensions&) override;
   tensor::TensorCP make_arithmetic_64_tensor_input_other(const tensor::TensorDimensions&) override;
+
+   /*****************************CRG-KH***********************/
+  tensor::TensorCP CRG_make_arithmetic_64_tensor_input_other(const tensor::TensorDimensions&) override;
+    /*****************************CRG-KH***********************/
 
   // TensorOpFactory operating directly on shares
   std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<MOTION::IntegerValues<uint32_t>>>,
@@ -335,8 +344,20 @@ class BEAVYProvider : public GateFactory,
   template <typename T>
   std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<T>>, tensor::TensorCP>
   basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensions&);
+
+  /*****************CRG-KH**********************************/
+template <typename T>
+  std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<T>>, tensor::TensorCP>
+  CRG_basic_make_arithmetic_tensor_input_my(const tensor::TensorDimensions&);
+  /*****************CRG-KH**********************************/
+
   template <typename T>
   tensor::TensorCP basic_make_arithmetic_tensor_input_other(const tensor::TensorDimensions&);
+
+/*****************CRG-KH**********************************/
+  template <typename T>
+  tensor::TensorCP CRG_basic_make_arithmetic_tensor_input_other(const tensor::TensorDimensions&);
+  /*****************CRG-KH**********************************/
 
   // input tensor to take shares directly
   template <typename T>

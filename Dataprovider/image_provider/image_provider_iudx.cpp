@@ -236,9 +236,11 @@ int main(int argc, char* argv[]) {
       port = options->cs1_port;
     }
     // connection
+    
     if (establishConnection(socket, ip, port)) {
       std::cout << "Connection established successfully\n";
     } else {
+      std::cerr << "IP address: " << ip << "\nPort number:" << port << "\n";
       std::cerr << "Connection could not established with the image share receiver in server " << id
                 << std::endl;
       socket.close();

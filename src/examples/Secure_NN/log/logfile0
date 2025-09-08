@@ -1,0 +1,248 @@
+Fractional bits: 13
+0,127.0.0.1,4009
+1,127.0.0.1,4010
+My party id: 0
+##### Entered ReadSharesIntoVec ...##### 
+Total num elements : 32768
+Number of elements read into vector : 32770
+##### Exiting ReadSharesIntoVec ##### 
+
+ Entering ReLU.
+Entering DerivativeReLU. 
+Entered ShareConvert. 
+CommonRandVectorOverL 
+ CommonRandVectorOverL 
+ CommonRandBitVector  
+ AddVectorsOverL 
+  AddVectorsOverL 
+ Sending Probe message helper node.
+hMESSAGE TYPE : 6
+
+
+Helper node acknowledged message server 0.
+Sending a_tilde to helper node.
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+sc sc sc sc sc MESSAGE TYPE : 1
+
+Message received from : 2 , Message Type :  SC_P. 
+ ##### Entered ConvertMessageIntoVector... #####
+16777216
+sc ##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE : 2
+
+Message received from : 2 , Message Type :  SC_D. 
+ ##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+ Prime Bit Share (Data Length) :  2097152.
+ Prime Bit Share (Data Length) :  32768.
+Enetered PrivateCompare. 
+Exited PrivateCompare.
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+sc sc MESSAGE TYPE : 3
+
+Message received from : 2 , Message Type :  SC_PC. 
+ ##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+Exited ShareConvert.
+
+Entered ComputeMSB.
+CommonRandBitVector  
+Sending compute MSB ready message to helper node.
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+.MESSAGE TYPE : 10
+
+Ready for compute MSB.
+Received acknowledgement from helper node.
+.MESSAGE TYPE : 11
+
+Received message from: 2, Message Type: MSB_Odd.
+##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE : 12
+
+Received message from: 2, Message Type: MSB_P.
+##### Entered ConvertMessageIntoVector... #####
+16777216
+##### Exting ConvertMessageIntoVector.
+
+MESSAGE TYPE : 13
+
+Received message from: 2, Message Type: MSB_L_LSB.
+##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+...MESSAGE TYPE : 14
+
+Received message from: 1, Message Type: MSB_R.
+##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+Enetered PrivateCompare. 
+Exited PrivateCompare.
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+..MESSAGE TYPE : 15
+
+Received message from: 2, Message Type: MSB_PC.
+##### Entered ConvertMessageIntoVector... #####
+262144
+##### Exting ConvertMessageIntoVector.
+
+#####Entered GeneratePrivateShares_ABY ... ##### 
+##### Exiting GeneratePrivateShares_ABY ##### 
+
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+X-ABY Publicshare message will be seding to the other party is : 262161
+#####Entered GeneratePrivateShares_ABY ... ##### 
+##### Exiting GeneratePrivateShares_ABY ##### 
+
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+MESSAGE TYPE : 4
+
+Message received from : 1, message type :4.
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+Sending Public shares message to Server : 1 Message size : 262161
+Waiting for Public shares message from Server : 1
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+Sending Y Public shares message to Server : 1 Message size : 262161
+Waiting for Public shares message from Server : 1
+AMESSAGE TYPE : 5
+
+In messages Handler: received from : 1, message type :5
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+oooMESSAGE TYPE : 9
+
+
+ Received OT from Helper 
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+
+ *** Truncate  **** 
+Exited ComputeMSB.
+Exiting DerivativeReLU.
+ 
+Sending Derivative ReLU ready message to helper node.
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+.MESSAGE TYPE : 16
+
+Received message from: 2, Message type: ReluReady.
+Received Derivative ReLU acknowledgement from helper node.
+#####Entered GeneratePrivateShares_ABY ... ##### 
+##### Exiting GeneratePrivateShares_ABY ##### 
+
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+X-ABY Publicshare message will be seding to the other party is : 262161
+#####Entered GeneratePrivateShares_ABY ... ##### 
+MESSAGE TYPE : 17
+
+Message received from : 1, Message type: 17.
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+##### Exiting GeneratePrivateShares_ABY ##### 
+
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+##### Entered ConvertVetorIntoMessage... ##### 
+##### Exiting ConvertVetorIntoMessage ##### 
+
+Sending a_L_ABY Public shares message to Server: 1 Message size : 262161
+Waiting for a_L_ABY Public shares message from Server: 1
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+Sending a_DRelu_ABY Public shares message to Server : 1 Message size : 262161
+Waiting for a_DRelu_ABY Public shares message from Server : 1
+AMESSAGE TYPE : 18
+
+In messages Handler: received from : 1, message type :18
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+#### Entered ParallalAddition... ##### 
+##### Exiting ParallalAddition ##### 
+
+oooooMESSAGE TYPE : 21
+
+Message received from: 2, Message type: 21
+##### Entered ConvertMessageIntoVector... #####
+262160
+##### Exting ConvertMessageIntoVector.
+
+
+ *** Truncate **** 
+Exiting ReLU.
+/home/arya/3Party_Relu/build_debwithrelinfo_gcc/3PC_Relu/X_ArithShare_Relu_0
+RSS - 80680 kB
+Shared Memory - 6272 kB
+Private Memory - 74408kB
+
+
+**************************************************************
+Duration at Server 0: 12015

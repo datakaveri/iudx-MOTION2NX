@@ -40,16 +40,30 @@ TensorOpFactory::make_arithmetic_64_tensor_input_my(const TensorDimensions&) {
   throw std::logic_error(
       fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
 }
-
+/*****************CRG-KH*****************************/
+std::pair<ENCRYPTO::ReusableFiberPromise<IntegerValues<std::uint64_t>>, TensorCP>
+TensorOpFactory::CRG_make_arithmetic_64_tensor_input_my(const TensorDimensions&) {
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
+}
+/*****************CRG-KH*****************************/
 TensorCP TensorOpFactory::make_arithmetic_32_tensor_input_other(const TensorDimensions&) {
   throw std::logic_error(
       fmt::format("{} does not support arithmetic 32 bit inputs", get_provider_name()));
 }
 
 TensorCP TensorOpFactory::make_arithmetic_64_tensor_input_other(const TensorDimensions&) {
+  
   throw std::logic_error(
       fmt::format("{} does not support arithmetic 64 bit inputs", get_provider_name()));
 }
+/*****************CRG-KH*****************************/
+TensorCP TensorOpFactory::CRG_make_arithmetic_64_tensor_input_other(const TensorDimensions&) {
+ 
+  throw std::logic_error(
+      fmt::format("{} does not support arithmetic 64 bit inputs,CRG", get_provider_name()));
+}
+/*****************CRG-KH*****************************/
 
 // share inputs
 std::pair<std::vector<ENCRYPTO::ReusableFiberPromise<IntegerValues<uint32_t>>>, TensorCP>

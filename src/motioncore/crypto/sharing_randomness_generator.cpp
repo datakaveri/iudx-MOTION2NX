@@ -37,7 +37,14 @@ SharingRandomnessGenerator::SharingRandomnessGenerator(std::size_t party_id)
 
 void SharingRandomnessGenerator::Initialize(
     const std::byte seed[SharingRandomnessGenerator::MASTER_SEED_BYTE_LENGTH]) {
+  // if (logger_) {
+  //     logger_->LogInfo(fmt::format("Set OpenMP threads to {}", num_threads_));
+  //   }
+  // std :: cout << "KHSharingRandomnessGenerator::Initialize \n";
+  // std :: cout << "seed : " << seed << "\n";
+  //std :: cout << "MASTER_SEED_BYTE_LENGTH : " << MASTER_SEED_BYTE_LENGTH<< "\n";
   std::copy(seed, seed + MASTER_SEED_BYTE_LENGTH, std::begin(master_seed_));
+  //std :: cout << "after addition seed : " << seed << "\n";
 
   {
     auto digest = HashKey(master_seed_, KeyType::ArithmeticGMWKey);

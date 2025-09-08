@@ -1,0 +1,137 @@
+//  functions
+    @ P0 and P1
+1. void funcRELUPrime3PC(const vector<myType> &a, vector<myType> &b, size_t size)
+  twoa = a<<1
+
+2. //ABY : Share conversion from L to L-1 --2
+	funcShareConvertMPC(twoA, size);
+
+    //depending on the vector data type long or prime; these should at both party-0 and 1
+    
+    @ P0 and P1
+    2.1.   populateRandomVector<myType>(r1, size, "COMMON", "POSITIVE"); (aes_common->get64bits)
+        populateRandomVector<myType>(r2, size, "COMMON", "POSITIVE");
+        addVectors<myType>(r1, r2, r, size); // simple addition
+
+        wrapAround(r1, r2, alpha, size); inline smallType wrapAround(myType a, myType b){return (a > MINUS_ONE - b); }(a+b> (L-1))
+
+        populateBitsVector(etaDP, "COMMON", size);//aes_common->get_bits
+        a_tilde = r_i + twoA_i
+        sendVector<myType>(a_tilde, PARTY_C, size);
+
+    @ helper
+    2.2. helper function will be waiting for a_tilde
+       receiveVector<myType>(a_tilde_1, PARTY_A, size); receiveVector<myType>(a_tilde_2, PARTY_B, size); 
+
+       x =  a_tilde_1+a_tilde_2, create shares in prime field and send
+	   addVectors<myType>(a_tilde_1, a_tilde_2, x, size); 
+
+	   create bit_shares (in prime field) for x (x =  a_tilde_1+a_tilde_2)
+	   sharesOfBits(bit_shares_x_1, bit_shares_x_2, x, size, "INDEP");
+       send(P0 and P1)
+
+       delta = a_tilde_1 + a_tilde_2 > (L-1) create shares in L-1 world and send
+	   wrapAround(a_tilde_1, a_tilde_2, delta, size); 
+       sharesModuloOdd<smallType>(delta_shares_1, delta_shares_2, delta, size, "INDEP");
+       send(Po and P1...)
+    
+    // Once the above steps are complted, all parties will call funcPrivateCompareMPC  
+    2.3. funcPrivateCompareMPC(bit_shares, r, etaDP, etaP, size, BIT_SIZE);
+         // Party 0 and 1 uses bit_shares, r and etaDP to execute for loop
+         1. execute for loop, compute shares and communicare the permuted vector c
+         // Helper node will be waiting for to receiveve vector c
+         2. Once helper receivs c1 and c2 it computes etaP
+    
+    //After execution of PrivateComparison
+    2.4.  
+        2.4.1. (@helper) calculates shares for etaP (in L-1) and send to P0 and P1 
+            sharesModuloOdd<smallType>(eta_shares_1, eta_shares_2, etaP, size, "INDEP");
+		    sendVector<myType>(eta_shares_1, PARTY_A, size);
+		    sendVector<myType>(eta_shares_2, PARTY_B, size);
+
+        2.4.2 (@party 0 and party 1) receive etaP and calculate shares in (L-1) 
+            funcXORModuloOdd2PC(etaDP, eta_shares, theta_shares, size);
+		    addModuloOdd<myType, smallType>(theta_shares, betai, theta_shares, size);
+		    // to fellow the definition of SecureNN, to add delta
+            addModuloOdd<myType, myType>(theta_shares, delta_shares, theta_shares, size);
+
+    //Share Conversion from L to L-1 will be complted and copied to vector a
+
+3. //Once the L-1 shares are computed and we compute MSB
+   //twoA contains shares (L-1), b contains the output from funcComputeMSB3PC 
+   funcComputeMSB3PC(a = twoA, b, size);
+
+   @Helper
+   3.1. Generates (x1, x2) shares in (L-1) such that x = x1 + x2,
+         Generates LSB bit shares of r  
+         Generates shares in prime for each bit in r, send all af these to P0 and P1 respectively
+        r1[i] = aes_indep->randModuloOdd();r2[i] = aes_indep->randModuloOdd()
+        addModuloOdd<myType, myType>(r1, r2, r, size);
+        sharesOfBits(bit_shares_r_1, bit_shares_r_2, r, size, "INDEP");
+		sharesOfLSB(LSB_shares_1, LSB_shares_2, r, size, "INDEP");
+
+		sendVector<smallType>(bit_shares_r_1, PARTY_A, size*BIT_SIZE);
+		sendVector<smallType>(bit_shares_r_2, PARTY_B, size*BIT_SIZE);
+		sendTwoVectors<myType>(r1, LSB_shares_1, PARTY_A, size, size);
+		sendTwoVectors<myType>(r2, LSB_shares_2, PARTY_B, size, size);
+
+   3.2. @P0 and P1
+      a.receive r1, prime shares of r1 and bit shares of r[0]
+        receiveVector<smallType>(bit_shares, PARTY_C, size*BIT_SIZE);
+		receiveTwoVectors<myType>(ri, LSB_shares, PARTY_C, size, size);
+
+      b.P0 and P1 reconstruct r by exchanging r1 and r2
+    
+   P0, P1 and helper will call funcPrivateCompareMPC
+
+   3.3. @P0 and P1 funcPrivateCompareMPC()
+
+      3.3.1. Execution for loop using common information r, beta r;
+      shares of x in prime world. Permute the ansewer and communicate with helper
+   
+    @ Helper funcPrivateCompareMPC()
+      3.3.2. Helper computes betaP and communicates with P0 and P1
+
+    3.4.  @P0 and P1
+       Now we have to compute y[0] = x[0] ^ r[0] ^ + (r > x) using <betaP>, beta
+       <x[0]>, r[0]. 
+       a. for (r > x)
+          <(r > x)> = <gamma> =  <betap> +i*beta -2*beta*<betap>
+        theta_shares[i] = (1 - 2*beta[i])*theta_shares[i] + j*beta[i];
+         
+       b. for x[0] ^ r[0]
+          <x[0] ^ r[0]> = <delta> = <x[0]> + i*r[0] -2*r[0]*<x[0]>
+        LSB_shares[i] = (1 - 2*(c[i] & 1))*LSB_shares[i] + j*(c[i] & 1);	
+
+       c. y[0] =(a) ^ (b)
+          find dotproduct of <gamma> and <delta> into <theta>
+          ****funcDotProductMPC(theta_shares, LSB_shares, prod, size);
+
+       d.<alpha> = <gamma> + <delta> - 2<theta>
+
+4. ****matmul with the input.... 
+
+
+/************************************************************/
+Discussion
+/************************************************************/
+0. should we stay in X = X1 + X2 domain or \Delta X = X + \delta x1 + \delta x2 ?????
+ because we are using matrix multiplication, argmax will be difficult ....
+
+1. Random numer generator - check with existing ABY 2.0-done, able to generate
+2. Send and receive functions - use existing function
+3. For share conversion from \Delta world to X1, X2 world and viceversa 
+
+3. They have matrix multiplication and dot product used in RELU they assume shares 
+
+we will be using relu afetr matrix multiplication or convolution operation ABY 2.0 shares
+
+1. look at how to generate random values mod L , mod prime, bit shares
+
+       
+
+        
+       
+       
+    
+   

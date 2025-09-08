@@ -87,7 +87,7 @@ def process_img(img_name):
     
     colsPadding = (int(math.ceil((28-cols)/2.0)),int(math.floor((28-cols)/2.0)))
     rowsPadding = (int(math.ceil((28-rows)/2.0)),int(math.floor((28-rows)/2.0)))
-    img_ = np.lib.pad(img_,(rowsPadding,colsPadding),'constant')
+    img_ = np.pad(img_,(rowsPadding,colsPadding),'constant')
 
     # shifitng the image to center it at the centre of gravity of the number
     shiftx,shifty = getBestShift(img_)
