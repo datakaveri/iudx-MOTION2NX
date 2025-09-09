@@ -8,7 +8,7 @@ support only ArithmeticBEAVY secret sharing protocol. We can extend this setting
 
 ## New additions
 1. **ReLU using Helper Node :** In this work, we implement the ReLU functionality using the Helper Node framework.In our previous work, we implemented multiplication and convolution operations using the Helper Node.
-Here, we extend this approach to implement 3-PC ReLU, following the algorithm described in “Efficient Secure Three-Party Computation with a Helper” (ePrint 2018/442).
+Here, we extend this approach to implement 3-PC ReLU, following the algorithm described in “Efficient Secure Three-Party Computation with a Helper” [(ePrint 2018/442)](https://eprint.iacr.org/2018/442).
 The original algorithm is designed for arithmetic shares. To integrate it into ABY 2.0, we implemented wrapper functions that transparently convert ABY 2.0 shares into arithmetic shares and back.
 This makes our ReLU operator seamlessly usable within the ABY 2.0 framework while maintaining compatibility with secure multiparty computation protocols. ReLU using Helper Node redice the memory usage considerably.
 2. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
