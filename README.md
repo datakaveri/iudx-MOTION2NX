@@ -9,13 +9,13 @@ support only ArithmeticBEAVY secret sharing protocol. We can extend this setting
 ## New additions
 
 
-1. **CNN:** In our prevous work we implemenetd image inference using fully connected neural networks. In this work we use convolutional layers to execute the image inference task. Further,  we implemeneted convolution operation using Helper node to decrease the momory usage and execution time.
+1. **CNN:** In our prevous work we implemenetd image inference using fully connected neural networks. In this work we use convolutional layers to execute the image inference task. Further, we implemeneted convolution operation using Helper node to decrease the momory usage and execution time.
 
 2. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
 servers for performing privacy preserving operations. 
 
 
-3. **Modular approach to Neural Network Inferencing on MNIST data:** Two compute servers are involved in the inferencing
+3. **Modular approach to Image Inferencing:** Two compute servers are involved in the inferencing
 task. There are two data providers, one of them provides the neural network model (weights and biases) to the compute
 servers and the other data provider (Image provider) provides image that has to be inferred. We do not reconstruct the final
 output “in clear” at the compute servers in order to maintain privacy. The compute servers send their respective output shares
