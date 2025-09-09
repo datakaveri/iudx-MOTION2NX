@@ -9,7 +9,7 @@ support only ArithmeticBEAVY secret sharing protocol. We can extend this setting
 ## New additions
 
 
-1.**CNN** In our prevous work we implemenetd image inference using fully connected neural networks. In this work we use convolutional layers to execute the image inference task. Further,  we implemeneted convolution operation using Helper node to decrease the momory usage and execution time.
+1. **CNN:** In our prevous work we implemenetd image inference using fully connected neural networks. In this work we use convolutional layers to execute the image inference task. Further,  we implemeneted convolution operation using Helper node to decrease the momory usage and execution time.
 
 2. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
 servers for performing privacy preserving operations. 
@@ -36,7 +36,7 @@ These ideas have been submitted in the form of a workshop paper under the title,
 You can access the full paper and its abstract on arXiv by following the link: https://arxiv.org/abs/2408.16387.
 The abstract of the paper is available for your reference below:
 
-This paper aims to develop an efficient open-source Secure Multi-Party Computation (SMPC) repository, that addresses the issue of practical and scalable implementation of SMPC protocol on machines with moderate computational resources, while aiming to reduce the execution time. We implement the ABY2.0 protocol for SMPC, providing developers with effective tools for building applications on the ABY 2.0 protocol. This article addresses the limitations of the C++ based MOTION2NX framework for secure neural network inference, including memory constraints and operation compatibility issues. Our enhancements include optimizing the memory usage, reducing execution time using a third-party Helper node, and enhancing efficiency while still preserving data privacy. These optimizations enable MNIST dataset inference in just 32 seconds with only 0.2 GB of RAM for a 5-layer neural network. In contrast, the previous baseline implementation required 8.03 GB of RAM and 200 seconds of execution time. 
+This work contributes towards the development of an efficient and scalable open-source Secure Multi-Party Computation (SMPC) protocol on machines with moderate computational resources. We use the ABY2.0 SMPC protocol implemented on the C++ based MOTION2NX framework for secure convolutional neural network (CNN) inference application with semi-honest security. Our list of contributions are as follows. Firstly, we enhance MOTION2NX by providing a tensorized version of several primitive functions including the Hadamard product, indicator function and argmax function. Secondly, we adapt an existing Helper node algorithm, working in tandem with the ABY2.0 protocol, for efficient convolution computation to reduce execution time and RAM usage. Thirdly, we also present a novel splitting algorithm that divides the computations at each CNN layer into multiple configurable chunks. This novel splitting algorithm, providing significant reduction in RAM usage, is of independent interest and is applicable to general SMPC protocols.
 
 
 ## Working Environment
