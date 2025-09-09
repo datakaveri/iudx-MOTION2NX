@@ -7,7 +7,7 @@ specifically, we added two data providers to supply private and public shares to
 support only ArithmeticBEAVY secret sharing protocol. We can extend this setting to multiple (>2) data providers as well.
 
 ## New additions
-1. **ReLU using Helper Node :**
+1. **ReLU using Helper Node :** In this work we implemented RelU functionality using Helper Node. In previous works multiplication and convolution operations are implemented using Helper node.Please see https://eprint.iacr.org/2018/442 for the 
 2. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
 servers for performing privacy preserving operations. 
 
@@ -27,7 +27,7 @@ The modular approach helps us to accomplish the following: \
 	(a)    Reduce the memory usage for secure computation of the neural network inferencing task. \
 	(b)    Provides us with the ability to easily execute a deep neural network with large number of layers (>2) because the memory usage does not scale up with the number of layers in our modular approach. 
 
-5. Accuracy and Cross Entropy Loss testing for MNIST Neural Network Inference 
+6. Accuracy and Cross Entropy Loss testing for MNIST Neural Network Inference 
 
 
 This code is provided as a experimental implementation for testing purposes and should not be used in a production environment. 
