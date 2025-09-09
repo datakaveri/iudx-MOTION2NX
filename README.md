@@ -7,14 +7,15 @@ specifically, we added two data providers to supply private and public shares to
 support only ArithmeticBEAVY secret sharing protocol. We can extend this setting to multiple (>2) data providers as well.
 
 ## New additions
-1. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
+1. **ReLU using Helper Node :**
+2. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
 servers for performing privacy preserving operations. 
 
-2. **New gates to support constant multiplication:** This operation is multiplying a constant (which is common knowledge to
+3. **New gates to support constant multiplication:** This operation is multiplying a constant (which is common knowledge to
 both the parties) with private data. This new gate does not require creation of shares for the constant, thereby making the
 operation faster. 
 
-3. **Modular approach to Neural Network Inferencing on MNIST data:** Two compute servers are involved in the inferencing
+4. **Modular approach to Neural Network Inferencing on MNIST data:** Two compute servers are involved in the inferencing
 task. There are two data providers, one of them provides the neural network model (weights and biases) to the compute
 servers and the other data provider (Image provider) provides image that has to be inferred. We do not reconstruct the final
 output “in clear” at the compute servers in order to maintain privacy. The compute servers send their respective output shares
@@ -26,7 +27,7 @@ The modular approach helps us to accomplish the following: \
 	(a)    Reduce the memory usage for secure computation of the neural network inferencing task. \
 	(b)    Provides us with the ability to easily execute a deep neural network with large number of layers (>2) because the memory usage does not scale up with the number of layers in our modular approach. 
 
-4. Accuracy and Cross Entropy Loss testing for MNIST Neural Network Inference 
+5. Accuracy and Cross Entropy Loss testing for MNIST Neural Network Inference 
 
 
 This code is provided as a experimental implementation for testing purposes and should not be used in a production environment. 
