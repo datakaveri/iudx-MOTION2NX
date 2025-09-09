@@ -7,12 +7,11 @@ specifically, we added two data providers to supply private and public shares to
 support only ArithmeticBEAVY secret sharing protocol. We can extend this setting to multiple (>2) data providers as well.
 
 ## New additions
-1. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
+1. **Convolution Layer:** In our prvious work we implemented image inference using fully conencted neural networks. In this work we execute dimage inference using Convolutional Networks. Further, we implemented convolution using Helper node to
+   reduce meory usage.
+2. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
 servers for performing privacy preserving operations. 
 
-2. **New gates to support constant multiplication:** This operation is multiplying a constant (which is common knowledge to
-both the parties) with private data. This new gate does not require creation of shares for the constant, thereby making the
-operation faster. 
 
 3. **Modular approach to Neural Network Inferencing on MNIST data:** Two compute servers are involved in the inferencing
 task. There are two data providers, one of them provides the neural network model (weights and biases) to the compute
@@ -26,19 +25,17 @@ The modular approach helps us to accomplish the following: \
 	(a)    Reduce the memory usage for secure computation of the neural network inferencing task. \
 	(b)    Provides us with the ability to easily execute a deep neural network with large number of layers (>2) because the memory usage does not scale up with the number of layers in our modular approach. 
 
-4. Accuracy and Cross Entropy Loss testing for MNIST Neural Network Inference 
-
+4. Accuracy and Cross Entropy Loss testing for MNIST and CFAR-10 Neural Network Inference 
 
 This code is provided as a experimental implementation for testing purposes and should not be used in a production environment. 
 
-These ideas have been submitted in the form of a workshop paper under the title, "Empowering SMPC: Bridging the Gap Between Scalability, Memory Efficiency and Privacy in Neural Network Inference".
+These ideas have been submitted in the form of a workshop paper under the title, "Enhancing MOTION2NX for Efficient, Scalable and Secure Image Inference using Convolutional Neural Networks".
 You can access the full paper and its abstract on arXiv by following the link: 
-[Empowering SMPC: Bridging the Gap Between Scalability, Memory Efficiency and Privacy in Neural Network Inference](https://arxiv.org/abs/2310.10133).
+[https://arxiv.org/abs/2408.16387](https://arxiv.org/abs/2408.16387)
 
 The abstract of the paper is available for your reference below:
 
-This paper aims to develop an efficient open-source Secure Multi-Party Computation (SMPC) repository, that addresses the issue of practical and scalable implementation of SMPC protocol on machines with moderate computational resources, while aiming to reduce the execution time. We implement the ABY2.0 protocol for SMPC, providing developers with effective tools for building applications on the ABY 2.0 protocol. This article addresses the limitations of the C++ based MOTION2NX framework for secure neural network inference, including memory constraints and operation compatibility issues. Our enhancements include optimizing the memory usage, reducing execution time using a third-party Helper node, and enhancing efficiency while still preserving data privacy. These optimizations enable MNIST dataset inference in just 32 seconds with only 0.2 GB of RAM for a 5-layer neural network. In contrast, the previous baseline implementation required 8.03 GB of RAM and 200 seconds of execution time. 
-
+This work contributes towards the development of an efficient and scalable open-source Secure Multi-Party Computation (SMPC) protocol on machines with moderate computational resources. We use the ABY2.0 SMPC protocol implemented on the C++ based MOTION2NX framework for secure convolutional neural network (CNN) inference application with semi-honest security. Our list of contributions are as follows. Firstly, we enhance MOTION2NX by providing a tensorized version of several primitive functions including the Hadamard product, indicator function and argmax function. Secondly, we adapt an existing Helper node algorithm, working in tandem with the ABY2.0 protocol, for efficient convolution computation to reduce execution time and RAM usage. Thirdly, we also present a novel splitting algorithm that divides the computations at each CNN layer into multiple configurable chunks. This novel splitting algorithm, providing significant reduction in RAM usage, is of independent interest and is applicable to general SMPC protocols.
 
 ## Working Environment
 
