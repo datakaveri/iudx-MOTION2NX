@@ -7,6 +7,7 @@ specifically, we added two data providers to supply private and public shares to
 support only ArithmeticBEAVY secret sharing protocol. We can extend this setting to multiple (>2) data providers as well.
 
 ## New additions
+1. **Convolution Layer:**
 1. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
 servers for performing privacy preserving operations. 
 
