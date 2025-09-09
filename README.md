@@ -8,6 +8,7 @@ support only ArithmeticBEAVY secret sharing protocol. We can extend this setting
 
 ## New additions
 
+
 1.**CNN** In our prevous work we implemenetd image inference using fully connected neural networks. In this work we use convolutional layers to execute the image inference task. Further,  we implemeneted convolution operation using Helper node to decrease the momory usage and execution time.
 
 2. **Data providers:** Implemented data providers that provide shares of their respective private data to the secure compute
@@ -31,10 +32,8 @@ The modular approach helps us to accomplish the following: \
 
 This code is provided as a experimental implementation for testing purposes and should not be used in a production environment. 
 
-These ideas have been submitted in the form of a workshop paper under the title, "Empowering SMPC: Bridging the Gap Between Scalability, Memory Efficiency and Privacy in Neural Network Inference".
-You can access the full paper and its abstract on arXiv by following the link: 
-[Empowering SMPC: Bridging the Gap Between Scalability, Memory Efficiency and Privacy in Neural Network Inference](https://arxiv.org/abs/2310.10133).
-
+These ideas have been submitted in the form of a workshop paper under the title, "Enhancing MOTION2NX for Efficient, Scalable and Secure Image Inference using Convolutional Neural Networks".
+You can access the full paper and its abstract on arXiv by following the link: https://arxiv.org/abs/2408.16387.
 The abstract of the paper is available for your reference below:
 
 This paper aims to develop an efficient open-source Secure Multi-Party Computation (SMPC) repository, that addresses the issue of practical and scalable implementation of SMPC protocol on machines with moderate computational resources, while aiming to reduce the execution time. We implement the ABY2.0 protocol for SMPC, providing developers with effective tools for building applications on the ABY 2.0 protocol. This article addresses the limitations of the C++ based MOTION2NX framework for secure neural network inference, including memory constraints and operation compatibility issues. Our enhancements include optimizing the memory usage, reducing execution time using a third-party Helper node, and enhancing efficiency while still preserving data privacy. These optimizations enable MNIST dataset inference in just 32 seconds with only 0.2 GB of RAM for a 5-layer neural network. In contrast, the previous baseline implementation required 8.03 GB of RAM and 200 seconds of execution time. 
